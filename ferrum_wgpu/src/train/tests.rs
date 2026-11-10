@@ -38,6 +38,121 @@ fn plans_are_consistent_with_the_allocated_buffers() {
 }
 
 #[test]
+fn load_refuses_moments_of_another_shape() {
+    let Some(g) = open_for_test() else { return };
+    let c = cfg();
+    let w = Gpt2::init(c, 31);
+    let mut tr = GpuTrainer::new(&g, &w, None).unwrap();
+    let other = Gpt2::init(Config { dim: 12, ..c }, 31);
+    let e = tr
+        .load(&w, Some((&other.zeros_like(), &w.zeros_like())), 0)
+        .unwrap_err();
+    assert!(e.to_string().contains("moment shapes differ"), "{e}");
+    let e = tr
+        .load(&w, Some((&w.zeros_like(), &other.zeros_like())), 0)
+        .unwrap_err();
+    assert!(e.to_string().contains("moment shapes differ"), "{e}");
+    assert_eq!(tr.steps(), 0, "a refused load changes nothing");
+}
+
+#[test]
+fn a_gpu_fault_at_any_command_fails_the_step_cleanly_and_nothing_is_applied() {
+    let Some(g) = open_for_test() else { return };
+    let c = cfg();
+    let w = Gpt2::init(c, 41);
+    let mut tr = GpuTrainer::new(&g, &w, None).unwrap();
+    let (ids, targets) = batch_data(&c, 2, 4, 0);
+    let sc = StepConfig {
+        adam: Adam::new(0.01),
+        clip: 1.0,
+    };
+    let mut attempts = 0;
+    let commands = g.sweep_faults(|| {
+        attempts += 1;
+        let before = tr.steps();
+        let r = tr.step(&ids, &targets, 2, &sc).map(|_| ());
+        if r.is_err() {
+            assert_eq!(tr.steps(), before, "a failed step does not count");
+        }
+        r
+    });
+    // The failed attempts discarded their batches, so only the final success touched the weights.
+    assert!(
+        commands > 100,
+        "a training step issues many commands, got {commands}"
+    );
+    assert_eq!(attempts, commands + 1);
+    assert_eq!(tr.steps(), 1);
+    let fresh = GpuTrainer::new(&g, &w, None).unwrap();
+    assert_eq!(
+        fresh.weights_host().unwrap(),
+        w,
+        "sanity: the baseline weights are what we started from"
+    );
+    assert_ne!(
+        tr.weights_host().unwrap(),
+        w,
+        "the one successful step updated them"
+    );
+}
+
+#[test]
+fn loss_and_grads_reports_a_fault_too() {
+    let Some(g) = open_for_test() else { return };
+    let c = cfg();
+    let mut tr = GpuTrainer::new(&g, &Gpt2::init(c, 42), None).unwrap();
+    let (ids, targets) = batch_data(&c, 1, 3, 0);
+    let commands = g.sweep_faults(|| tr.loss_and_grads(&ids, &targets, 1).map(|_| ()));
+    assert!(commands > 50, "{commands}");
+}
+
+#[test]
+fn a_lost_device_surfaces_through_every_engine_method() {
+    let Some(g) = open_for_test() else { return };
+    let c = cfg();
+    let w = Gpt2::init(c, 43);
+    let mut tr = GpuTrainer::new(&g, &w, None).unwrap();
+    let snap = Engine::snapshot(&tr).unwrap();
+    g.destroy();
+    for _ in 0..200 {
+        let _ = g.device.poll(wgpu::PollType::Poll);
+        if g.check().is_err() {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    let (ids, targets) = batch_data(&c, 1, 3, 0);
+    let sc = StepConfig {
+        adam: Adam::new(0.01),
+        clip: 0.0,
+    };
+    assert!(Engine::step(&mut tr, &ids, &targets, 1, &sc).is_err());
+    assert!(Engine::snapshot(&tr).is_err());
+    assert!(Engine::restore(&mut tr, &snap).is_err());
+    assert_eq!(Engine::steps(&tr), 0);
+}
+
+#[test]
+fn the_engine_view_agrees_with_the_inherent_methods() {
+    let Some(g) = open_for_test() else { return };
+    let c = cfg();
+    let mut tr = GpuTrainer::new(&g, &Gpt2::init(c, 44), None).unwrap();
+    let (ids, targets) = batch_data(&c, 2, 4, 0);
+    let sc = StepConfig {
+        adam: Adam::new(0.01),
+        clip: 0.0,
+    };
+    let s = Engine::step(&mut tr, &ids, &targets, 2, &sc).unwrap();
+    assert!(s.loss.is_finite());
+    assert_eq!(Engine::steps(&tr), 1);
+    let snap = Engine::snapshot(&tr).unwrap();
+    assert_eq!(snap.steps, 1);
+    assert_eq!(snap.weights, tr.weights_host().unwrap());
+    Engine::restore(&mut tr, &snap).unwrap();
+    assert_eq!(Engine::steps(&tr), 1);
+}
+
+#[test]
 fn weights_round_trip_through_the_device() {
     let Some(g) = open_for_test() else { return };
     let w = Gpt2::random(cfg(), 2);

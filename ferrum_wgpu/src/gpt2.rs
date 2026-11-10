@@ -365,6 +365,41 @@ mod tests {
     }
 
     #[test]
+    fn a_fault_at_any_command_fails_decoding_cleanly_and_the_context_does_not_advance() {
+        let Some(g) = open_for_test() else { return };
+        let w = Gpt2::random(cfg(), 13);
+        let mut m = GpuGpt2::new(&g, &w, None).unwrap();
+        let commands = g.sweep_faults(|| {
+            let before = m.pos();
+            let r = m.feed(3).map(|_| ());
+            if r.is_err() {
+                assert_eq!(
+                    m.pos(),
+                    before,
+                    "a failed token must not advance the position"
+                );
+            }
+            r
+        });
+        // 2 (index copy + embed) + 15 per block x 2 blocks + 2 (final norm + head).
+        assert_eq!(commands, 34);
+        assert_eq!(m.pos(), 1, "only the successful attempt advanced");
+        // Batched prefill and scoring share the same recording path.
+        let n = g.sweep_faults(|| m.forward_all(&[1, 2, 3]).map(|_| ()));
+        assert!(n > 40, "{n}");
+        g.sweep_faults(|| m.score(&[1, 2, 3, 4]).map(|_| ()));
+    }
+
+    #[test]
+    fn the_decoder_reports_its_configuration() {
+        let Some(g) = open_for_test() else { return };
+        let w = Gpt2::random(cfg(), 12);
+        let m = GpuGpt2::new(&g, &w, None).unwrap();
+        assert_eq!(m.config(), &cfg());
+        assert_eq!(m.pos(), 0);
+    }
+
+    #[test]
     fn plan_lists_every_buffer_and_scales_with_the_model() {
         let c = cfg();
         let p = plan(&c);

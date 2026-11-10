@@ -197,6 +197,19 @@ mod tests {
     }
 
     #[test]
+    fn a_nan_model_gives_a_nan_loss_instead_of_a_clamped_finite_one() {
+        // clamp_prob lets NaN through on purpose: f32::max(NaN, x) would hide divergence.
+        let (loss, _) = cross_entropy(&[f32::NAN, 0.0, 1.0], &[0], 3);
+        assert!(
+            loss.is_nan(),
+            "a NaN probability must not be clamped to a finite loss"
+        );
+        // A zero probability, by contrast, is clamped so the loss stays finite.
+        let (loss, _) = cross_entropy(&[-1e30, 0.0], &[0], 2);
+        assert!(loss.is_finite() && loss > 20.0);
+    }
+
+    #[test]
     fn cross_entropy_known_loss_and_gradient_sums_to_zero() {
         let (loss, g) = cross_entropy(&[0.0, 0.0, 0.0, 0.0], &[1], 4);
         assert!((loss - 4f32.ln()).abs() < 1e-6);

@@ -830,6 +830,29 @@ mod tests {
     }
 
     #[test]
+    fn the_mock_engine_restores_its_step_counter() {
+        let mut m = Mock::default();
+        let snap = m.snapshot().unwrap();
+        let mut snap = snap;
+        snap.steps = 9;
+        m.restore(&snap).unwrap();
+        assert_eq!(m.steps(), 9);
+        // Resuming a mock at step 9 of a 10-step budget runs exactly one more step.
+        let c = TrainConfig {
+            context: 8,
+            batch: 4,
+            max_steps: 10,
+            ..TrainConfig::default()
+        };
+        assert_eq!(
+            train(&mut m, &corpus(100), &c, None, None, &mut NoHooks)
+                .unwrap()
+                .steps_run,
+            1
+        );
+    }
+
+    #[test]
     fn cpu_engine_restore_checks_the_shape() {
         let mut e = CpuTrainer::new(Gpt2::init(cfg(), 1), 1);
         let other = Gpt2::init(Config { dim: 12, ..cfg() }, 1);

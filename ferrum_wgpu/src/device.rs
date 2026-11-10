@@ -74,6 +74,9 @@ pub struct Gpu {
     pub(crate) buffers_created: AtomicUsize,
     /// The open command batch, if any (see `Gpu::begin_batch`).
     pub(crate) batch: Mutex<Option<wgpu::CommandEncoder>>,
+    /// Test-only fault injection: commands left to run before every later one fails.
+    #[cfg(test)]
+    pub(crate) fault_after: AtomicUsize,
 }
 
 impl Gpu {
@@ -123,6 +126,8 @@ impl Gpu {
             pipelines_built: AtomicUsize::new(0),
             buffers_created: AtomicUsize::new(0),
             batch: Mutex::new(None),
+            #[cfg(test)]
+            fault_after: AtomicUsize::new(usize::MAX),
         })
     }
 

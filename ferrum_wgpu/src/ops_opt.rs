@@ -13,6 +13,17 @@ pub fn parts_for(n: usize) -> usize {
     n.div_ceil(CHUNK).max(1)
 }
 
+/// The sum-of-squares kernel runs one workgroup per partial along x, so `partials` must fit.
+/// (Split out so the limit is testable without a 1 GB tensor.)
+fn check_dispatchable(partials: usize) -> Result<(), GpuError> {
+    if partials > crate::runtime::GROUPS_X {
+        return Err(GpuError(
+            "sumsq_parts: tensor too large for one dispatch".into(),
+        ));
+    }
+    Ok(())
+}
+
 fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     if b.len() == want {
         Ok(())
@@ -33,11 +44,7 @@ pub fn sumsq_parts(gpu: &Gpu, g: &GpuBuf, part: &GpuBuf, offset: usize) -> Resul
             part.len()
         )));
     }
-    if k > crate::runtime::GROUPS_X {
-        return Err(GpuError(
-            "sumsq_parts: tensor too large for one dispatch".into(),
-        ));
-    }
+    check_dispatchable(k)?;
     let p = gpu.pipeline("sumsq_part", include_str!("shaders/sumsq_part.wgsl"))?;
     gpu.dispatch(
         &p,
@@ -115,6 +122,28 @@ mod tests {
     use ferrum_ref::gpt2::{Config, Gpt2};
     use ferrum_ref::matmul::rand_vec;
     use ferrum_ref::optim::{adam_step, clip_scale, global_norm, AdamState};
+
+    #[test]
+    fn the_dispatch_limit_is_enforced_without_needing_a_huge_tensor() {
+        assert!(check_dispatchable(1).is_ok());
+        assert!(check_dispatchable(crate::runtime::GROUPS_X).is_ok());
+        let e = check_dispatchable(crate::runtime::GROUPS_X + 1).unwrap_err();
+        assert!(e.to_string().contains("too large"));
+        // The biggest tensor that fits: partials * CHUNK elements.
+        assert_eq!(
+            parts_for(crate::runtime::GROUPS_X * CHUNK),
+            crate::runtime::GROUPS_X
+        );
+    }
+
+    #[test]
+    fn an_empty_scale_buffer_is_refused() {
+        let Some(g) = open_for_test() else { return };
+        let a = g.zeros(4).unwrap();
+        let empty = g.zeros(0).unwrap();
+        let e = adam_update(&g, (&a, &a, &a, &a), &empty, &Adam::new(0.1), true, 1).unwrap_err();
+        assert!(e.to_string().contains("scale buffer is empty"));
+    }
 
     #[test]
     fn parts_for_counts_whole_chunks() {

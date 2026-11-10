@@ -149,6 +149,9 @@ mod tests {
     fn empty_dimensions_give_empty_or_zero_output() {
         assert_eq!(matmul(&[], &[], 0, 3, 0).unwrap(), Vec::<f32>::new());
         assert_eq!(matmul(&[], &[], 2, 0, 2).unwrap(), vec![0.0; 4]);
+        // The threaded variant takes the same early exit for empty outputs.
+        assert!(matmul_threaded(&[], &[], 0, 3, 0, 4).unwrap().is_empty());
+        assert!(matmul_threaded(&[], &[], 5, 0, 0, 2).unwrap().is_empty());
     }
 
     #[test]

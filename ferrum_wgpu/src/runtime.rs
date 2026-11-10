@@ -182,6 +182,8 @@ impl Gpu {
     /// one the commands join the batch encoder, and any error surfaces at [`Gpu::end_batch`].
     fn record(&self, f: impl FnOnce(&mut wgpu::CommandEncoder)) -> Result<(), GpuError> {
         self.check()?;
+        #[cfg(test)]
+        self.injected_fault()?;
         {
             let mut batch = self.batch.lock().unwrap_or_else(|e| e.into_inner());
             if let Some(enc) = batch.as_mut() {
@@ -194,6 +196,50 @@ impl Gpu {
             f(&mut enc);
             self.queue.submit([enc.finish()]);
         })
+    }
+
+    /// Test hook: let `n` more commands (dispatches and copies) succeed, then fail every later
+    /// one with "injected fault". `usize::MAX` turns injection off. Used to drive the error
+    /// branch of every `?` in code that issues many commands.
+    #[cfg(test)]
+    pub(crate) fn fail_after(&self, n: usize) {
+        self.fault_after.store(n, Ordering::Relaxed);
+    }
+
+    #[cfg(test)]
+    fn injected_fault(&self) -> Result<(), GpuError> {
+        match self.fault_after.load(Ordering::Relaxed) {
+            usize::MAX => Ok(()),
+            0 => Err(GpuError("injected fault".into())),
+            n => {
+                self.fault_after.store(n - 1, Ordering::Relaxed);
+                Ok(())
+            }
+        }
+    }
+
+    /// Test helper: run `f` repeatedly, failing command 0, then 1, then 2, ... until it
+    /// succeeds. Every failed run must report the injected fault and leave no batch open.
+    /// Returns how many commands `f` issues, and turns injection off again.
+    #[cfg(test)]
+    pub(crate) fn sweep_faults(&self, mut f: impl FnMut() -> Result<(), GpuError>) -> usize {
+        for k in 0..100_000 {
+            self.fail_after(k);
+            match f() {
+                Err(e) => {
+                    assert!(e.to_string().contains("injected fault"), "command {k}: {e}");
+                    assert!(
+                        !self.batching(),
+                        "a batch was left open after a fault at command {k}"
+                    );
+                }
+                Ok(()) => {
+                    self.fail_after(usize::MAX);
+                    return k;
+                }
+            }
+        }
+        panic!("the operation never succeeded");
     }
 
     /// Start recording every following dispatch and copy into one command encoder (one submit
@@ -290,6 +336,48 @@ mod tests {
         assert_eq!(groups_for((8, 8), (0, 0), 65535).unwrap(), (8, 8)); // zero tile is clamped
         let e = groups_for((8, 8 * 70_000), (8, 8), 65535).unwrap_err();
         assert!(e.to_string().contains("65535"));
+    }
+
+    #[test]
+    fn fault_injection_fails_exactly_the_requested_command_and_can_be_turned_off() {
+        let Some(g) = open_for_test() else { return };
+        let (a, b) = (g.upload(&[1.0, 2.0]).unwrap(), g.zeros(2).unwrap());
+        g.fail_after(2);
+        g.copy_f32(&a, 0, &b, 0, 1).unwrap(); // command 1
+        g.copy_f32(&a, 1, &b, 1, 1).unwrap(); // command 2
+        let e = g.copy_f32(&a, 0, &b, 0, 2).unwrap_err(); // command 3 fails
+        assert!(e.to_string().contains("injected fault"));
+        assert!(g.copy_f32(&a, 0, &b, 0, 2).is_err(), "and every later one");
+        g.fail_after(usize::MAX);
+        g.copy_f32(&a, 0, &b, 0, 2).unwrap();
+        assert_eq!(g.read(&b).unwrap(), vec![1.0, 2.0]);
+    }
+
+    #[test]
+    fn a_failure_inside_a_batch_can_be_discarded_and_the_device_keeps_working() {
+        let Some(g) = open_for_test() else { return };
+        let (a, b) = (g.upload(&[5.0]).unwrap(), g.zeros(1).unwrap());
+        g.begin_batch().unwrap();
+        g.copy_f32(&a, 0, &b, 0, 1).unwrap();
+        g.fail_after(0);
+        assert!(g.copy_f32(&a, 0, &b, 0, 1).is_err());
+        g.end_batch(false).unwrap();
+        g.fail_after(usize::MAX);
+        assert!(!g.batching());
+        assert_eq!(
+            g.read(&b).unwrap(),
+            vec![0.0],
+            "the discarded batch never ran"
+        );
+    }
+
+    #[test]
+    fn groups_1d_refuses_sizes_beyond_two_dimensions_of_full_rows() {
+        let e = groups_1d(usize::MAX / 2).unwrap_err();
+        assert!(e.to_string().contains("1-D dispatch limit"));
+        let max = GROUPS_X * GROUPS_X * WG_1D;
+        assert!(groups_1d(max).is_ok());
+        assert!(groups_1d(max + WG_1D).is_err());
     }
 
     #[test]
