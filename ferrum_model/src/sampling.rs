@@ -1,33 +1,8 @@
 //! Token-level sampling from a logits row (the same semantics ferrum-cpu documents:
 //! temperature 0 is exact argmax with the first maximum winning).
 
-/// Seeded xorshift64* generator (deterministic, no dependencies).
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub struct Rng(u64);
-
-impl Rng {
-    /// A generator from `seed` (0 is remapped to a fixed non-zero state).
-    pub fn new(seed: u64) -> Self {
-        Rng(if seed == 0 {
-            0x9e37_79b9_7f4a_7c15
-        } else {
-            seed
-        })
-    }
-
-    /// Next 64 random bits.
-    pub fn next_u64(&mut self) -> u64 {
-        self.0 ^= self.0 >> 12;
-        self.0 ^= self.0 << 25;
-        self.0 ^= self.0 >> 27;
-        self.0.wrapping_mul(0x2545_f491_4f6c_dd1d)
-    }
-
-    /// Uniform in `[0, 1)`.
-    pub fn next_f32(&mut self) -> f32 {
-        (self.next_u64() >> 40) as f32 / (1u64 << 24) as f32
-    }
-}
+/// The shared seeded generator (lives in `ferrum_ref`, re-exported for callers of this module).
+pub use ferrum_ref::rng::Rng;
 
 /// Sampling controls.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -126,19 +101,6 @@ mod tests {
     use super::*;
 
     const L: [f32; 5] = [1.0, 3.0, 3.0, 0.5, -2.0];
-
-    #[test]
-    fn rng_is_deterministic_and_in_range() {
-        let (mut a, mut b) = (Rng::new(7), Rng::new(7));
-        for _ in 0..100 {
-            let x = a.next_f32();
-            assert_eq!(x, b.next_f32());
-            assert!((0.0..1.0).contains(&x));
-        }
-        assert_ne!(Rng::new(7).next_u64(), Rng::new(8).next_u64());
-        assert_eq!(Rng::new(0), Rng::new(0));
-        assert_ne!(Rng::new(0).next_u64(), 0);
-    }
 
     #[test]
     fn argmax_takes_the_first_maximum_and_ignores_nan() {

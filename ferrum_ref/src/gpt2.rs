@@ -255,7 +255,63 @@ pub fn is_matrix_in_block(i: usize) -> bool {
     matches!(i, 2 | 4 | 6 | 8 | 12 | 14)
 }
 
+/// Element count of every parameter in canonical order, or `None` if the config is invalid or
+/// a size overflows (so a hostile config can never drive a huge allocation).
+pub fn param_lens(c: &Config) -> Option<Vec<usize>> {
+    c.validate().ok()?;
+    let (d, h) = (c.dim, c.hidden);
+    let mul = |a: usize, b: usize| a.checked_mul(b);
+    let mut v = vec![mul(c.vocab, d)?, mul(c.ctx, d)?];
+    for _ in 0..c.layers {
+        let (dd, dh) = (mul(d, d)?, mul(d, h)?);
+        v.extend([d, d, dd, d, dd, d, dd, d, dd, d, d, d, dh, h, dh, d]);
+    }
+    v.extend([d, d, mul(d, c.vocab)?]);
+    Some(v)
+}
+
 impl Gpt2 {
+    /// Build a model from parameters in canonical order; each length is checked against
+    /// [`param_lens`].
+    pub fn from_params(cfg: Config, mut params: Vec<Vec<f32>>) -> Result<Gpt2, String> {
+        let lens = param_lens(&cfg).ok_or("invalid model config")?;
+        if params.len() != lens.len() || params.iter().zip(&lens).any(|(p, &n)| p.len() != n) {
+            return Err("parameter lengths do not match the config".into());
+        }
+        let mut it = params.drain(..);
+        let mut next = || it.next().expect("count checked");
+        let (tok, pos) = (next(), next());
+        let blocks = (0..cfg.layers)
+            .map(|_| Block {
+                ln1_g: next(),
+                ln1_b: next(),
+                wq: next(),
+                bq: next(),
+                wk: next(),
+                bk: next(),
+                wv: next(),
+                bv: next(),
+                wo: next(),
+                bo: next(),
+                ln2_g: next(),
+                ln2_b: next(),
+                w1: next(),
+                b1: next(),
+                w2: next(),
+                b2: next(),
+            })
+            .collect();
+        Ok(Gpt2 {
+            cfg,
+            tok,
+            pos,
+            blocks,
+            lnf_g: next(),
+            lnf_b: next(),
+            head: next(),
+        })
+    }
+
     /// All parameters in canonical order: token embedding, position embedding, each block's
     /// 16 parameters, final LayerNorm gain and shift, head.
     pub fn params(&self) -> Vec<&Vec<f32>> {
@@ -497,6 +553,45 @@ mod tests {
         assert_eq!(z.cfg, w.cfg);
         z.params_mut()[0][0] = 5.0;
         assert_eq!(z.tok[0], 5.0);
+    }
+
+    #[test]
+    fn param_lens_agree_with_a_real_model_and_from_params_round_trips() {
+        let w = Gpt2::random(tiny(), 5);
+        let lens = param_lens(&tiny()).unwrap();
+        assert_eq!(lens, w.params().iter().map(|p| p.len()).collect::<Vec<_>>());
+        let back = Gpt2::from_params(tiny(), w.params().into_iter().cloned().collect()).unwrap();
+        assert_eq!(back, w);
+        // Wrong count, wrong length, bad config.
+        let mut short: Vec<Vec<f32>> = w.params().into_iter().cloned().collect();
+        short.pop();
+        assert!(Gpt2::from_params(tiny(), short).is_err());
+        let mut bent: Vec<Vec<f32>> = w.params().into_iter().cloned().collect();
+        bent[3].push(0.0);
+        assert!(Gpt2::from_params(tiny(), bent)
+            .unwrap_err()
+            .contains("do not match"));
+        assert!(Gpt2::from_params(Config { heads: 3, ..tiny() }, vec![]).is_err());
+    }
+
+    #[test]
+    fn param_lens_refuses_overflowing_and_invalid_configs() {
+        assert!(param_lens(&Config {
+            vocab: usize::MAX,
+            ..tiny()
+        })
+        .is_none());
+        assert!(param_lens(&Config {
+            dim: usize::MAX / 2 + 2,
+            heads: 1,
+            ..tiny()
+        })
+        .is_none());
+        assert!(param_lens(&Config {
+            layers: 0,
+            ..tiny()
+        })
+        .is_none());
     }
 
     #[test]

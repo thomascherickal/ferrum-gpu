@@ -41,6 +41,14 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
 9. Each phase ends at its gate. If a gate fails or misses, record the real numbers and the
    consequence in the phase doc, then continue with the recommended action (see rule 10)
    instead of halting; stop only for a real blocker (rule 10).
+11. **Modular code, tests for everything, coverage toward 100% (user decision 2026-11-10).**
+    Keep each file to one concern with a small public surface (split a file that mixes
+    concerns or grows past roughly 500 lines of non-test code; move big test modules into a
+    sibling `tests.rs`). Every function and branch gets a unit test, with stubs or fakes for
+    anything external (GPU, `nvidia-smi`, the filesystem). Measure line coverage with
+    `cargo llvm-cov` when it is available, record the numbers in `docs/COVERAGE.md`, never
+    claim a figure that was not measured, and raise the floor over time toward 100%. Code that
+    can only run on real hardware is isolated in small files so the rest stays fully testable.
 10. **Stay autonomous (user decision 2026-11-10).** Whenever there is a question about how to
     proceed, continue with the **Recommended** option without asking. Make routine decisions
     by the model's own judgement and say in one line what was decided. Do not exit autonomous

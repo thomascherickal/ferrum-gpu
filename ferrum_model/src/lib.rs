@@ -3,5 +3,6 @@
 //! Model-level glue that needs neither a GPU nor a tokenizer: the GPT-2 GGUF mapping and
 //! token-level sampling.
 
+pub mod checkpoint;
 pub mod gpt2_gguf;
 pub mod sampling;
