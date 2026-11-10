@@ -3,3 +3,4 @@
 //! CPU reference kernels: the parity oracle for the GPU engine. Grows phase by phase.
 
 pub mod matmul;
+pub mod nn;
