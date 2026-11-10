@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 (gate met, see `docs/spike-matmul.md`) and 1 complete; Phase 2 next. Rules: [`CLAUDE.md`](CLAUDE.md). Analysis of ferrum-cpu (read 2026-11-10, workspace 0.3.0) is summarised below; the previous plan revision is in git history (`daf0614`).
+**Status:** Phases 0, 1 and 2 complete (see each phase doc for results and caveats); Phase 3 (GGUF, tokenizer, GPT-2 inference) next. Phases 3 to 7 are not started.
 
 ## Independence (supersedes the earlier plan)
 
