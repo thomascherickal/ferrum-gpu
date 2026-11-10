@@ -7,6 +7,7 @@ pub mod bench_util;
 pub mod budget;
 pub mod device;
 pub mod matmul;
+pub mod runtime;
 pub mod select;
 pub mod tensor;
 

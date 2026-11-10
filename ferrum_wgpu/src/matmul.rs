@@ -1,6 +1,7 @@
 //! Matmul kernels `C[m,n] = A[m,k] * B[k,n]` on the GPU: three variants for the Phase 0 spike.
 
 use crate::device::{Gpu, GpuError};
+use crate::runtime::groups_for;
 use crate::tensor::GpuBuf;
 
 /// Kernel variants compared in the spike.
@@ -26,6 +27,14 @@ impl Variant {
         }
     }
 
+    fn key(self) -> &'static str {
+        match self {
+            Variant::Naive => "matmul_naive",
+            Variant::Tiled16 => "matmul_tiled16",
+            Variant::Blocked4 => "matmul_blocked4",
+        }
+    }
+
     /// Output elements covered by one workgroup, as (columns, rows).
     pub fn tile(self) -> (u32, u32) {
         match self {
@@ -38,43 +47,20 @@ impl Variant {
 
 /// Workgroup counts `(x, y)` to cover an `m x n` output, or an error naming the limit.
 pub fn dispatch_size(v: Variant, m: usize, n: usize, max: u32) -> Result<(u32, u32), GpuError> {
-    let (tc, tr) = v.tile();
-    let x = n.div_ceil(tc as usize);
-    let y = m.div_ceil(tr as usize);
-    if x > max as usize || y > max as usize {
-        return Err(GpuError(format!(
-            "matmul {m}x{n} needs {x}x{y} workgroups, adapter allows {max} per dimension"
-        )));
-    }
-    Ok((x as u32, y as u32))
+    groups_for((n, m), v.tile(), max)
 }
 
-/// A compiled matmul pipeline.
+/// A matmul kernel bound to a variant; the pipeline is compiled once per device and cached.
 pub struct Matmul {
     pipeline: wgpu::ComputePipeline,
     variant: Variant,
 }
 
 impl Matmul {
-    /// Compile the variant on this device.
-    pub fn new(gpu: &Gpu, variant: Variant) -> Matmul {
-        let module = gpu
-            .device
-            .create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("matmul"),
-                source: wgpu::ShaderSource::Wgsl(variant.source().into()),
-            });
-        let pipeline = gpu
-            .device
-            .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: Some("matmul"),
-                layout: None,
-                module: &module,
-                entry_point: Some("main"),
-                compilation_options: Default::default(),
-                cache: None,
-            });
-        Matmul { pipeline, variant }
+    /// Get (compiling on first use) the variant's pipeline on this device.
+    pub fn new(gpu: &Gpu, variant: Variant) -> Result<Matmul, GpuError> {
+        let pipeline = gpu.pipeline(variant.key(), variant.source())?;
+        Ok(Matmul { pipeline, variant })
     }
 
     /// Record and submit one multiply on resident buffers (does not wait).
@@ -94,47 +80,13 @@ impl Matmul {
                 c.len()
             )));
         }
-        let (gx, gy) = dispatch_size(self.variant, m, n, gpu.max_workgroups())?;
-        let dims = [m as u32, k as u32, n as u32, 0u32];
-        let ubuf = gpu.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: 16,
-            usage: wgpu::BufferUsages::UNIFORM | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        gpu.queue
-            .write_buffer(&ubuf, 0, bytemuck::cast_slice(&dims));
-        let bg = gpu.device.create_bind_group(&wgpu::BindGroupDescriptor {
-            label: None,
-            layout: &self.pipeline.get_bind_group_layout(0),
-            entries: &[
-                wgpu::BindGroupEntry {
-                    binding: 0,
-                    resource: a.buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: b.buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
-                    resource: c.buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 3,
-                    resource: ubuf.as_entire_binding(),
-                },
-            ],
-        });
-        let mut enc = gpu.device.create_command_encoder(&Default::default());
-        {
-            let mut pass = enc.begin_compute_pass(&Default::default());
-            pass.set_pipeline(&self.pipeline);
-            pass.set_bind_group(0, &bg, &[]);
-            pass.dispatch_workgroups(gx, gy, 1);
-        }
-        gpu.queue.submit([enc.finish()]);
-        Ok(())
+        let groups = dispatch_size(self.variant, m, n, gpu.max_workgroups())?;
+        gpu.dispatch(
+            &self.pipeline,
+            &[a, b, c],
+            &[m as u32, k as u32, n as u32],
+            groups,
+        )
     }
 }
 
@@ -166,7 +118,7 @@ pub fn matmul_host(
     (m, k, n): (usize, usize, usize),
 ) -> Result<Vec<f32>, GpuError> {
     let (ab, bb, cb) = (gpu.upload(a)?, gpu.upload(b)?, gpu.zeros(m * n)?);
-    Matmul::new(gpu, variant).submit(gpu, &ab, &bb, &cb, (m, k, n))?;
+    Matmul::new(gpu, variant)?.submit(gpu, &ab, &bb, &cb, (m, k, n))?;
     gpu.read(&cb)
 }
 
@@ -246,7 +198,7 @@ mod tests {
     #[test]
     fn mismatched_buffers_are_rejected() {
         let Some(g) = open_for_test() else { return };
-        let mm = Matmul::new(&g, Variant::Naive);
+        let mm = Matmul::new(&g, Variant::Naive).unwrap();
         let (a, b, c) = (
             g.zeros(4).unwrap(),
             g.zeros(4).unwrap(),

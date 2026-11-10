@@ -2,16 +2,23 @@
 
 use crate::device::{Gpu, GpuError};
 
-/// A device buffer holding `len` f32 values.
+/// A device buffer holding `len` f32 values with a row-major shape (`[len]` unless set).
+#[derive(Debug)]
 pub struct GpuBuf {
     pub(crate) buf: wgpu::Buffer,
     len: usize,
+    shape: Vec<usize>,
 }
 
 impl GpuBuf {
     /// Number of f32 elements.
     pub fn len(&self) -> usize {
         self.len
+    }
+
+    /// The row-major shape; its product is `len`.
+    pub fn shape(&self) -> &[usize] {
+        &self.shape
     }
 
     /// True when the buffer holds no elements.
@@ -34,22 +41,53 @@ impl Gpu {
                 self.info().max_binding
             )));
         }
-        let buf = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: bytes,
-            usage: USAGE,
-            mapped_at_creation: false,
-        });
-        Ok(GpuBuf { buf, len })
+        let buf = self.scoped(|| {
+            self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
+                size: bytes,
+                usage: USAGE,
+                mapped_at_creation: false,
+            })
+        })?;
+        self.buffers_created
+            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        Ok(GpuBuf {
+            buf,
+            len,
+            shape: vec![len],
+        })
+    }
+
+    /// A zero-filled buffer with the given shape.
+    pub fn zeros_shaped(&self, shape: &[usize]) -> Result<GpuBuf, GpuError> {
+        let mut b = self.zeros(shape.iter().product())?;
+        b.shape = shape.to_vec();
+        Ok(b)
     }
 
     /// Upload `data` into a new buffer.
     pub fn upload(&self, data: &[f32]) -> Result<GpuBuf, GpuError> {
         let b = self.zeros(data.len())?;
         if !data.is_empty() {
-            self.queue
-                .write_buffer(&b.buf, 0, bytemuck::cast_slice(data));
+            self.scoped(|| {
+                self.queue
+                    .write_buffer(&b.buf, 0, bytemuck::cast_slice(data))
+            })?;
         }
+        Ok(b)
+    }
+
+    /// Upload `data` with a shape; the shape's product must equal `data.len()`.
+    pub fn upload_shaped(&self, data: &[f32], shape: &[usize]) -> Result<GpuBuf, GpuError> {
+        let want: usize = shape.iter().product();
+        if want != data.len() {
+            return Err(GpuError(format!(
+                "shape {shape:?} holds {want} elements but {} were given",
+                data.len()
+            )));
+        }
+        let mut b = self.upload(data)?;
+        b.shape = shape.to_vec();
         Ok(b)
     }
 
@@ -59,15 +97,18 @@ impl Gpu {
             return Ok(Vec::new());
         }
         let bytes = (b.len * 4) as u64;
-        let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
-            label: None,
-            size: bytes,
-            usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
-            mapped_at_creation: false,
-        });
-        let mut enc = self.device.create_command_encoder(&Default::default());
-        enc.copy_buffer_to_buffer(&b.buf, 0, &staging, 0, bytes);
-        self.queue.submit([enc.finish()]);
+        let staging = self.scoped(|| {
+            let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
+                label: None,
+                size: bytes,
+                usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
+                mapped_at_creation: false,
+            });
+            let mut enc = self.device.create_command_encoder(&Default::default());
+            enc.copy_buffer_to_buffer(&b.buf, 0, &staging, 0, bytes);
+            self.queue.submit([enc.finish()]);
+            staging
+        })?;
         let (tx, rx) = std::sync::mpsc::channel();
         staging.slice(..).map_async(wgpu::MapMode::Read, move |r| {
             let _ = tx.send(r);
@@ -85,6 +126,7 @@ impl Gpu {
         let out = bytemuck::cast_slice::<u8, f32>(&view).to_vec();
         drop(view);
         staging.unmap();
+        self.check()?;
         Ok(out)
     }
 }
@@ -106,6 +148,22 @@ mod tests {
     }
 
     #[test]
+    fn shapes_are_kept_and_checked() {
+        let Some(g) = open_for_test() else { return };
+        let b = g
+            .upload_shaped(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0], &[2, 3])
+            .unwrap();
+        assert_eq!(b.shape(), &[2, 3]);
+        assert_eq!(b.len(), 6);
+        assert_eq!(g.zeros(4).unwrap().shape(), &[4]);
+        assert_eq!(g.zeros_shaped(&[3, 0]).unwrap().len(), 0);
+        let e = g
+            .upload_shaped(&[1.0, 2.0], &[2, 2])
+            .expect_err("must refuse");
+        assert!(e.to_string().contains("[2, 2]") && e.to_string().contains("2 were given"));
+    }
+
+    #[test]
     fn zeros_are_zero() {
         let Some(g) = open_for_test() else { return };
         assert_eq!(g.read(&g.zeros(5).unwrap()).unwrap(), vec![0.0; 5]);
@@ -115,7 +173,7 @@ mod tests {
     fn a_buffer_over_the_binding_limit_is_refused_by_name_of_limit() {
         let Some(g) = open_for_test() else { return };
         let too_many = (g.info().max_binding / 4 + 1) as usize;
-        let e = g.zeros(too_many).err().expect("must refuse");
+        let e = g.zeros(too_many).expect_err("must refuse");
         assert!(e.to_string().contains("binding limit"));
     }
 }

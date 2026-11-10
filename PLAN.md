@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phase 0 complete (gate met, see `docs/spike-matmul.md`); Phase 1 next. Rules: [`CLAUDE.md`](CLAUDE.md). Analysis of ferrum-cpu (read 2026-11-10, workspace 0.3.0) is summarised below; the previous plan revision is in git history (`daf0614`).
+**Status:** Phases 0 (gate met, see `docs/spike-matmul.md`) and 1 complete; Phase 2 next. Rules: [`CLAUDE.md`](CLAUDE.md). Analysis of ferrum-cpu (read 2026-11-10, workspace 0.3.0) is summarised below; the previous plan revision is in git history (`daf0614`).
 
 ## Independence (supersedes the earlier plan)
 
@@ -29,6 +29,10 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 | Determinism | Bit-identical across repeat runs on the same adapter/driver/wgpu version. CPU-vs-GPU by tolerance. |
 | Default device | `cpu` until Phase 7's matrix is green, then `auto`. |
 | Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), later `gpu_cli`, `gpu_server`, `tests`. |
+
+## Baselines
+
+Speedup gates from Phase 2 on are measured against the tuned CPU matmul ported into `ferrum_ref` in task 2.0, not the simple reference kernel, which is the parity oracle only.
 
 ## Portability rules
 

@@ -74,7 +74,7 @@ fn main() {
             std::hint::black_box(matmul_threaded(&a, &b, m, k, n, threads).unwrap());
         });
         for v in Variant::ALL {
-            let mm = Matmul::new(&gpu, v);
+            let mm = Matmul::new(&gpu, v).unwrap();
             let (ab, bb, cb) = (
                 gpu.upload(&a).unwrap(),
                 gpu.upload(&b).unwrap(),

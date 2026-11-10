@@ -151,6 +151,11 @@ impl BufferPlan {
         self.rows.push((name.to_string(), bytes));
     }
 
+    /// The planned buffers as `(name, bytes)` rows, in insertion order.
+    pub fn rows(&self) -> &[(String, u64)] {
+        &self.rows
+    }
+
     /// Sum of all planned bytes.
     pub fn total(&self) -> u64 {
         self.rows.iter().map(|r| r.1).sum()

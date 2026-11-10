@@ -2,7 +2,10 @@
 //! `tensor.rs` and `matmul.rs` so a wgpu upgrade touches three places.
 
 use crate::select::{choose, AdapterSummary, Kind, SelectError};
+use std::collections::HashMap;
 use std::future::Future;
+use std::sync::atomic::AtomicUsize;
+use std::sync::{Arc, Mutex};
 use std::task::{Context, Poll, Waker};
 
 /// Error from the GPU layer.
@@ -64,6 +67,11 @@ pub struct Gpu {
     pub(crate) queue: wgpu::Queue,
     info: AdapterSummary,
     max_workgroups: u32,
+    /// Set by the device-lost / uncaptured-error callbacks; see `Gpu::check`.
+    pub(crate) health: Arc<Mutex<Option<String>>>,
+    pub(crate) pipelines: Mutex<HashMap<&'static str, wgpu::ComputePipeline>>,
+    pub(crate) pipelines_built: AtomicUsize,
+    pub(crate) buffers_created: AtomicUsize,
 }
 
 impl Gpu {
@@ -92,11 +100,25 @@ impl Gpu {
         };
         let (device, queue) = block_on(adapter.request_device(&desc))
             .map_err(|e| GpuError(format!("request_device failed: {e}")))?;
+        // Device loss and uncaptured errors are recorded, never allowed to abort the process.
+        let health = Arc::new(Mutex::new(None));
+        let h = Arc::clone(&health);
+        device.set_device_lost_callback(move |reason, msg| {
+            *h.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("{reason:?}: {msg}"));
+        });
+        let h = Arc::clone(&health);
+        device.on_uncaptured_error(Arc::new(move |e: wgpu::Error| {
+            *h.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("uncaptured error: {e}"));
+        }));
         Ok(Gpu {
             device,
             queue,
             info: summaries[idx].clone(),
             max_workgroups: limits.max_compute_workgroups_per_dimension,
+            health,
+            pipelines: Mutex::new(HashMap::new()),
+            pipelines_built: AtomicUsize::new(0),
+            buffers_created: AtomicUsize::new(0),
         })
     }
 
