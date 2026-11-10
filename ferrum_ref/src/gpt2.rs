@@ -203,6 +203,133 @@ impl Gpt2 {
     }
 }
 
+impl Block {
+    /// The 16 parameters in canonical order.
+    pub fn params(&self) -> [&Vec<f32>; 16] {
+        [
+            &self.ln1_g,
+            &self.ln1_b,
+            &self.wq,
+            &self.bq,
+            &self.wk,
+            &self.bk,
+            &self.wv,
+            &self.bv,
+            &self.wo,
+            &self.bo,
+            &self.ln2_g,
+            &self.ln2_b,
+            &self.w1,
+            &self.b1,
+            &self.w2,
+            &self.b2,
+        ]
+    }
+
+    /// Mutable access to the 16 parameters in canonical order.
+    pub fn params_mut(&mut self) -> [&mut Vec<f32>; 16] {
+        [
+            &mut self.ln1_g,
+            &mut self.ln1_b,
+            &mut self.wq,
+            &mut self.bq,
+            &mut self.wk,
+            &mut self.bk,
+            &mut self.wv,
+            &mut self.bv,
+            &mut self.wo,
+            &mut self.bo,
+            &mut self.ln2_g,
+            &mut self.ln2_b,
+            &mut self.w1,
+            &mut self.b1,
+            &mut self.w2,
+            &mut self.b2,
+        ]
+    }
+}
+
+/// True for tensors AdamW decays: weight matrices, never biases or LayerNorm parameters
+/// (the canonical block order puts matrices at indices 2, 4, 6, 8, 12, 14).
+pub fn is_matrix_in_block(i: usize) -> bool {
+    matches!(i, 2 | 4 | 6 | 8 | 12 | 14)
+}
+
+impl Gpt2 {
+    /// All parameters in canonical order: token embedding, position embedding, each block's
+    /// 16 parameters, final LayerNorm gain and shift, head.
+    pub fn params(&self) -> Vec<&Vec<f32>> {
+        let mut v = vec![&self.tok, &self.pos];
+        self.blocks.iter().for_each(|b| v.extend(b.params()));
+        v.extend([&self.lnf_g, &self.lnf_b, &self.head]);
+        v
+    }
+
+    /// Mutable parameters in canonical order.
+    pub fn params_mut(&mut self) -> Vec<&mut Vec<f32>> {
+        let mut v = vec![&mut self.tok, &mut self.pos];
+        self.blocks
+            .iter_mut()
+            .for_each(|b| v.extend(b.params_mut()));
+        v.extend([&mut self.lnf_g, &mut self.lnf_b, &mut self.head]);
+        v
+    }
+
+    /// Whether the canonical parameter `i` is decayed by AdamW (weight matrices and the
+    /// embedding tables are; biases and LayerNorm parameters are not).
+    pub fn decays(&self, i: usize) -> bool {
+        let n = self.blocks.len() * 16;
+        match i {
+            0 | 1 => true, // token and position embeddings are rank 2
+            _ if i < 2 + n => is_matrix_in_block((i - 2) % 16),
+            _ if i == 2 + n || i == 3 + n => false, // final LayerNorm
+            _ => true,                              // head
+        }
+    }
+
+    /// A model of the same shape with every parameter zero (a gradient or moment container).
+    pub fn zeros_like(&self) -> Gpt2 {
+        let mut z = self.clone();
+        z.params_mut().into_iter().for_each(|p| p.fill(0.0));
+        z
+    }
+
+    /// Total parameter count.
+    pub fn num_params(&self) -> usize {
+        self.params().iter().map(|p| p.len()).sum()
+    }
+
+    /// GPT-style initialisation for training from scratch: weights and embeddings ~ N(0, 0.02)
+    /// (approximated by a scaled uniform with the same standard deviation), LayerNorm gains 1,
+    /// every bias and shift 0.
+    pub fn init(cfg: Config, seed: u64) -> Gpt2 {
+        let mut m = Gpt2::random(cfg, seed);
+        // uniform on [-1, 1) has std 1/sqrt(3); scale to std 0.02.
+        let scale = 0.02 * 3f32.sqrt();
+        let layers = cfg.layers;
+        for i in 0..m.params().len() {
+            let kind = match i {
+                0 | 1 => 'w',
+                _ if i < 2 + layers * 16 => match (i - 2) % 16 {
+                    0 | 10 => 'g',
+                    2 | 4 | 6 | 8 | 12 | 14 => 'w',
+                    _ => 'b',
+                },
+                _ if i == 2 + layers * 16 => 'g',
+                _ if i == 3 + layers * 16 => 'b',
+                _ => 'w',
+            };
+            let p = &mut m.params_mut()[i];
+            match kind {
+                'w' => p.iter_mut().for_each(|v| *v *= scale),
+                'g' => p.fill(1.0),
+                _ => p.fill(0.0),
+            }
+        }
+        m
+    }
+}
+
 /// Per-layer key/value history for cached decoding (`[pos, dim]` each, grown as tokens arrive).
 #[derive(Clone, Debug, Default)]
 pub struct Cache {
@@ -353,6 +480,56 @@ mod tests {
             layers: 2,
             hidden: 12,
         }
+    }
+
+    #[test]
+    fn params_are_in_canonical_order_and_counted() {
+        let w = Gpt2::random(tiny(), 1);
+        let p = w.params();
+        assert_eq!(p.len(), 2 + 2 * 16 + 3);
+        assert!(std::ptr::eq(p[0], &w.tok) && std::ptr::eq(p[1], &w.pos));
+        assert!(std::ptr::eq(p[2], &w.blocks[0].ln1_g));
+        assert!(std::ptr::eq(p[2 + 16 + 8], &w.blocks[1].wo));
+        assert!(std::ptr::eq(p[p.len() - 1], &w.head));
+        assert_eq!(w.num_params(), p.iter().map(|x| x.len()).sum::<usize>());
+        let mut z = w.zeros_like();
+        assert!(z.params().iter().all(|p| p.iter().all(|&v| v == 0.0)));
+        assert_eq!(z.cfg, w.cfg);
+        z.params_mut()[0][0] = 5.0;
+        assert_eq!(z.tok[0], 5.0);
+    }
+
+    #[test]
+    fn decay_flags_match_the_matrix_rule() {
+        let w = Gpt2::random(tiny(), 1);
+        let flags: Vec<bool> = (0..w.params().len()).map(|i| w.decays(i)).collect();
+        assert!(flags[0] && flags[1], "embeddings decay");
+        assert!(!flags[2] && !flags[3], "ln1 gain/shift do not");
+        assert!(flags[4] && !flags[5], "wq decays, bq does not");
+        assert!(flags[2 + 12] && !flags[2 + 13], "w1 decays, b1 does not");
+        let n = flags.len();
+        assert!(!flags[n - 3] && !flags[n - 2], "final LayerNorm does not");
+        assert!(flags[n - 1], "head decays");
+        // Cross-check against the shapes: decayed tensors are exactly the ones longer than dim.
+        for (i, p) in w.params().iter().enumerate() {
+            assert_eq!(
+                flags[i],
+                p.len() > w.cfg.hidden.max(w.cfg.dim),
+                "param {i} len {}",
+                p.len()
+            );
+        }
+    }
+
+    #[test]
+    fn init_follows_the_gpt_recipe() {
+        let w = Gpt2::init(tiny(), 3);
+        assert!(w.blocks[0].ln1_g.iter().all(|&g| g == 1.0));
+        assert!(w.lnf_g.iter().all(|&g| g == 1.0));
+        assert!(w.blocks[0].bq.iter().chain(&w.lnf_b).all(|&b| b == 0.0));
+        let std = (w.tok.iter().map(|v| v * v).sum::<f32>() / w.tok.len() as f32).sqrt();
+        assert!((std - 0.02).abs() < 0.005, "std {std}");
+        assert_eq!(w, Gpt2::init(tiny(), 3));
     }
 
     #[test]

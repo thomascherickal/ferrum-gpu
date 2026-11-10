@@ -38,4 +38,13 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
 7. Low-memory box (15 GB): `CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off
    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`, one cargo command at a time.
 8. Deliberate shortcuts carry a `// ponytail:` comment naming ceiling and upgrade.
-9. Each phase ends at its gate; if a gate fails, stop and report.
+9. Each phase ends at its gate. If a gate fails or misses, record the real numbers and the
+   consequence in the phase doc, then continue with the recommended action (see rule 10)
+   instead of halting; stop only for a real blocker (rule 10).
+10. **Stay autonomous (user decision 2026-11-10).** Whenever there is a question about how to
+    proceed, continue with the **Recommended** option without asking. Make routine decisions
+    by the model's own judgement and say in one line what was decided. Do not exit autonomous
+    mode to ask for confirmation. Ask the user only when there is no recommended option and no
+    sensible default, or for a hard blocker (needs credentials, sudo, or an action outside
+    this repository). The existing limits still apply: never invent numbers, never touch
+    ferrum-cpu, never force-push, and never push or merge to `main` unless the user asks.
