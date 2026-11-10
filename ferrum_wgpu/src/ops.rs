@@ -166,9 +166,21 @@ pub fn score(
 /// `out[r] = tok[ids[r]] + pos[r % t]` for `rows` rows of width `c`.
 pub fn embed(
     gpu: &Gpu,
+    tables: (&GpuBuf, &GpuBuf, &GpuBuf),
+    out: &GpuBuf,
+    dims: (usize, usize, usize),
+) -> Result<(), GpuError> {
+    embed_at(gpu, tables, out, dims, 0)
+}
+
+/// `out[r] = tok[ids[r]] + pos[(r + pos_offset) % t]`: row `r` sits at position `pos_offset + r`
+/// (decode feeds one token at its absolute position).
+pub fn embed_at(
+    gpu: &Gpu,
     (tok, pos, ids): (&GpuBuf, &GpuBuf, &GpuBuf),
     out: &GpuBuf,
     (rows, c, t): (usize, usize, usize),
+    pos_offset: usize,
 ) -> Result<(), GpuError> {
     need("embed ids", ids, rows)?;
     need("embed out", out, rows * c)?;
@@ -182,9 +194,53 @@ pub fn embed(
     gpu.dispatch(
         &p,
         &[tok, pos, ids, out],
-        &[rows as u32, c as u32, t as u32],
+        &[rows as u32, c as u32, t as u32, pos_offset as u32],
         one_d(gpu, rows * c)?,
     )
+}
+
+/// `y = x * w + bias` for one row: `x` has `k` elements, `w` is `k x n`, `bias` and `y` have `n`.
+pub fn gemv(
+    gpu: &Gpu,
+    (x, w, bias): (&GpuBuf, &GpuBuf, &GpuBuf),
+    y: &GpuBuf,
+    (k, n): (usize, usize),
+) -> Result<(), GpuError> {
+    need("gemv x", x, k)?;
+    need("gemv w", w, k * n)?;
+    need("gemv bias", bias, n)?;
+    need("gemv y", y, n)?;
+    let p = gpu.pipeline("gemv", include_str!("shaders/gemv.wgsl"))?;
+    gpu.dispatch(&p, &[x, w, bias, y], &[k as u32, n as u32], one_d(gpu, n)?)
+}
+
+/// Single-query attention over a KV cache laid out `[ctx, heads*hd]`: positions `0..len` are
+/// visible. `probs` is scratch of `heads * ctx`; `out` has `heads * hd` elements.
+pub fn attention_decode(
+    gpu: &Gpu,
+    (q, kc, vc): (&GpuBuf, &GpuBuf, &GpuBuf),
+    (probs, out): (&GpuBuf, &GpuBuf),
+    (heads, hd, len, ctx): (usize, usize, usize, usize),
+) -> Result<(), GpuError> {
+    let c = heads * hd;
+    if len == 0 || len > ctx {
+        return Err(err(format!(
+            "attention_decode: len {len} must be in 1..={ctx}"
+        )));
+    }
+    need("attention_decode q", q, c)?;
+    need("attention_decode out", out, c)?;
+    need("attention_decode kc", kc, ctx * c)?;
+    need("attention_decode vc", vc, ctx * c)?;
+    need("attention_decode probs", probs, heads * ctx)?;
+    let u = [heads as u32, hd as u32, len as u32, ctx as u32];
+    let p1 = gpu.pipeline(
+        "attn_dec_probs",
+        include_str!("shaders/attn_dec_probs.wgsl"),
+    )?;
+    gpu.dispatch(&p1, &[q, kc, probs], &u, one_d(gpu, heads)?)?;
+    let p2 = gpu.pipeline("attn_dec_pv", include_str!("shaders/attn_dec_pv.wgsl"))?;
+    gpu.dispatch(&p2, &[probs, vc, out], &u, one_d(gpu, c)?)
 }
 
 #[cfg(test)]
@@ -460,6 +516,94 @@ mod tests {
             (2, 4, 4)
         )
         .is_err());
+    }
+
+    #[test]
+    fn gemv_matches_cpu_linear() {
+        let Some(g) = open_for_test() else { return };
+        for (k, n) in [(1usize, 1usize), (7, 5), (96, 64), (65, 130), (320, 96)] {
+            let (x, w, b) = (rand_vec(k, 1), rand_vec(k * n, 2), rand_vec(n, 3));
+            let want = nn::add_bias(&ferrum_ref::matmul::matmul(&x, &w, 1, k, n).unwrap(), &b);
+            let (gx, gw, gb, gy) = (
+                g.upload(&x).unwrap(),
+                g.upload(&w).unwrap(),
+                g.upload(&b).unwrap(),
+                g.zeros(n).unwrap(),
+            );
+            gemv(&g, (&gx, &gw, &gb), &gy, (k, n)).unwrap();
+            show(
+                "gemv",
+                &format!("{k}x{n}"),
+                max_rel_err(&g.read(&gy).unwrap(), &want),
+                REDUCING,
+            );
+        }
+        let z = g.zeros(2).unwrap();
+        assert!(gemv(&g, (&z, &g.zeros(3).unwrap(), &z,), &z, (2, 2)).is_err());
+    }
+
+    #[test]
+    fn attention_decode_matches_the_last_row_of_full_attention() {
+        let Some(g) = open_for_test() else { return };
+        let (heads, hd, t, ctx) = (3usize, 5usize, 9usize, 12usize);
+        let c = heads * hd;
+        let (q, k, v) = (
+            spread(t * c, 31, 2.0),
+            spread(t * c, 32, 2.0),
+            rand_vec(t * c, 33),
+        );
+        let (want_out, _) = nn::attention(&q, &k, &v, (1, t, heads, hd));
+        for len in [1usize, 4, t] {
+            // Cache holds positions 0..len; the query is position len-1.
+            let mut kc = vec![0.0; ctx * c];
+            let mut vc = vec![0.0; ctx * c];
+            kc[..len * c].copy_from_slice(&k[..len * c]);
+            vc[..len * c].copy_from_slice(&v[..len * c]);
+            let (gq, gk, gv) = (
+                g.upload(&q[(len - 1) * c..len * c]).unwrap(),
+                g.upload(&kc).unwrap(),
+                g.upload(&vc).unwrap(),
+            );
+            let (gp, go) = (g.zeros(heads * ctx).unwrap(), g.zeros(c).unwrap());
+            attention_decode(&g, (&gq, &gk, &gv), (&gp, &go), (heads, hd, len, ctx)).unwrap();
+            let want = &want_out[(len - 1) * c..len * c];
+            show(
+                "attention_decode",
+                &format!("len={len}"),
+                max_rel_err(&g.read(&go).unwrap(), want),
+                REDUCING,
+            );
+        }
+        let z = g.zeros(c).unwrap();
+        let big = g.zeros(ctx * c).unwrap();
+        let pr = g.zeros(heads * ctx).unwrap();
+        assert!(attention_decode(&g, (&z, &big, &big), (&pr, &z), (heads, hd, 0, ctx)).is_err());
+        assert!(
+            attention_decode(&g, (&z, &big, &big), (&pr, &z), (heads, hd, ctx + 1, ctx)).is_err()
+        );
+    }
+
+    #[test]
+    fn embed_at_uses_the_absolute_position() {
+        let Some(g) = open_for_test() else { return };
+        let (vocab, c, t) = (6usize, 4usize, 5usize);
+        let (tok, pos) = (rand_vec(vocab * c, 41), rand_vec(t * c, 42));
+        for p in [0usize, 3, 4] {
+            let gi = g.upload_indices(&[2], vocab).unwrap();
+            let (gt, gp, go) = (
+                g.upload(&tok).unwrap(),
+                g.upload(&pos).unwrap(),
+                g.zeros(c).unwrap(),
+            );
+            embed_at(&g, (&gt, &gp, &gi), &go, (1, c, t), p).unwrap();
+            let want: Vec<f32> = (0..c).map(|d| tok[2 * c + d] + pos[p * c + d]).collect();
+            show(
+                "embed_at",
+                &format!("pos={p}"),
+                max_rel_err(&g.read(&go).unwrap(), &want),
+                EXACT,
+            );
+        }
     }
 
     #[test]

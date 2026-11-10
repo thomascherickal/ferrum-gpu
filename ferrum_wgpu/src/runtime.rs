@@ -160,6 +160,38 @@ impl Gpu {
         })
     }
 
+    /// Copy `n` f32 from `src[src_off..]` to `dst[dst_off..]` on the device (no host round trip).
+    pub fn copy_f32(
+        &self,
+        src: &GpuBuf,
+        src_off: usize,
+        dst: &GpuBuf,
+        dst_off: usize,
+        n: usize,
+    ) -> Result<(), GpuError> {
+        if src_off + n > src.len() || dst_off + n > dst.len() {
+            return Err(GpuError(format!(
+                "copy of {n} elements at {src_off}->{dst_off} exceeds the buffers ({} and {})",
+                src.len(),
+                dst.len()
+            )));
+        }
+        if n == 0 {
+            return Ok(());
+        }
+        self.scoped(|| {
+            let mut enc = self.device.create_command_encoder(&Default::default());
+            enc.copy_buffer_to_buffer(
+                &src.buf,
+                (src_off * 4) as u64,
+                &dst.buf,
+                (dst_off * 4) as u64,
+                (n * 4) as u64,
+            );
+            self.queue.submit([enc.finish()]);
+        })
+    }
+
     /// Check a plan against the adapter's binding limit and `budget`, then (only if it fits)
     /// allocate one zeroed buffer per row, in order. Rows are rounded up to whole f32s.
     pub fn alloc_plan(
@@ -262,6 +294,22 @@ mod tests {
             before,
             "no buffer may be created on refusal"
         );
+    }
+
+    #[test]
+    fn copy_f32_moves_a_slice_on_the_device_and_checks_bounds() {
+        let Some(g) = open_for_test() else { return };
+        let src = g.upload(&[1.0, 2.0, 3.0, 4.0, 5.0]).unwrap();
+        let dst = g.upload(&[9.0; 6]).unwrap();
+        g.copy_f32(&src, 1, &dst, 2, 3).unwrap();
+        assert_eq!(g.read(&dst).unwrap(), vec![9.0, 9.0, 2.0, 3.0, 4.0, 9.0]);
+        g.copy_f32(&src, 0, &dst, 0, 0).unwrap();
+        assert!(g
+            .copy_f32(&src, 3, &dst, 0, 3)
+            .unwrap_err()
+            .to_string()
+            .contains("exceeds"));
+        assert!(g.copy_f32(&src, 0, &dst, 5, 2).is_err());
     }
 
     #[test]

@@ -178,6 +178,8 @@ name = "ferrum_wgpu"
 version = "0.1.0"
 dependencies = [
  "bytemuck",
+ "ferrum_gguf",
+ "ferrum_model",
  "ferrum_ref",
  "wgpu",
 ]
