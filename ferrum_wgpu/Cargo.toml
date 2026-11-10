@@ -12,3 +12,7 @@ ferrum_ref = { path = "../ferrum_ref" }
 [dependencies]
 bytemuck = "1.25.2"
 wgpu = "30.0.1"
+
+[[bench]]
+name    = "matmul"
+harness = false

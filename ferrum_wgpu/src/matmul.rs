@@ -148,6 +148,15 @@ impl Gpu {
     }
 }
 
+impl Gpu {
+    /// Submit an empty command buffer and wait for it: the fixed cost of one GPU round trip.
+    pub fn roundtrip(&self) -> Result<(), GpuError> {
+        let enc = self.device.create_command_encoder(&Default::default());
+        self.queue.submit([enc.finish()]);
+        self.wait()
+    }
+}
+
 /// Upload, multiply, read back: the host-to-host convenience used by tests.
 pub fn matmul_host(
     gpu: &Gpu,
@@ -225,6 +234,13 @@ mod tests {
             let second = matmul_host(&g, v, &a, &b, (m, k, n)).unwrap();
             assert_eq!(first, second, "{v:?}");
         }
+    }
+
+    #[test]
+    fn roundtrip_and_wait_succeed_on_an_idle_device() {
+        let Some(g) = open_for_test() else { return };
+        g.roundtrip().unwrap();
+        g.wait().unwrap();
     }
 
     #[test]

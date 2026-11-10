@@ -3,6 +3,7 @@
 //! wgpu / WGSL engine for small Transformers. Hardware-free logic (selection, budget) is
 //! pure and tested without a GPU.
 
+pub mod bench_util;
 pub mod budget;
 pub mod device;
 pub mod matmul;
