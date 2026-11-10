@@ -22,3 +22,11 @@ harness = false
 [[bench]]
 name    = "decode"
 harness = false
+
+[[bench]]
+name    = "train"
+harness = false
+
+[[bench]]
+name    = "profile_train"
+harness = false

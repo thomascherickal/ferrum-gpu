@@ -85,6 +85,7 @@ struct Acts {
     dxln: GpuBuf,
     stats: GpuBuf,
     dot: GpuBuf,
+    ds: GpuBuf,
     junk_v: GpuBuf,
 }
 
@@ -142,6 +143,7 @@ pub fn activation_plan(c: &Config, batch: usize, t: usize) -> BufferPlan {
         ("dxln", r * d),
         ("stats", 2 * r),
         ("dot", batch * c.heads * t),
+        ("ds", batch * c.heads * t * t),
         ("junk_v", v),
     ] {
         p.add(n, f(len));
@@ -209,6 +211,7 @@ impl Acts {
             dxln: z(r * d)?,
             stats: z(2 * r)?,
             dot: z(batch * c.heads * t)?,
+            ds: z(batch * c.heads * t * t)?,
             junk_v: z(v)?,
         })
     }
@@ -583,7 +586,7 @@ impl<'g> GpuTrainer<'g> {
                 g,
                 (&a.q[l], &a.k[l], &a.v[l], &a.probs[l], &a.da),
                 (&a.dq, &a.dk, &a.dv),
-                &a.dot,
+                (&a.dot, &a.ds),
                 (b, t, c.heads, hd),
             )?;
             bwd::linear_bwd(

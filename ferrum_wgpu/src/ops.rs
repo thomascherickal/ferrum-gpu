@@ -108,8 +108,11 @@ pub fn attention(
     }
     need("attention probs", probs, batch * heads * t * t)?;
     let u = [batch as u32, t as u32, heads as u32, hd as u32];
-    let p1 = gpu.pipeline("attn_probs", include_str!("shaders/attn_probs.wgsl"))?;
-    gpu.dispatch(&p1, &[q, k, probs], &u, one_d(gpu, batch * heads * t)?)?;
+    // Scores are computed for every (row, key) cell in parallel, then softmaxed per row.
+    let p0 = gpu.pipeline("attn_scores", include_str!("shaders/attn_scores.wgsl"))?;
+    gpu.dispatch(&p0, &[q, k, probs], &u, one_d(gpu, batch * heads * t * t)?)?;
+    let p1 = gpu.pipeline("attn_softmax", include_str!("shaders/attn_softmax.wgsl"))?;
+    gpu.dispatch(&p1, &[probs], &u, one_d(gpu, batch * heads * t)?)?;
     let p2 = gpu.pipeline("attn_pv", include_str!("shaders/attn_pv.wgsl"))?;
     gpu.dispatch(&p2, &[probs, v, out], &u, one_d(gpu, batch * t * c)?)
 }

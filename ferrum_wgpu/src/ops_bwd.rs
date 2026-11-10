@@ -113,12 +113,13 @@ pub fn layernorm_bwd(
     gpu.dispatch(&p2, &[x, dy, stats, dgain, dshift], &u, one_d(gpu, cols)?)
 }
 
-/// Causal attention backward from the stored probabilities. `dot` is scratch of `batch*heads*t`.
+/// Causal attention backward from the stored probabilities. `dot` (`batch*heads*t`) and `ds`
+/// (`batch*heads*t*t`) are scratch.
 pub fn attention_bwd(
     gpu: &Gpu,
     (q, k, v, probs, dout): (&GpuBuf, &GpuBuf, &GpuBuf, &GpuBuf, &GpuBuf),
     (dq, dk, dv): (&GpuBuf, &GpuBuf, &GpuBuf),
-    dot: &GpuBuf,
+    (dot, ds): (&GpuBuf, &GpuBuf),
     (batch, t, heads, hd): (usize, usize, usize, usize),
 ) -> Result<(), GpuError> {
     let c = heads * hd;
@@ -135,17 +136,23 @@ pub fn attention_bwd(
     }
     need("attention_bwd probs", probs, batch * heads * t * t)?;
     need("attention_bwd dot", dot, batch * heads * t)?;
+    need("attention_bwd ds", ds, batch * heads * t * t)?;
     let u = [batch as u32, t as u32, heads as u32, hd as u32];
-    let rows = batch * heads * t;
-    let outs = batch * t * c;
+    let (rows, cells, outs) = (batch * heads * t, batch * heads * t * t, batch * t * c);
+    // dP = dO V^T once per cell, then dS = P (dP - rowdot) / sqrt(hd) in place; dQ, dK and dV
+    // are plain gathers over dS / P. (Recomputing dP per output element was 64x redundant.)
+    let p = gpu.pipeline("attn_bwd_dp", include_str!("shaders/attn_bwd_dp.wgsl"))?;
+    gpu.dispatch(&p, &[dout, v, ds], &u, one_d(gpu, cells)?)?;
     let p = gpu.pipeline("attn_bwd_dot", include_str!("shaders/attn_bwd_dot.wgsl"))?;
-    gpu.dispatch(&p, &[probs, dout, v, dot], &u, one_d(gpu, rows)?)?;
+    gpu.dispatch(&p, &[probs, ds, dot], &u, one_d(gpu, rows)?)?;
+    let p = gpu.pipeline("attn_bwd_ds", include_str!("shaders/attn_bwd_ds.wgsl"))?;
+    gpu.dispatch(&p, &[probs, dot, ds], &u, one_d(gpu, cells)?)?;
     let p = gpu.pipeline("attn_bwd_dv", include_str!("shaders/attn_bwd_dv.wgsl"))?;
     gpu.dispatch(&p, &[probs, dout, dv], &u, one_d(gpu, outs)?)?;
     let p = gpu.pipeline("attn_bwd_dq", include_str!("shaders/attn_bwd_dq.wgsl"))?;
-    gpu.dispatch(&p, &[probs, dout, v, k, dot, dq], &u, one_d(gpu, outs)?)?;
+    gpu.dispatch(&p, &[ds, k, dq], &u, one_d(gpu, outs)?)?;
     let p = gpu.pipeline("attn_bwd_dk", include_str!("shaders/attn_bwd_dk.wgsl"))?;
-    gpu.dispatch(&p, &[probs, dout, v, q, dot, dk], &u, one_d(gpu, outs)?)
+    gpu.dispatch(&p, &[ds, q, dk], &u, one_d(gpu, outs)?)
 }
 
 /// The CSR index the token-embedding gradient needs: `start[v]..start[v+1]` indexes `order`,
@@ -420,17 +427,18 @@ mod tests {
             let (wdq, wdk, wdv) = grad::attention_bwd(&q, &k, &v, &probs, &dout, shape);
             let up = |d: &[f32]| g.upload(d).unwrap();
             let (gq, gk, gv, gp, go) = (up(&q), up(&k), up(&v), up(&probs), up(&dout));
-            let (gdq, gdk, gdv, dot) = (
+            let (gdq, gdk, gdv, dot, ds) = (
                 g.zeros(n).unwrap(),
                 g.zeros(n).unwrap(),
                 g.zeros(n).unwrap(),
                 g.zeros(batch * heads * t).unwrap(),
+                g.zeros(batch * heads * t * t).unwrap(),
             );
             attention_bwd(
                 &g,
                 (&gq, &gk, &gv, &gp, &go),
                 (&gdq, &gdk, &gdv),
-                &dot,
+                (&dot, &ds),
                 shape,
             )
             .unwrap();
