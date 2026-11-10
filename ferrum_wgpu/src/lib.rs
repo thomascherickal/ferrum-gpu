@@ -7,8 +7,10 @@ pub mod bench_util;
 pub mod budget;
 pub mod device;
 pub mod matmul;
+pub mod ops;
 pub mod runtime;
 pub mod select;
 pub mod tensor;
+pub mod tolerance;
 
 pub use device::{Gpu, GpuError};

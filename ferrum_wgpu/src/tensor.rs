@@ -77,6 +77,16 @@ impl Gpu {
         Ok(b)
     }
 
+    /// Upload raw 4-byte words (`words` of them) as a buffer, e.g. u32 indices.
+    pub fn upload_raw(&self, bytes: &[u8], words: usize) -> Result<GpuBuf, GpuError> {
+        debug_assert_eq!(bytes.len(), words * 4);
+        let b = self.zeros(words)?;
+        if words > 0 {
+            self.scoped(|| self.queue.write_buffer(&b.buf, 0, bytes))?;
+        }
+        Ok(b)
+    }
+
     /// Upload `data` with a shape; the shape's product must equal `data.len()`.
     pub fn upload_shaped(&self, data: &[f32], shape: &[usize]) -> Result<GpuBuf, GpuError> {
         let want: usize = shape.iter().product();
