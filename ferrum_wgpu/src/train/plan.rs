@@ -66,6 +66,16 @@ pub fn activation_plan(c: &Config, batch: usize, t: usize) -> BufferPlan {
     p
 }
 
+/// The gradient accumulators micro-batching adds: one buffer per parameter.
+pub fn accum_plan(c: &Config) -> BufferPlan {
+    let m = Gpt2::random(*c, 1); // shapes only
+    let mut p = BufferPlan::default();
+    for (i, t) in m.params().iter().enumerate() {
+        p.add(&format!("acc{i}"), (t.len() * 4) as u64);
+    }
+    p
+}
+
 /// Buffers that live as long as the trainer: weights, gradients and both Adam moments.
 pub fn static_plan(c: &Config) -> BufferPlan {
     let m = Gpt2::random(*c, 1); // shapes only

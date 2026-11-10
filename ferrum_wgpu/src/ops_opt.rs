@@ -78,6 +78,24 @@ pub fn norm_scale(
     )
 }
 
+/// `acc = (first ? 0 : acc) + weight * g`: add one micro-batch's gradient into the running sum.
+pub fn accumulate(
+    gpu: &Gpu,
+    acc: &GpuBuf,
+    g: &GpuBuf,
+    weight: f32,
+    first: bool,
+) -> Result<(), GpuError> {
+    need("accumulate g", g, acc.len())?;
+    let p = gpu.pipeline("accumulate", include_str!("shaders/accumulate.wgsl"))?;
+    gpu.dispatch(
+        &p,
+        &[acc, g],
+        &[acc.len() as u32, weight.to_bits(), u32::from(first)],
+        one_d(gpu, acc.len())?,
+    )
+}
+
 /// One AdamW update of a tensor. `decay` selects whether weight decay applies; `t` is the
 /// 1-based step (bias corrections are computed here, on the host). `scale` is `[clip scale, ..]`.
 pub fn adam_update(
@@ -134,6 +152,39 @@ mod tests {
             parts_for(crate::runtime::GROUPS_X * CHUNK),
             crate::runtime::GROUPS_X
         );
+    }
+
+    #[test]
+    fn accumulate_builds_a_weighted_sum_and_first_resets_stale_contents() {
+        let Some(g) = open_for_test() else { return };
+        let n = 5000; // more than one 64-wide workgroup row of work
+        let acc = g.upload(&vec![9.0; n]).unwrap(); // stale data that `first` must discard
+        let parts: Vec<Vec<f32>> = (0..3).map(|s| rand_vec(n, 50 + s)).collect();
+        let weights = [0.5f32, 0.25, 0.125];
+        for (i, (p, w)) in parts.iter().zip(weights).enumerate() {
+            accumulate(&g, &acc, &g.upload(p).unwrap(), w, i == 0).unwrap();
+        }
+        let mut want = vec![0.0f32; n];
+        for (p, w) in parts.iter().zip(weights) {
+            for (a, x) in want.iter_mut().zip(p) {
+                *a += w * x;
+            }
+        }
+        assert_eq!(
+            g.read(&acc).unwrap(),
+            want,
+            "same operations in the same order"
+        );
+        let e = accumulate(&g, &acc, &g.zeros(3).unwrap(), 1.0, false).unwrap_err();
+        assert!(e.to_string().contains("accumulate g"));
+        assert_eq!(
+            g.sweep_faults(|| accumulate(&g, &acc, &acc_src(&g, n), 1.0, true)),
+            1
+        );
+    }
+
+    fn acc_src(g: &Gpu, n: usize) -> GpuBuf {
+        g.zeros(n).unwrap()
     }
 
     #[test]

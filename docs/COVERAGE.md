@@ -2,9 +2,9 @@
 
 Measured 2026-11-10 with `scripts/coverage.sh` (cargo-llvm-cov, line/region/function coverage).
 It merges two full test runs: one on a real GPU (NVIDIA MX330) and one with no GPU, because the
-"skip when there is no adapter" branches only execute in the second. 226 tests per run.
+"skip when there is no adapter" branches only execute in the second. 233 tests per run (after micro-batching was added; `FLOOR=99 scripts/coverage.sh` passes).
 
-**Total: 99.33% of lines (49 missed), 97.42% of regions, 96.17% of functions.**
+**Total: 99.33% of lines (50 missed), 97.41% of regions, 96.15% of functions.**
 The floor enforced by the script is whatever `FLOOR=` is set to; it should only be raised to a
 number a real run has met (currently 99).
 
@@ -34,10 +34,11 @@ instrumented; Windows and macOS were not run.
 | ferrum_wgpu/src/matmul.rs | 99.25% | 1 |
 | ferrum_wgpu/src/ops.rs | 99.51% | 3 |
 | ferrum_wgpu/src/ops_bwd.rs | 99.81% | 1 |
-| ferrum_wgpu/src/ops_opt.rs | 99.18% | 2 |
+| ferrum_wgpu/src/ops_opt.rs | 99.30% | 2 |
 | ferrum_wgpu/src/runtime.rs | 97.48% | 12 |
 | ferrum_wgpu/src/tensor.rs | 97.47% | 5 |
-| ferrum_wgpu/src/train/{acts,mod,plan,record}.rs | 100.00% | 0 |
+| ferrum_wgpu/src/train/{acts,plan,record}.rs | 100.00% | 0 |
+| ferrum_wgpu/src/train/mod.rs | 99.66% | 1 |
 | ferrum_wgpu/src/train/engine.rs | 96.30% | 1 |
 
 ## What the remaining lines are
