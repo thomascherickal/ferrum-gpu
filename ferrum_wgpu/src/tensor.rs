@@ -103,6 +103,11 @@ impl Gpu {
 
     /// Copy the buffer back to the host (the single readback path).
     pub fn read(&self, b: &GpuBuf) -> Result<Vec<f32>, GpuError> {
+        if self.batching() {
+            return Err(GpuError(
+                "read while a batch is recording: end the batch first".into(),
+            ));
+        }
         if b.len == 0 {
             return Ok(Vec::new());
         }

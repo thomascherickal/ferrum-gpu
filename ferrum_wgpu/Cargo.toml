@@ -18,3 +18,7 @@ ferrum_gguf = { path = "../ferrum_gguf" }
 [[bench]]
 name    = "matmul"
 harness = false
+
+[[bench]]
+name    = "decode"
+harness = false

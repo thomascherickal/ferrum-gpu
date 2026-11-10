@@ -221,38 +221,45 @@ impl<'g> GpuGpt2<'g> {
         let (g, s, d) = (self.gpu, &self.s, c.dim);
         // The index buffer is rewritten in place each token.
         let id = g.upload_indices(&[token], c.vocab)?;
-        g.copy_f32(&id, 0, &s.ids, 0, 1)?;
-        ops::embed_at(
-            g,
-            (&self.tok, &self.pos_tab, &s.ids),
-            &s.x,
-            (1, d, c.ctx),
-            self.pos,
-        )?;
-        for b in &self.blocks {
-            ops::layernorm(g, &s.x, &b.ln1_g, &b.ln1_b, &s.h, (1, d))?;
-            ops::gemv(g, (&s.h, &b.wq, &b.bq), &s.q, (d, d))?;
-            ops::gemv(g, (&s.h, &b.wk, &b.bk), &s.k, (d, d))?;
-            ops::gemv(g, (&s.h, &b.wv, &b.bv), &s.v, (d, d))?;
-            g.copy_f32(&s.k, 0, &b.kcache, self.pos * d, d)?;
-            g.copy_f32(&s.v, 0, &b.vcache, self.pos * d, d)?;
-            let dims = (c.heads, c.head_dim(), self.pos + 1, c.ctx);
-            ops::attention_decode(g, (&s.q, &b.kcache, &b.vcache), (&s.probs, &s.attn), dims)?;
-            ops::gemv(g, (&s.attn, &b.wo, &b.bo), &s.o, (d, d))?;
-            ops::add(g, &s.x, &s.o, &s.x2)?;
-            ops::layernorm(g, &s.x2, &b.ln2_g, &b.ln2_b, &s.h, (1, d))?;
-            ops::gemv(g, (&s.h, &b.w1, &b.b1), &s.f1, (d, c.hidden))?;
-            ops::gelu(g, &s.f1, &s.act)?;
-            ops::gemv(g, (&s.act, &b.w2, &b.b2), &s.f2, (c.hidden, d))?;
-            ops::add(g, &s.x2, &s.f2, &s.x)?;
-        }
-        ops::layernorm(g, &s.x, &self.lnf_g, &self.lnf_b, &s.h, (1, d))?;
-        ops::gemv(
-            g,
-            (&s.h, &self.head, &self.zero_vocab),
-            &s.logits,
-            (d, c.vocab),
-        )?;
+        // The whole token is recorded into one command encoder and submitted once.
+        g.begin_batch()?;
+        let rec = (|| -> Result<(), GpuError> {
+            g.copy_f32(&id, 0, &s.ids, 0, 1)?;
+            ops::embed_at(
+                g,
+                (&self.tok, &self.pos_tab, &s.ids),
+                &s.x,
+                (1, d, c.ctx),
+                self.pos,
+            )?;
+            for b in &self.blocks {
+                ops::layernorm(g, &s.x, &b.ln1_g, &b.ln1_b, &s.h, (1, d))?;
+                ops::gemv(g, (&s.h, &b.wq, &b.bq), &s.q, (d, d))?;
+                ops::gemv(g, (&s.h, &b.wk, &b.bk), &s.k, (d, d))?;
+                ops::gemv(g, (&s.h, &b.wv, &b.bv), &s.v, (d, d))?;
+                g.copy_f32(&s.k, 0, &b.kcache, self.pos * d, d)?;
+                g.copy_f32(&s.v, 0, &b.vcache, self.pos * d, d)?;
+                let dims = (c.heads, c.head_dim(), self.pos + 1, c.ctx);
+                ops::attention_decode(g, (&s.q, &b.kcache, &b.vcache), (&s.probs, &s.attn), dims)?;
+                ops::gemv(g, (&s.attn, &b.wo, &b.bo), &s.o, (d, d))?;
+                ops::add(g, &s.x, &s.o, &s.x2)?;
+                ops::layernorm(g, &s.x2, &b.ln2_g, &b.ln2_b, &s.h, (1, d))?;
+                ops::gemv(g, (&s.h, &b.w1, &b.b1), &s.f1, (d, c.hidden))?;
+                ops::gelu(g, &s.f1, &s.act)?;
+                ops::gemv(g, (&s.act, &b.w2, &b.b2), &s.f2, (c.hidden, d))?;
+                ops::add(g, &s.x2, &s.f2, &s.x)?;
+            }
+            ops::layernorm(g, &s.x, &self.lnf_g, &self.lnf_b, &s.h, (1, d))?;
+            ops::gemv(
+                g,
+                (&s.h, &self.head, &self.zero_vocab),
+                &s.logits,
+                (d, c.vocab),
+            )?;
+            Ok(())
+        })();
+        g.end_batch(rec.is_ok())?;
+        rec?;
         self.pos += 1;
         g.read(&s.logits)
     }
@@ -273,35 +280,41 @@ impl<'g> GpuGpt2<'g> {
         let (f1, act, f2) = (z(t * c.hidden)?, z(t * c.hidden)?, z(t * d)?);
         let (tmp_d, tmp_h) = (z(t * d)?, z(t * c.hidden)?);
         let probs = z(c.heads * t * t)?;
-        ops::embed(g, (&self.tok, &self.pos_tab, &gi), &x, (t, d, t))?;
-        // y = h * w + bias, all resident.
-        let lin = |h: &GpuBuf,
-                   w: &GpuBuf,
-                   b: &GpuBuf,
-                   y: &GpuBuf,
-                   tmp: &GpuBuf,
-                   (k, n): (usize, usize)| {
-            self.matmul.submit(g, h, w, tmp, (t, k, n))?;
-            ops::add_bias(g, tmp, b, y)
-        };
-        for b in &self.blocks {
-            ops::layernorm(g, &x, &b.ln1_g, &b.ln1_b, &h, (t, d))?;
-            lin(&h, &b.wq, &b.bq, &q, &tmp_d, (d, d))?;
-            lin(&h, &b.wk, &b.bk, &k, &tmp_d, (d, d))?;
-            lin(&h, &b.wv, &b.bv, &v, &tmp_d, (d, d))?;
-            ops::attention(g, (&q, &k, &v), (&probs, &a), (1, t, c.heads, c.head_dim()))?;
-            lin(&a, &b.wo, &b.bo, &o, &tmp_d, (d, d))?;
-            ops::add(g, &x, &o, &x2)?;
-            ops::layernorm(g, &x2, &b.ln2_g, &b.ln2_b, &h, (t, d))?;
-            lin(&h, &b.w1, &b.b1, &f1, &tmp_h, (d, c.hidden))?;
-            ops::gelu(g, &f1, &act)?;
-            lin(&act, &b.w2, &b.b2, &f2, &tmp_d, (c.hidden, d))?;
-            ops::add(g, &x2, &f2, &x)?;
-        }
-        ops::layernorm(g, &x, &self.lnf_g, &self.lnf_b, &h, (t, d))?;
         let logits = z(t * c.vocab)?;
-        self.matmul
-            .submit(g, &h, &self.head, &logits, (t, d, c.vocab))?;
+        g.begin_batch()?;
+        let rec = (|| -> Result<(), GpuError> {
+            ops::embed(g, (&self.tok, &self.pos_tab, &gi), &x, (t, d, t))?;
+            // y = h * w + bias, all resident.
+            let lin = |h: &GpuBuf,
+                       w: &GpuBuf,
+                       b: &GpuBuf,
+                       y: &GpuBuf,
+                       tmp: &GpuBuf,
+                       (k, n): (usize, usize)| {
+                self.matmul.submit(g, h, w, tmp, (t, k, n))?;
+                ops::add_bias(g, tmp, b, y)
+            };
+            for b in &self.blocks {
+                ops::layernorm(g, &x, &b.ln1_g, &b.ln1_b, &h, (t, d))?;
+                lin(&h, &b.wq, &b.bq, &q, &tmp_d, (d, d))?;
+                lin(&h, &b.wk, &b.bk, &k, &tmp_d, (d, d))?;
+                lin(&h, &b.wv, &b.bv, &v, &tmp_d, (d, d))?;
+                ops::attention(g, (&q, &k, &v), (&probs, &a), (1, t, c.heads, c.head_dim()))?;
+                lin(&a, &b.wo, &b.bo, &o, &tmp_d, (d, d))?;
+                ops::add(g, &x, &o, &x2)?;
+                ops::layernorm(g, &x2, &b.ln2_g, &b.ln2_b, &h, (t, d))?;
+                lin(&h, &b.w1, &b.b1, &f1, &tmp_h, (d, c.hidden))?;
+                ops::gelu(g, &f1, &act)?;
+                lin(&act, &b.w2, &b.b2, &f2, &tmp_d, (c.hidden, d))?;
+                ops::add(g, &x2, &f2, &x)?;
+            }
+            ops::layernorm(g, &x, &self.lnf_g, &self.lnf_b, &h, (t, d))?;
+            self.matmul
+                .submit(g, &h, &self.head, &logits, (t, d, c.vocab))?;
+            Ok(())
+        })();
+        g.end_batch(rec.is_ok())?;
+        rec?;
         g.read(&logits)
     }
 

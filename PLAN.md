@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0, 1 and 2 complete (see each phase doc for results and caveats); Phase 3 (GGUF, tokenizer, GPT-2 inference) next. Phases 3 to 7 are not started.
+**Status:** Phases 0 to 3 complete (see each phase doc for results and caveats). Phase 3 found that single-stream decode is slower on these GPUs than one CPU thread; Phase 4 (training) is next and must show batched work wins. Phases 4 to 7 are not started.
 
 ## Independence (supersedes the earlier plan)
 

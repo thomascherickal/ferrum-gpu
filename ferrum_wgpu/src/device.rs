@@ -72,6 +72,8 @@ pub struct Gpu {
     pub(crate) pipelines: Mutex<HashMap<&'static str, wgpu::ComputePipeline>>,
     pub(crate) pipelines_built: AtomicUsize,
     pub(crate) buffers_created: AtomicUsize,
+    /// The open command batch, if any (see `Gpu::begin_batch`).
+    pub(crate) batch: Mutex<Option<wgpu::CommandEncoder>>,
 }
 
 impl Gpu {
@@ -104,11 +106,12 @@ impl Gpu {
         let health = Arc::new(Mutex::new(None));
         let h = Arc::clone(&health);
         device.set_device_lost_callback(move |reason, msg| {
-            *h.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("{reason:?}: {msg}"));
+            *h.lock().unwrap_or_else(|e| e.into_inner()) =
+                Some(format!("GPU device lost: {reason:?}: {msg}"));
         });
         let h = Arc::clone(&health);
         device.on_uncaptured_error(Arc::new(move |e: wgpu::Error| {
-            *h.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("uncaptured error: {e}"));
+            *h.lock().unwrap_or_else(|e| e.into_inner()) = Some(format!("GPU error: {e}"));
         }));
         Ok(Gpu {
             device,
@@ -119,6 +122,7 @@ impl Gpu {
             pipelines: Mutex::new(HashMap::new()),
             pipelines_built: AtomicUsize::new(0),
             buffers_created: AtomicUsize::new(0),
+            batch: Mutex::new(None),
         })
     }
 
