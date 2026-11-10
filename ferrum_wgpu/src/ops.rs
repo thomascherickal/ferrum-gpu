@@ -21,7 +21,7 @@ fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     }
 }
 
-fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
+pub(crate) fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
     crate::runtime::groups_1d(n)
 }
 
