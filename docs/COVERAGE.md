@@ -2,9 +2,9 @@
 
 Measured 2026-11-10 with `scripts/coverage.sh` (cargo-llvm-cov, line/region/function coverage).
 It merges two full test runs: one on a real GPU (NVIDIA MX330) and one with no GPU, because the
-"skip when there is no adapter" branches only execute in the second. 233 tests per run (after micro-batching was added; `FLOOR=99 scripts/coverage.sh` passes).
+"skip when there is no adapter" branches only execute in the second. 265 tests per run (after QAT and the context scripts were added; `FLOOR=99 scripts/coverage.sh` passes).
 
-**Total: 99.33% of lines (50 missed), 97.41% of regions, 96.15% of functions.**
+**Total: 99.33% of lines (53 missed), 97.50% of regions, 96.37% of functions.**
 The floor enforced by the script is whatever `FLOOR=` is set to; it should only be raised to a
 number a real run has met (currently 99).
 

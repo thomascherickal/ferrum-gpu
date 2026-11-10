@@ -172,6 +172,9 @@ dependencies = [
 [[package]]
 name = "ferrum_ref"
 version = "0.1.0"
+dependencies = [
+ "ferrum_gguf",
+]
 
 [[package]]
 name = "ferrum_wgpu"

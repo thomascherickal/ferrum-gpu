@@ -20,7 +20,7 @@ impl GpuTrainer<'_> {
         targets: &GpuBuf,
     ) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, c, p, gr) = (self.gpu, &self.cfg, &self.params, &self.grads);
+        let (g, c, p, gr) = (self.gpu, &self.cfg, self.forward_weights(), &self.grads);
         let (b, t, nl) = (a.batch, a.t, c.layers);
         let (r, d, h, v, hd) = (b * t, c.dim, c.hidden, c.vocab, c.head_dim());
         let lin = |x: &GpuBuf,

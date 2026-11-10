@@ -7,6 +7,7 @@
 mod acts;
 mod engine;
 mod plan;
+mod qat;
 mod record;
 #[cfg(test)]
 mod tests;
@@ -20,6 +21,7 @@ use acts::Acts;
 use ferrum_ref::gpt2::{Config, Gpt2};
 
 pub use plan::{accum_plan, activation_plan, static_plan};
+pub use qat::qat_plan;
 fn err(m: impl Into<String>) -> GpuError {
     GpuError(m.into())
 }
@@ -43,6 +45,8 @@ pub struct GpuTrainer<'g> {
     acts: Option<Acts>,
     accum: Option<Vec<GpuBuf>>,
     last_micro: usize,
+    qat: bool,
+    fwd: Option<Vec<GpuBuf>>,
     t: u64,
 }
 
@@ -85,6 +89,8 @@ impl<'g> GpuTrainer<'g> {
             acts: None,
             accum: None,
             last_micro: 0,
+            qat: false,
+            fwd: None,
             t: 0,
         })
     }
@@ -213,7 +219,12 @@ impl<'g> GpuTrainer<'g> {
             self.gpu.upload_indices(targets, self.cfg.vocab)?,
         );
         self.gpu.begin_batch()?;
-        let rec = self.record(ids, &gid, &gtg);
+        let rec = (|| -> Result<(), GpuError> {
+            if self.qat {
+                self.record_snap()?;
+            }
+            self.record(ids, &gid, &gtg)
+        })();
         self.gpu.end_batch(rec.is_ok())?;
         rec?;
         Ok(self
@@ -279,6 +290,12 @@ impl<'g> GpuTrainer<'g> {
                 .iter()
                 .for_each(|(n, b)| plan.add(n, *b));
         }
+        if self.qat {
+            qat_plan(&self.cfg)
+                .rows()
+                .iter()
+                .for_each(|(n, b)| plan.add(n, *b));
+        }
         activation_plan(&self.cfg, micro, t)
             .rows()
             .iter()
@@ -334,6 +351,9 @@ impl<'g> GpuTrainer<'g> {
         let rec = (|| -> Result<(), GpuError> {
             let acts = self.acts.as_ref().expect("allocated");
             let weight = 1.0 / chunks as f32;
+            if self.qat {
+                self.record_snap()?; // once per optimizer step: every micro-batch sees the same weights
+            }
             for c in 0..chunks {
                 self.record(&ids[c * rows..(c + 1) * rows], &gid[c], &gtg[c])?;
                 self.gpu.copy_f32(&acts.loss, 0, &losses, c, 1)?;

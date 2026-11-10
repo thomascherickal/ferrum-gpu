@@ -1,3 +1,6 @@
 target/
-.claude/
+# Ignore the Claude Code working directories (worktrees, local state) but keep the shared project
+# settings that wire the status line and the context hook (CLAUDE.md rule 12).
+.claude/*
+!.claude/settings.json
 .superpowers/

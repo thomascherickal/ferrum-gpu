@@ -7,6 +7,7 @@ pub mod grad;
 pub mod matmul;
 pub mod nn;
 pub mod optim;
+pub mod qat;
 pub mod rng;
 pub mod trainer;
 pub mod tuned;

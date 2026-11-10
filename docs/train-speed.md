@@ -42,6 +42,26 @@ This is the opposite of the Phase 3 decode result, and consistent with it: batch
 
 The `ferrum_ref` baseline is faster than the real ferrum-cpu trainer on this shape, so the GPU speedups in the tables above are conservative with respect to ferrum-cpu. The comparison is not exact: ferrum-cpu's figure includes tokenizer training and I/O, its default batch size and step count were not matched, and its run used real BPE tokens on a synthetic corpus.
 
+## Quantisation-aware training costs almost nothing
+
+QAT snaps the matrices onto their Q8_0 values once per optimizer step (the forward and backward pass
+read the snapped copies, Adam updates the full-precision masters). The snap is bit-exact with the
+CPU reference and with the encoder the GGUF export uses, on all three adapters. A later benchmark
+run on the MX330 (same machine, a few hours after the tables above) timed the same trainer with QAT
+off and on:
+
+| model | gpu ms/step | gpu+QAT ms/step | QAT overhead |
+|---|---|---|---|
+| small (reference preset) | 101.8 | 101.9 | +0.1% |
+| medium | 192.1 | 196.5 | +2.3% |
+| large | 690.7 | 703.9 | +1.9% |
+
+**Run-to-run variance is real.** That later run's absolute numbers differ from the tables above
+(large step 691 ms vs 623 ms, so 4.2x instead of 5.1x over the 8-thread CPU baseline, which itself
+measured 2904 ms vs 3174 ms). It is a laptop with uncontrolled thermals and background load, and
+each case is a median of only 3 to 10 steps. Read every speedup in this report as "about 4x to 5x
+on the large model", not as a precise figure; the gate (at least 2x) holds in both runs.
+
 ## How the step got fast (a profiling story worth keeping)
 
 The first GPU trainer was correct but slow: **2093 ms per large step, only 1.49x the CPU, short of the 2x gate**. A per-kernel profile (`benches/profile_train.rs`, each kernel alone at the large shapes) summed to 2127 ms, matching the measured step, and showed where the time went:
@@ -57,7 +77,7 @@ Attention backward recomputed the full `dO . V` dot product for every output ele
 
 ## What this does not show
 
-- **Quantisation-aware training, dropout and weight tying are not implemented on the GPU**, while ferrum-cpu has all three; the GPU numbers are for the plain AdamW path. QAT would add a snap pass per step.
+- **Dropout and weight tying are not implemented on the GPU**, while ferrum-cpu has both. Quantisation-aware training *is* implemented (below); the tables above are the plain AdamW path.
 - Larger batches or longer contexts, other GPUs (Apple Silicon, AMD, NVIDIA desktop parts) and multi-GPU were not run.
 - Convergence (loss curve against the CPU trainer over hundreds of steps) is covered by the unit tests only at the level of a few steps matching to 1e-6 and a memorisation test; a full loss-curve comparison is Phase 4 task 4.7.
 - Memory: the large model's weights, gradients and both Adam moments alone are 23.2M x 4 buffers x 4 bytes, about 371 MB. Activation memory was not measured (the trainer plans it, and the budget refusal path is tested), and no run near the MX330's 2 GB was made.

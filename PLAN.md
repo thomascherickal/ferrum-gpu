@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 to 3 complete; Phase 4 complete except QAT (gate met: GPU training is 5x faster than the 8-thread CPU on a 23M-parameter model); Phases 5 to 7 are not started.
+**Status:** Phases 0 to 4 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done); Phases 5 to 7 are not started.
 
 ## Independence (supersedes the earlier plan)
 

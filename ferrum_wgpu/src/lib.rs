@@ -11,6 +11,7 @@ pub mod matmul;
 pub mod ops;
 pub mod ops_bwd;
 pub mod ops_opt;
+pub mod ops_qat;
 pub mod runtime;
 pub mod select;
 pub mod tensor;

@@ -34,7 +34,11 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
    `unsafe fn`.
 5. No invented numbers: every figure in docs comes from a real run (adapter,
    driver, backend, OS, wgpu version, date). Say what was not run.
-6. Stay inside the project directory. No installs needing sudo without asking.
+6. Writes stay inside the project directory (plus the session scratch directory). Reading
+   outside the sandbox is allowed when it is needed (for example the cargo registry, system GPU
+   info, or ferrum-cpu's source or binaries to compare against, with build output sent to
+   scratch); never modify anything outside the repo, and never modify ferrum-cpu. No installs
+   needing sudo without asking.
 7. Low-memory box (15 GB): `CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off
    CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`, one cargo command at a time.
 8. Deliberate shortcuts carry a `// ponytail:` comment naming ceiling and upgrade.
@@ -49,6 +53,28 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     `cargo llvm-cov` when it is available, record the numbers in `docs/COVERAGE.md`, never
     claim a figure that was not measured, and raise the floor over time toward 100%. Code that
     can only run on real hardware is isolated in small files so the rest stays fully testable.
+12. **Hand-off file at 98% context (user decision 2026-11-10).** Once the context window reaches
+    98% (as reported by the harness or status line; if no figure is visible, when the session is
+    clearly near its limit), stop starting new work and write `HANDOFF.md` in the repository
+    root, then commit and push it with any finished work. It must let a fresh agent resume cold:
+    the goal; what is done and where (branch, last commit, what is pushed or merged); what was
+    in progress and its exact state (uncommitted files, a running command and its output file);
+    the next steps in order; open questions and decisions already taken; the commands to run
+    first (build, test, coverage); and gotchas learned (tooling quirks, measurements and their
+    caveats). A fresh session reads `HANDOFF.md` first and marks it consumed (a line at the top
+    saying when and by whom) before continuing. Keep it current at each phase boundary so a
+    sudden stop loses little. Do not delete a handoff that has not been consumed.
+
+    *The trigger is the status line.* A model cannot see its own context usage, so the
+    project's `.claude/settings.json` runs `scripts/statusline.sh` as the status line. It reads
+    the real figure from the status-line JSON (`context_window.used_percentage`, or 100 minus
+    `remaining_percentage`), records it in `.superpowers/context.json`, and delegates to the
+    user's own status-line script so their display is unchanged. `scripts/handoff_check.sh` runs
+    as a `PostToolUse` and `UserPromptSubmit` hook; the first time the recorded figure reaches
+    98% (`HANDOFF_AT` overrides) it injects an instruction to write `HANDOFF.md` now, then
+    stays quiet until usage falls under 90%. Both scripts have tests
+    (`tests/tests/test_context_scripts.rs`). If that hook message appears, obey it before doing
+    anything else.
 10. **Stay autonomous (user decision 2026-11-10).** Whenever there is a question about how to
     proceed, continue with the **Recommended** option without asking. Make routine decisions
     by the model's own judgement and say in one line what was decided. Do not exit autonomous

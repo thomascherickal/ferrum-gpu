@@ -5,3 +5,8 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
+
+[dependencies]
+# Only for the Q8_0 block quantiser, so quantisation-aware training snaps to exactly the values
+# the GGUF writer stores.
+ferrum_gguf = { path = "../ferrum_gguf" }

@@ -140,8 +140,8 @@ fn main() {
             3,
         ),
     ];
-    println!("| model | params | batch x t | cpu x1 ms/step | cpu x{threads} (data-parallel) ms/step | gpu ms/step | gpu tok/s | gpu vs cpu x{threads} |");
-    println!("|---|---|---|---|---|---|---|---|");
+    println!("| model | params | batch x t | cpu x1 ms/step | cpu x{threads} (data-parallel) ms/step | gpu ms/step | gpu+QAT ms/step | gpu tok/s | gpu vs cpu x{threads} |");
+    println!("|---|---|---|---|---|---|---|---|---|");
     let adam = Adam {
         weight_decay: 0.01,
         ..Adam::new(0.001)
@@ -166,7 +166,7 @@ fn main() {
         let mut tr = match GpuTrainer::new(&gpu, &w0, None) {
             Ok(t) => t,
             Err(e) => {
-                println!("| {name} | {:.1}M | {batch} x {t} | {cpu1:.1} | {cpun:.1} | refused: {e} | | |", params(&cfg) as f64 / 1e6);
+                println!("| {name} | {:.1}M | {batch} x {t} | {cpu1:.1} | {cpun:.1} | refused: {e} | | | |", params(&cfg) as f64 / 1e6);
                 continue;
             }
         };
@@ -174,8 +174,13 @@ fn main() {
         let gpu_ms = time(reps, || {
             std::hint::black_box(tr.step(&ids, &tg, batch, &sc).expect("gpu step"));
         });
+        // The same trainer with quantisation-aware training on (one Q8_0 snap pass per step).
+        tr.set_qat(true).expect("qat buffers");
+        let qat_ms = time(reps, || {
+            std::hint::black_box(tr.step(&ids, &tg, batch, &sc).expect("gpu qat step"));
+        });
         println!(
-            "| {name} | {:.1}M | {batch} x {t} | {cpu1:.1} | {cpun:.1} | {gpu_ms:.1} | {:.0} | {:.2}x |",
+            "| {name} | {:.1}M | {batch} x {t} | {cpu1:.1} | {cpun:.1} | {gpu_ms:.1} | {qat_ms:.1} | {:.0} | {:.2}x |",
             w0.num_params() as f64 / 1e6,
             (batch * t) as f64 / (gpu_ms / 1e3),
             cpun / gpu_ms

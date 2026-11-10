@@ -329,6 +329,30 @@ mod tests {
     }
 
     #[test]
+    fn a_qat_snapped_model_survives_a_q8_0_export_exactly() {
+        // The point of quantisation-aware training: after the snap, exporting as Q8_0 and
+        // reloading loses nothing, because the snap and the export use the same quantiser.
+        let snapped = Gpt2::random(cfg(32), 11).fake_quantize();
+        let back = from_gguf(&Gguf::parse(to_gguf(&snapped, Quant::Q8_0)).unwrap()).unwrap();
+        assert_eq!(back, snapped, "every tensor, bit for bit");
+        // An unsnapped model of the same shape does lose precision on export.
+        let raw = Gpt2::random(cfg(32), 11);
+        let lossy = from_gguf(&Gguf::parse(to_gguf(&raw, Quant::Q8_0)).unwrap()).unwrap();
+        assert_ne!(lossy, raw);
+        assert_eq!(
+            lossy,
+            raw.fake_quantize(),
+            "the export applies exactly the QAT snap"
+        );
+        // And the snapped model computes the same logits before and after the round trip.
+        let ids = [3, 1, 4, 1, 5];
+        assert_eq!(
+            snapped.forward_logits(&ids).unwrap(),
+            back.forward_logits(&ids).unwrap()
+        );
+    }
+
+    #[test]
     fn rejects_foreign_or_inconsistent_files() {
         let m = Gpt2::random(cfg(8), 6);
         let ok = to_gguf(&m, Quant::F32);
