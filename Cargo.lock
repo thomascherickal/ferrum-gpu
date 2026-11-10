@@ -3,5 +3,16 @@
 version = 4
 
 [[package]]
+name = "ferrum_ref"
+version = "0.1.0"
+
+[[package]]
+name = "ferrum_wgpu"
+version = "0.1.0"
+dependencies = [
+ "ferrum_ref",
+]
+
+[[package]]
 name = "integration_tests"
 version = "0.1.0"

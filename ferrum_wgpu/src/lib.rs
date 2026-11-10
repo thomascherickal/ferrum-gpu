@@ -1,0 +1,7 @@
+#![forbid(unsafe_code)]
+#![warn(missing_docs)]
+//! wgpu / WGSL engine for small Transformers. Hardware-free logic (selection, budget) is
+//! pure and tested without a GPU.
+
+pub mod budget;
+pub mod select;

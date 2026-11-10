@@ -1,0 +1,10 @@
+[package]
+name = "ferrum_wgpu"
+description = "wgpu/WGSL engine for small causal Transformers."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dev-dependencies]
+ferrum_ref = { path = "../ferrum_ref" }

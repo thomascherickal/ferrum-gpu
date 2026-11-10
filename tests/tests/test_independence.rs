@@ -37,18 +37,42 @@ fn files(ext: &str, name: Option<&str>) -> Vec<PathBuf> {
 }
 
 /// Manifest lines that would couple us to another checkout.
-fn manifest_violations(text: &str) -> Vec<String> {
+fn manifest_violations(text: &str, dir: &Path, root: &Path) -> Vec<String> {
     text.lines()
         .map(str::trim)
         .filter(|l| !l.starts_with('#'))
         .filter(|l| {
-            (l.contains("path") && l.contains('=') && l.contains(".."))
-                || l.contains("git =")
+            l.contains("git =")
                 || l.contains("ferrum_core")
                 || l.contains("ferrum-cpu")
+                || path_value(l).is_some_and(|p| !stays_inside(dir, &p, root))
         })
         .map(String::from)
         .collect()
+}
+
+/// The quoted value of `path = "..."` on a manifest line, if any.
+fn path_value(line: &str) -> Option<String> {
+    let rest = line.split("path").nth(1)?.trim_start().strip_prefix('=')?;
+    let rest = rest.trim_start().strip_prefix('"')?;
+    Some(rest.split('"').next()?.to_string())
+}
+
+/// True when `dir/rel`, with `..` resolved lexically, is still under `root`.
+fn stays_inside(dir: &Path, rel: &str, root: &Path) -> bool {
+    let mut parts: Vec<std::ffi::OsString> =
+        dir.components().map(|c| c.as_os_str().to_owned()).collect();
+    for seg in Path::new(rel).components() {
+        match seg {
+            std::path::Component::ParentDir => {
+                parts.pop();
+            }
+            std::path::Component::CurDir => {}
+            other => parts.push(other.as_os_str().to_owned()),
+        }
+    }
+    let resolved: PathBuf = parts.iter().collect();
+    resolved.starts_with(root)
 }
 
 /// Source lines that use ferrum_core or read files outside the repo.
@@ -97,7 +121,14 @@ fn scan(ext: &str, name: Option<&str>, f: fn(&str) -> Vec<String>) -> Vec<String
 
 #[test]
 fn no_manifest_points_at_ferrum_cpu_or_outside() {
-    let bad = scan("", Some("Cargo.toml"), manifest_violations);
+    let root = root();
+    let mut bad = vec![];
+    for m in files("", Some("Cargo.toml")) {
+        let text = fs::read_to_string(&m).unwrap();
+        for v in manifest_violations(&text, m.parent().unwrap(), &root) {
+            bad.push(format!("{}: {v}", m.display()));
+        }
+    }
     assert!(bad.is_empty(), "{bad:#?}");
 }
 
@@ -115,12 +146,19 @@ fn no_unsafe_anywhere() {
 
 #[test]
 fn the_detectors_catch_what_they_should() {
-    assert!(
-        !manifest_violations("ferrum_core = { path = \"../ferrum-cpu/ferrum_core\" }").is_empty()
+    let (root, dir) = (Path::new("/r"), Path::new("/r/crate"));
+    let mv = |t: &str| manifest_violations(t, dir, root);
+    assert!(!mv("ferrum_core = { path = \"../ferrum-cpu/ferrum_core\" }").is_empty());
+    assert!(!mv("x = { path = \"../../other\" }").is_empty());
+    assert!(!mv("x = { git = \"https://e/x\" }").is_empty());
+    assert!(mv("x = { path = \"../sibling\" }").is_empty());
+    assert!(mv("x = { path = \"./inner\" }").is_empty());
+    assert!(mv("# ferrum-cpu mention\nwgpu = \"30\"").is_empty());
+    assert_eq!(
+        path_value("x = { path = \"../a\", version = \"1\" }").as_deref(),
+        Some("../a")
     );
-    assert!(!manifest_violations("x = { path = \"../other\" }").is_empty());
-    assert!(!manifest_violations("x = { git = \"https://e/x\" }").is_empty());
-    assert!(manifest_violations("# ferrum-cpu mention\nwgpu = \"30\"").is_empty());
+    assert_eq!(path_value("wgpu = \"30\""), None);
     assert!(!source_violations("use ferrum_core::Tensor;").is_empty());
     assert!(!source_violations("let s = include_str!(\"../../ferrum-cpu/x\");").is_empty());
     assert!(source_violations("// from ferrum_core::ops (provenance)").is_empty());
