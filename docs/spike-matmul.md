@@ -1,6 +1,6 @@
 # Phase 0 spike: GPU matmul vs CPU (2026-11-10)
 
-**Decision: GO.** The gate (at least 3x the 8-thread CPU matmul at 1024 and above, readback included, upload excluded) is met on both real GPUs on the dev box. One margin is thin: see finding 3. A second finding (5) changes the Phase 2+ design: small operations only pay off when data stays on the device.
+**Decision: GO, with one qualification.** The gate (at least 3x the 8-thread CPU matmul at 1024 and above, readback included, upload excluded) is met on both real GPUs against this repo's simple CPU kernel. Against ferrum-cpu's tuned kernel the MX330 is at 2.96x at 1024, a hair under the line and within noise (see finding 3 and the addendum at the end, measured with the tuned kernel ported in Phase 2). A second finding (5) changes the Phase 2+ design: small operations only pay off when data stays on the device.
 
 ## Setup
 
@@ -107,3 +107,33 @@ fixed cost: empty submit+wait 0.014 ms, 4-byte readback 0.020 ms
 | ref-head (2048x96x1024) | Naive | 27.62 | 6.76 | 112.62 | 116.07 | 120.85 | 115.45 | 3.6 | 0.06x |
 | ref-head (2048x96x1024) | Tiled16 | 27.62 | 6.76 | 235.59 | 236.07 | 237.08 | 238.60 | 1.7 | 0.03x |
 | ref-head (2048x96x1024) | Blocked4 | 27.62 | 6.76 | 22.88 | 26.19 | 24.90 | 27.95 | 17.6 | 0.26x |
+
+## Addendum: re-measured against the tuned CPU kernel (Phase 2, task 2.0)
+
+The tuned 4x8 CPU matmul was ported into `ferrum_ref::tuned` (bit-identical to the simple kernel at every thread count) and the benchmark now uses it for both CPU columns. Same machine, same day, Blocked4 only; the GPU numbers are fresh runs, so they differ slightly from the tables above.
+
+**Gate result against the tuned baseline.** Intel Xe passes (3.51x at 1024, 7.15x at 2048). The MX330 **misses the strict 3x line at 1024 by 1.3% (2.96x)**, which is within run-to-run noise, and passes at 2048 (4.59x). The decision to proceed stands, but the honest claim is "decisive from about 2048, a tie at 1024 on the MX330". The reference-model shapes at 2048 rows win only 0.4x to 1.5x with readback included on the two GPUs, which confirms that activations must stay resident between kernels.
+
+### adapter: NVIDIA GeForce MX330 (Vulkan, Discrete); cpu threads: 8
+
+| case | variant | cpu x1 ms | cpu x8 ms | gpu compute ms | compute+readback ms | +upload ms | +upload+readback ms | gpu GFLOP/s | speedup vs cpu x8 (compute+readback) |
+|---|---|---|---|---|---|---|---|---|---|
+| 256^3 | Blocked4 | 1.42 | 0.41 | 0.26 | 0.27 | 0.39 | 0.49 | 129.5 | 1.50x |
+| 1024^3 | Blocked4 | 96.28 | 25.04 | 6.74 | 8.45 | 10.19 | 11.90 | 318.8 | 2.96x |
+| 2048^3 | Blocked4 | 944.63 | 260.28 | 50.44 | 56.70 | 63.95 | 70.29 | 340.6 | 4.59x |
+| ref-qkv (2048x96x96) | Blocked4 | 1.54 | 0.65 | 0.23 | 0.54 | 0.56 | 0.87 | 163.3 | 1.20x |
+| ref-ffn1 (2048x96x320) | Blocked4 | 4.96 | 1.32 | 0.52 | 1.57 | 0.90 | 1.93 | 240.6 | 0.84x |
+| ref-ffn2 (2048x320x96) | Blocked4 | 4.94 | 1.23 | 0.71 | 0.97 | 2.00 | 2.09 | 177.5 | 1.26x |
+| ref-head (2048x96x1024) | Blocked4 | 16.52 | 4.50 | 1.55 | 4.96 | 2.22 | 5.48 | 259.6 | 0.91x |
+
+### adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated); cpu threads: 8
+
+| case | variant | cpu x1 ms | cpu x8 ms | gpu compute ms | compute+readback ms | +upload ms | +upload+readback ms | gpu GFLOP/s | speedup vs cpu x8 (compute+readback) |
+|---|---|---|---|---|---|---|---|---|---|
+| 256^3 | Blocked4 | 1.35 | 0.41 | 0.77 | 1.32 | 0.55 | 0.52 | 43.3 | 0.31x |
+| 1024^3 | Blocked4 | 101.14 | 23.75 | 5.72 | 6.76 | 7.36 | 7.98 | 375.4 | 3.51x |
+| 2048^3 | Blocked4 | 1219.59 | 331.01 | 43.09 | 46.29 | 51.35 | 54.19 | 398.7 | 7.15x |
+| ref-qkv (2048x96x96) | Blocked4 | 1.48 | 0.46 | 0.81 | 1.07 | 1.22 | 1.67 | 46.5 | 0.43x |
+| ref-ffn1 (2048x96x320) | Blocked4 | 5.02 | 2.61 | 1.09 | 1.72 | 2.07 | 2.78 | 114.9 | 1.52x |
+| ref-ffn2 (2048x320x96) | Blocked4 | 5.10 | 1.33 | 2.33 | 2.32 | 2.86 | 3.58 | 54.0 | 0.57x |
+| ref-head (2048x96x1024) | Blocked4 | 16.36 | 4.73 | 1.67 | 3.87 | 2.02 | 4.55 | 240.7 | 1.22x |

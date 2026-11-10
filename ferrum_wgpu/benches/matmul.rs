@@ -7,7 +7,8 @@
 //! Prints a markdown table. Per case: CPU 1 thread, CPU N threads, and per GPU variant
 //! compute-only (weights resident), +upload of both operands, +readback of the result.
 
-use ferrum_ref::matmul::{matmul_threaded, rand_vec};
+use ferrum_ref::matmul::rand_vec;
+use ferrum_ref::tuned::matmul_tuned;
 use ferrum_wgpu::bench_util::{gflops, reps_for, time_ms};
 use ferrum_wgpu::device::Gpu;
 use ferrum_wgpu::matmul::{Matmul, Variant};
@@ -68,10 +69,10 @@ fn main() {
         let (a, b) = (rand_vec(m * k, 1), rand_vec(k * n, 2));
         let reps = reps_for(m, k, n);
         let cpu1 = time_ms(reps.min(3), || {
-            std::hint::black_box(matmul_threaded(&a, &b, m, k, n, 1).unwrap());
+            std::hint::black_box(matmul_tuned(&a, &b, m, k, n, 1).unwrap());
         });
         let cpun = time_ms(reps.min(5), || {
-            std::hint::black_box(matmul_threaded(&a, &b, m, k, n, threads).unwrap());
+            std::hint::black_box(matmul_tuned(&a, &b, m, k, n, threads).unwrap());
         });
         for v in Variant::ALL {
             let mm = Matmul::new(&gpu, v).unwrap();

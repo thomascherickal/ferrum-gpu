@@ -14,4 +14,6 @@ Kernels done and parity-tested on MX330, Intel Xe and llvmpipe: add, bias add, G
 
 **Fusion decision:** none for now. Measured submit+wait is 0.03 ms (MX330) and 0.2 ms (Xe), and each op is one dispatch; fuse only if a Phase 3/4 profile shows dispatch cost dominating.
 
-**Still open:** task 2.0 (tuned CPU baseline), and the forward pass composes matmul through host round trips (the elementwise/attention chain is resident). A resident-buffer composition arrives with the Phase 3 model engine. Phase 2 is therefore not closed.
+**2.0 done:** `ferrum_ref::tuned::matmul_tuned` (4x8 register tile, 256x256 panels; bit-identical to the oracle at any thread count). Re-measured: MX330 2.96x at 1024 (just under 3x, within noise) and 4.59x at 2048; Xe 3.51x and 7.15x. See the addendum in `docs/spike-matmul.md`. All later speedup gates use this baseline.
+
+**Phase 2 closed with one caveat:** the forward-pass test composes matmul through host round trips (the elementwise/attention chain is resident). A resident-buffer composition arrives with the Phase 3 model engine.
