@@ -15,16 +15,17 @@ it** (code is copied in with provenance headers; ferrum-cpu is never modified). 
 
 ## State of the repo
 
-- Work happens in the git worktree `.claude/worktrees/gpu-port-plan` on branch `plan/gpu-port`
-  (pushed to origin). `main` (in `/home/thomas/Projects/ferrum/ferrum-gpu`) was fast-forwarded to
-  `80f4caa` (Phases 0 to 3) at the user's request. **Phase 4 (and the rule-12 machinery) is on
-  `plan/gpu-port` only.** The user said "merge it" for earlier phases; merge again with
-  `git merge --ff-only plan/gpu-port` from the main checkout (leave the worktree first with
-  ExitWorktree action keep) when asked. Never push `main` unless the user asks.
-- Everything is committed and pushed except possibly the final commit named below; check
-  `git status`. Verified before that commit: fmt, clippy `-D warnings`, `cargo deny`, **265 tests
-  pass in each of four configurations** (MX330, no GPU, llvmpipe, Intel Xe), coverage **99.33%
-  lines (53 missed)**, `FLOOR=99 scripts/coverage.sh` passes.
+- At the end of the 2026-11-10 session the user asked for the worktree to be merged and pushed:
+  branch `plan/gpu-port` was fast-forwarded into `main` and `main` was pushed to origin, so
+  **Phases 0 to 4 and the rule-12 machinery are on `main`**. Verify with
+  `git fetch && git log origin/main -1` (the newest commit mentions NEXT-SESSION.md). The old
+  worktree `.claude/worktrees/gpu-port-plan` may still exist on disk and can be removed with
+  `git worktree remove` once nothing is uncommitted in it. Start new work in a new worktree.
+  Never push `main` again without a documented phase gate or an explicit user request.
+- Last verified state: fmt, clippy `-D warnings`, `cargo deny`, **265 tests pass in each of four
+  configurations** (MX330, no GPU, llvmpipe, Intel Xe), coverage **99.33% lines (53 missed)**,
+  `FLOOR=99 scripts/coverage.sh` passes. Start procedure and the full remaining plan are in
+  `NEXT-SESSION.md`.
 
 ## Done
 
