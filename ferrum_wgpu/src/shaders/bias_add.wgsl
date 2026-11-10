@@ -7,6 +7,6 @@ struct U { n: u32, cols: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    if (g.x >= u.n) { return; }
-    y[g.x] = x[g.x] + bias[g.x % u.cols];
+    if (gid(g) >= u.n) { return; }
+    y[gid(g)] = x[gid(g)] + bias[gid(g) % u.cols];
 }

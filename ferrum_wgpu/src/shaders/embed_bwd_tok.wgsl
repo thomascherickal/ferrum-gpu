@@ -10,7 +10,7 @@ struct U { vocab: u32, c: u32, p0: u32, p1: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    let idx = g.x;
+    let idx = gid(g);
     if (idx >= u.vocab * u.c) { return; }
     let tok = idx / u.c;
     let d = idx % u.c;

@@ -37,6 +37,30 @@ pub fn groups_for(
     Ok((x as u32, y as u32))
 }
 
+/// Workgroups along x for 1-D dispatches. Fixed at the WebGPU baseline limit (not the adapter's
+/// larger one) so [`gid`](PRELUDE) can use a constant stride.
+pub const GROUPS_X: usize = 65535;
+/// Invocations per 1-D workgroup.
+pub const WG_1D: usize = 64;
+
+/// WGSL prepended to every shader: the global index of a 1-D kernel dispatched with
+/// [`groups_1d`] (rows of `GROUPS_X * WG_1D` invocations stacked along y).
+pub const PRELUDE: &str = "fn gid(g: vec3<u32>) -> u32 { return g.y * 4194240u + g.x; }";
+
+/// Workgroup counts `(x, y)` for a 1-D kernel over `n` elements with 64-wide workgroups,
+/// spilling into y beyond 65,535 groups. Errors only past `65535 * 65535 * 64` elements.
+pub fn groups_1d(n: usize) -> Result<(u32, u32), GpuError> {
+    let g = n.div_ceil(WG_1D).max(1);
+    let x = g.min(GROUPS_X);
+    let y = g.div_ceil(x);
+    if y > GROUPS_X {
+        return Err(GpuError(format!(
+            "{n} elements exceed the 1-D dispatch limit"
+        )));
+    }
+    Ok((x as u32, y as u32))
+}
+
 impl Gpu {
     /// Fail if the device was lost (sticky: it never recovers) or reported an uncaptured error
     /// since the last check (reported once, then cleared: a bad dispatch does not brick the device).
@@ -83,7 +107,7 @@ impl Gpu {
                 .device
                 .create_shader_module(wgpu::ShaderModuleDescriptor {
                     label: Some(key),
-                    source: wgpu::ShaderSource::Wgsl(wgsl.into()),
+                    source: wgpu::ShaderSource::Wgsl(format!("{PRELUDE}\n{wgsl}").into()),
                 });
             self.device
                 .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
@@ -266,6 +290,26 @@ mod tests {
         assert_eq!(groups_for((8, 8), (0, 0), 65535).unwrap(), (8, 8)); // zero tile is clamped
         let e = groups_for((8, 8 * 70_000), (8, 8), 65535).unwrap_err();
         assert!(e.to_string().contains("65535"));
+    }
+
+    #[test]
+    fn groups_1d_spills_into_y_only_past_the_x_limit() {
+        assert_eq!(groups_1d(0).unwrap(), (1, 1));
+        assert_eq!(groups_1d(1).unwrap(), (1, 1));
+        assert_eq!(groups_1d(64).unwrap(), (1, 1));
+        assert_eq!(groups_1d(65).unwrap(), (2, 1));
+        let edge = GROUPS_X * WG_1D; // 4,194,240: the last size that fits in one row
+        assert_eq!(groups_1d(edge).unwrap(), (65535, 1));
+        assert_eq!(
+            groups_1d(edge + 1).unwrap(),
+            (65535, 2),
+            "spilling requires full rows: the shader stride is constant"
+        );
+        let (x, y) = groups_1d(10 * edge).unwrap();
+        assert!(x as usize * y as usize * WG_1D >= 10 * edge);
+        assert_eq!(x, 65535);
+        // The shader's constant stride must equal one full row of invocations.
+        assert!(PRELUDE.contains(&(GROUPS_X * WG_1D).to_string()));
     }
 
     #[test]

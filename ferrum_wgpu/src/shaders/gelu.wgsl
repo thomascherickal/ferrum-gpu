@@ -7,9 +7,9 @@ struct U { n: u32, p0: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    if (g.x >= u.n) { return; }
-    let v = x[g.x];
+    if (gid(g) >= u.n) { return; }
+    let v = x[gid(g)];
     let k = 0.7978846;
     let arg = clamp(k * (v + 0.044715 * v * v * v), -20.0, 20.0);
-    y[g.x] = 0.5 * v * (1.0 + tanh(arg));
+    y[gid(g)] = 0.5 * v * (1.0 + tanh(arg));
 }

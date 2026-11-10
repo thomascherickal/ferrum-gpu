@@ -6,6 +6,6 @@ struct U { n: u32, p0: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    if (g.x >= u.n) { return; }
-    c[g.x] = a[g.x] + b[g.x];
+    if (gid(g) >= u.n) { return; }
+    c[gid(g)] = a[gid(g)] + b[gid(g)];
 }

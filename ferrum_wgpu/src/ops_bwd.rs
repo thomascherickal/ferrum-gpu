@@ -20,8 +20,8 @@ fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     }
 }
 
-fn one_d(gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
-    groups_for((n.max(1), 1), (64, 1), gpu.max_workgroups())
+fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
+    crate::runtime::groups_1d(n)
 }
 
 /// `C[m,n] = op(A) * op(B)` where `a_t` means A is stored `[k, m]` and `b_t` means B is stored `[n, k]`.

@@ -10,7 +10,7 @@ struct U { rows: u32, cols: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    let r = g.x;
+    let r = gid(g);
     if (r >= u.rows) { return; }
     let base = r * u.cols;
     let n = f32(u.cols);

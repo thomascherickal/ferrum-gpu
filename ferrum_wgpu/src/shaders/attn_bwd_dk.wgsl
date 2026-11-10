@@ -11,7 +11,7 @@ struct U { batch: u32, t: u32, heads: u32, hd: u32 }
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
     let c = u.heads * u.hd;
-    let idx = g.x;
+    let idx = gid(g);
     if (idx >= u.batch * u.t * c) { return; }
     let col = idx % c;
     let row = idx / c;

@@ -6,4 +6,5 @@ pub mod gpt2;
 pub mod grad;
 pub mod matmul;
 pub mod nn;
+pub mod optim;
 pub mod tuned;

@@ -6,7 +6,7 @@ struct U { rows: u32, cols: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    let c = g.x;
+    let c = gid(g);
     if (c >= u.cols) { return; }
     var s = 0.0;
     for (var r = 0u; r < u.rows; r = r + 1u) { s = s + x[r * u.cols + c]; }

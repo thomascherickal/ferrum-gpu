@@ -8,7 +8,7 @@ struct U { rows: u32, c: u32, t: u32, off: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    let idx = g.x;
+    let idx = gid(g);
     if (idx >= u.rows * u.c) { return; }
     let r = idx / u.c;
     let d = idx % u.c;

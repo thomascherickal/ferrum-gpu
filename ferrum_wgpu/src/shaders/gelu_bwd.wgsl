@@ -7,8 +7,8 @@ struct U { n: u32, p0: u32, p1: u32, p2: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    if (g.x >= u.n) { return; }
-    let x = f1[g.x];
+    if (gid(g) >= u.n) { return; }
+    let x = f1[gid(g)];
     var gr = 0.0;
     if (x >= 10.0) {
         gr = 1.0;
@@ -17,5 +17,5 @@ fn main(@builtin(global_invocation_id) g: vec3<u32>) {
         let t = tanh(clamp(k * (x + 0.044715 * x * x * x), -20.0, 20.0));
         gr = 0.5 * (1.0 + t) + 0.5 * x * (1.0 - t * t) * k * (1.0 + 3.0 * 0.044715 * x * x);
     }
-    df[g.x] = dact[g.x] * gr;
+    df[gid(g)] = dact[gid(g)] * gr;
 }

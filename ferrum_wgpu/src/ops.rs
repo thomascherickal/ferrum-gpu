@@ -4,7 +4,6 @@
 //! add a 2-D split when a tensor needs more.
 
 use crate::device::{Gpu, GpuError};
-use crate::runtime::groups_for;
 use crate::tensor::GpuBuf;
 
 fn err(msg: String) -> GpuError {
@@ -22,8 +21,8 @@ fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     }
 }
 
-fn one_d(gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
-    groups_for((n.max(1), 1), (64, 1), gpu.max_workgroups())
+fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
+    crate::runtime::groups_1d(n)
 }
 
 impl Gpu {
@@ -294,6 +293,30 @@ mod tests {
                 EXACT,
             );
         }
+    }
+
+    #[test]
+    fn one_d_kernels_cover_more_than_a_single_dispatch_row() {
+        let Some(g) = open_for_test() else { return };
+        // 4,194,240 is the old cap (65535 groups x 64). Go past it so the y dimension is used.
+        let n = 4_194_240 + 1_000;
+        let a: Vec<f32> = (0..n).map(|i| (i % 1000) as f32).collect();
+        let b: Vec<f32> = (0..n).map(|i| (i % 7) as f32 * 0.5).collect();
+        let (ga, gb, gc) = (
+            g.upload(&a).unwrap(),
+            g.upload(&b).unwrap(),
+            g.zeros(n).unwrap(),
+        );
+        add(&g, &ga, &gb, &gc).unwrap();
+        let got = g.read(&gc).unwrap();
+        for i in [0, 1, 4_194_239, 4_194_240, 4_194_241, n - 1] {
+            assert_eq!(got[i], a[i] + b[i], "element {i}");
+        }
+        assert_eq!(
+            got,
+            nn::add(&a, &b),
+            "every element, including the second dispatch row"
+        );
     }
 
     #[test]

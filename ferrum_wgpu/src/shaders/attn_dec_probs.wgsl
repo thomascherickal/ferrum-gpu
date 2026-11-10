@@ -8,7 +8,7 @@ struct U { heads: u32, hd: u32, len: u32, ctx: u32 }
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
-    let h = g.x;
+    let h = gid(g);
     if (h >= u.heads) { return; }
     let c = u.heads * u.hd;
     let scale = 1.0 / sqrt(f32(u.hd));
