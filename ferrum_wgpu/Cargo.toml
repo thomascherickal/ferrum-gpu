@@ -8,3 +8,7 @@ rust-version.workspace = true
 
 [dev-dependencies]
 ferrum_ref = { path = "../ferrum_ref" }
+
+[dependencies]
+bytemuck = "1.25.2"
+wgpu = "30.0.1"

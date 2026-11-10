@@ -4,4 +4,9 @@
 //! pure and tested without a GPU.
 
 pub mod budget;
+pub mod device;
+pub mod matmul;
 pub mod select;
+pub mod tensor;
+
+pub use device::{Gpu, GpuError};
