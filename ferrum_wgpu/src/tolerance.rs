@@ -5,6 +5,8 @@ pub const EXACT: f32 = 1e-6;
 /// Relative tolerance for ops using transcendentals or reductions (gelu, layernorm, softmax...).
 /// Calibrated 2026-11-10: worst observed 3.3e-7 on MX330, Intel Xe and llvmpipe; ~30x margin.
 pub const REDUCING: f32 = 1e-5;
+/// Relative tolerance for whole-model gradients (calibrated 2026-11-10: worst 5.7e-7 on MX330, Xe and llvmpipe).
+pub const BACKWARD: f32 = 1e-5;
 /// Relative tolerance for a whole forward pass (errors accumulate across layers).
 pub const FORWARD: f32 = 1e-5;
 

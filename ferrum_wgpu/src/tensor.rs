@@ -77,6 +77,29 @@ impl Gpu {
         Ok(b)
     }
 
+    /// Overwrite an existing buffer with `data` (same length).
+    pub fn copy_from_host(&self, b: &GpuBuf, data: &[f32]) -> Result<(), GpuError> {
+        if data.len() != b.len {
+            return Err(GpuError(format!(
+                "copy_from_host: {} elements into a buffer of {}",
+                data.len(),
+                b.len
+            )));
+        }
+        if self.batching() {
+            return Err(GpuError(
+                "copy_from_host while a batch is recording: end the batch first".into(),
+            ));
+        }
+        if !data.is_empty() {
+            self.scoped(|| {
+                self.queue
+                    .write_buffer(&b.buf, 0, bytemuck::cast_slice(data))
+            })?;
+        }
+        Ok(())
+    }
+
     /// Upload raw 4-byte words (`words` of them) as a buffer, e.g. u32 indices.
     pub fn upload_raw(&self, bytes: &[u8], words: usize) -> Result<GpuBuf, GpuError> {
         debug_assert_eq!(bytes.len(), words * 4);
@@ -176,6 +199,27 @@ mod tests {
             .upload_shaped(&[1.0, 2.0], &[2, 2])
             .expect_err("must refuse");
         assert!(e.to_string().contains("[2, 2]") && e.to_string().contains("2 were given"));
+    }
+
+    #[test]
+    fn copy_from_host_overwrites_in_place_and_checks_length() {
+        let Some(g) = open_for_test() else { return };
+        let b = g.upload(&[1.0, 2.0, 3.0]).unwrap();
+        g.copy_from_host(&b, &[7.0, 8.0, 9.0]).unwrap();
+        assert_eq!(g.read(&b).unwrap(), vec![7.0, 8.0, 9.0]);
+        g.copy_from_host(&g.zeros(0).unwrap(), &[]).unwrap();
+        assert!(g
+            .copy_from_host(&b, &[1.0])
+            .unwrap_err()
+            .to_string()
+            .contains("1 elements into a buffer of 3"));
+        g.begin_batch().unwrap();
+        assert!(g
+            .copy_from_host(&b, &[1.0, 1.0, 1.0])
+            .unwrap_err()
+            .to_string()
+            .contains("batch"));
+        g.end_batch(false).unwrap();
     }
 
     #[test]

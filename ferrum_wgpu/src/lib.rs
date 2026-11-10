@@ -15,5 +15,6 @@ pub mod runtime;
 pub mod select;
 pub mod tensor;
 pub mod tolerance;
+pub mod train;
 
 pub use device::{Gpu, GpuError};
