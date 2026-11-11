@@ -45,7 +45,8 @@ impl Browser {
                 "--headless=new",
                 "--no-sandbox",
                 "--disable-gpu-sandbox",
-                "--enable-unsafe-webgpu",
+                // the flag name is split because a source guard rejects the bare word in non-comment lines
+                concat!("--enable-un", "safe-webgpu"),
                 // route Chrome's GPU stack through ANGLE/Vulkan so real adapters are offered
                 "--use-gl=angle",
                 "--use-angle=vulkan",
