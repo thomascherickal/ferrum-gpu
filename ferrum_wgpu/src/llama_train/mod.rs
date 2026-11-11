@@ -22,7 +22,7 @@ use acts::Acts;
 use ferrum_ref::llama::Llama;
 use ferrum_ref::trainer::{StepConfig, StepStats};
 
-pub use plan::{activation_plan, static_plan};
+pub use plan::{activation_plan, param_sizes, static_plan, static_plan_for};
 
 fn err(m: impl Into<String>) -> GpuError {
     GpuError(m.into())

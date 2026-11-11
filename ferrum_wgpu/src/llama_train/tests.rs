@@ -177,6 +177,27 @@ fn snapshot_and_restore_resume_a_run_exactly() {
 }
 
 #[test]
+fn param_sizes_match_the_real_tensors_and_the_plan_scales_with_the_model() {
+    for (name, m) in variants() {
+        let biases = !m.blocks[0].bq.is_empty();
+        let real: Vec<usize> = m.params().iter().map(|p| p.len()).collect();
+        assert_eq!(param_sizes(&m.cfg, biases), real, "{name}");
+        assert_eq!(
+            static_plan_for(&real).total(),
+            static_plan(&m).total(),
+            "{name}"
+        );
+    }
+    let c = cfg(RopeType::Norm);
+    let small = static_plan_for(&param_sizes(&c, false)).total();
+    let big = static_plan_for(&param_sizes(&Config { layers: 4, ..c }, false)).total();
+    assert!(big > small);
+    // activations grow with the batch and the sequence
+    assert!(activation_plan(&c, 2, 4).total() > activation_plan(&c, 1, 4).total());
+    assert!(activation_plan(&c, 1, 8).total() > activation_plan(&c, 1, 4).total());
+}
+
+#[test]
 fn bad_input_and_tied_models_are_refused() {
     let Some(g) = open_for_test() else { return };
     let m = Llama::random(cfg(RopeType::Norm), 6, false, false);

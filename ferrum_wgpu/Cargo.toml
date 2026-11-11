@@ -28,5 +28,9 @@ name    = "train"
 harness = false
 
 [[bench]]
+name    = "llama"
+harness = false
+
+[[bench]]
 name    = "profile_train"
 harness = false
