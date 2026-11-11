@@ -1,5 +1,7 @@
 # Test coverage
 
+Re-measured 2026-11-11 after Phase 5 (349 tests per run; `FLOOR=99 scripts/coverage.sh` passes): **99.35% of lines (67 missed), 96.96% of regions, 96.88% of functions**. The per-file table below is from the 2026-11-10 run (Phase 4) and was not regenerated; the new Phase 5 files (`ferrum_ref/src/llama/*`, `ferrum_model/src/llama_gguf`, `ferrum_wgpu/src/{llama,llama_train,ops_llama,ops_llama_bwd,ops_quant}`) are lower than the older ones in places (e.g. `llama_train/acts.rs` 74.7% lines, `ops_llama.rs` 88.9%, `ops_llama_bwd.rs` 89.5%, `llama/mod.rs` 91.5%): the missed lines are mostly the `?` error paths of allocation and dispatch calls, which only a device fault would reach.
+
 Measured 2026-11-10 with `scripts/coverage.sh` (cargo-llvm-cov, line/region/function coverage).
 It merges two full test runs: one on a real GPU (NVIDIA MX330) and one with no GPU, because the
 "skip when there is no adapter" branches only execute in the second. 265 tests per run (after QAT and the context scripts were added; `FLOOR=99 scripts/coverage.sh` passes).

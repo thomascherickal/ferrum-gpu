@@ -33,15 +33,10 @@ Commits on top of `main` (ddfd1ce): 5.0 `12278d1`, 5.1 `13a0760`, 5.2 `a4cdfd3`,
   Command counts: decode 40 (f32, 2 layers), `forward_all` 37 for 3 tokens.
   `Llama::random` scales q/k init by `1/sqrt(dim)` (a saturated softmax made parity measure
   conditioning).
-- **Not done**: 5.4 (llama fine-tuning: backward kernels RMSNorm/RoPE/GQA/SwiGLU vs finite
-  differences on the CPU oracle first, then `GpuLlamaTrainer` implementing
-  `ferrum_ref::trainer::Engine`; needs a CPU backward in `ferrum_ref` as the oracle, see
-  `ferrum_ref/src/grad.rs` + `trainer.rs` for the GPT-2 versions), 5.5 (size table, real runs per
-  row), the Phase 5 gate write-up (speed comparison for decode + training like
-  `docs/train-speed.md`), `docs/COVERAGE.md` re-measure (`FLOOR=99 scripts/coverage.sh`, alone),
-  the four-configuration full-suite run before merging, and the final `cargo deny check`.
-- Verified so far: workspace clippy `-D warnings` clean; new tests pass on MX330, no-GPU, llvmpipe and
-  Intel Xe. The FULL workspace suite in all four configurations has NOT been re-run since 5.0.
+- **5.4 done**: CPU oracle backward + AdamW (`ferrum_ref::llama::{loss_and_grads, LlamaTrainer}`, checked against finite differences), GPU backward kernels (`ops_llama_bwd`), `llama_train::GpuLlamaTrainer` (own `step`, `LlamaSnapshot`; tied heads refused). Gradients within 7.6e-7 of the oracle; 12-step loss curve within ~3e-7.
+- **5.5 done**: `docs/llama-speed.md` (decode, fine-tune, size table; only shapes up to 32M params were run, larger rows are labelled plan-only). Finding: decode is slower than one CPU thread everywhere; quantised decode is not faster on the GPUs (kernel has no K-split).
+- **Verified**: fmt, clippy `-D warnings`, `cargo deny`, 349 tests pass in each of four configurations (MX330, no GPU, llvmpipe, Intel Xe), coverage 99.35% lines (see `docs/COVERAGE.md`).
+- **Not done / next**: merge `worktree-phase5-llama` into `main` (user decision; not merged); generalise `Engine`/training loop/checkpoint beyond GPT-2 so Llama fine-tuning can use them; K-split quantised GEMV; Llama tied head, micro-batching, QAT; Phase 6 (CLI/server/BPE, a real ferrum-cpu GGUF fixture) and Phase 7 (device matrix).
 
 ## Goal
 
