@@ -41,6 +41,10 @@ target/release/ferrum_gpu_gui
 `--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/USER-GUIDE.md) for
 what `auto` does and why.
 
+### Run every test
+
+`scripts/test-all.sh` runs all tests in all crates (with and without a GPU), prints a test and coverage summary, and writes `LAST-TEST-RESULTS.md` and `LAST-COVERAGE-RESULTS.md`. See [docs/DEVELOPING.md](docs/DEVELOPING.md).
+
 ### Run the GUI
 
 ```bash

@@ -138,3 +138,12 @@ start procedure and the remaining plan. A fresh session reads them in that order
 - Docs state what was and was not run. Do not write a number you did not measure; link the report that holds
   it.
 - Keep `PLAN.md`, the phase file and `HANDOFF.md` in step with reality when a phase moves.
+
+## One command for the full test run and coverage
+
+```bash
+scripts/test-all.sh            # all tests in all crates, twice (real GPU, then no GPU), plus merged coverage
+FLOOR=98 scripts/test-all.sh   # also fail (exit 2) if total line coverage is below 98
+```
+
+It prints a per-run test summary and the lowest-covered files to the console and writes two files in the repository root, overwritten on every run: `LAST-TEST-RESULTS.md` (passed, failed and ignored per test binary for each run, and the names of failed tests) and `LAST-COVERAGE-RESULTS.md` (total and per-file line, region and function coverage). Exit code: 0 all pass, 1 a test failed, 2 coverage below `FLOOR`. Needs `cargo-llvm-cov` and `python3`; run it alone. Test binaries with the same name in different crates (`api`, `e2e`) are summed in one row. JavaScript under `ferrum_gpu_gui/web/` and the `benches/` programs are not instrumented.
