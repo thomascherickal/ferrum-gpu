@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI) and 5b (browser WebGPU) are in progress; Phases 6 and 7 are not started.
+**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI, `docs/gui.md`) and 5b (browser WebGPU, `docs/browser-webgpu.md`) are complete; Phases 6 and 7 are not started.
 
 ## Independence (supersedes the earlier plan)
 
@@ -28,7 +28,7 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 | Precision | f32 on device; Q8_0/Q4_0 dequantised in-kernel for inference. No f16 requirement. |
 | Determinism | Bit-identical across repeat runs on the same adapter/driver/wgpu version. CPU-vs-GPU by tolerance. |
 | Default device | `cpu` until Phase 7's matrix is green, then `auto`. |
-| Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), later `gpu_cli`, `gpu_server`, `tests`. |
+| Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), `gpu_gui` (GUI server and in-browser runtime), later `gpu_cli`, `gpu_server`, `tests`. |
 
 ## Baselines
 

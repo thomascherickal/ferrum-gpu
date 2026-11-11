@@ -46,6 +46,12 @@ Caveat learned: `EnterWorktree` bases new worktrees on `origin/main`, not the lo
 
 State: local `main` is 15+ commits ahead of `origin/main` and has NOT been pushed.
 
+## Phases 5a and 5b (GUI, browser WebGPU) 2026-11-11
+
+Done on branch `worktree-gui-webgpu` (merged to `main` only if the log says so). New crate `gpu_gui` (std-only, no new dependencies; `naga` is a dev-dependency of `ferrum_wgpu` for shader validation): `src/{http,json,tokenizer,engine/,app,api,assets,selftest,server}.rs`, `web/{index.html,app.js,style.css,gguf.js,webgpu.js,llama.js,browser.js,selftest.js,bench.js}`, `js_tests/reader.test.mjs`, tests `api.rs`, `browser_ui.rs`, `browser_webgpu.rs`, `browser_bench.rs` (ignored; slow). `ferrum_wgpu::shaders` is the kernel registry served to the browser; `Gguf::tensor_bytes` was added. Docs: `docs/gui.md`, `docs/browser-webgpu.md`, plans `PHASE-5A.md`, `PHASE-5B.md`.
+
+Things to know: browser tests launch Chrome in its own process group and kill only that group (never `pkill`/`pgrep` by name: the machine also runs the user's own browsers); Chrome only offers real GPUs with `--use-gl=angle --use-angle=vulkan` (otherwise SwiftShader); `CLAUDE_JOB_DIR` is not set in the shell, use full paths; the GUI is loopback-only with no auth; run suites with `--test-threads 1` (concurrent GPU device opens can SIGSEGV a driver). Not done: tokenizer (Phase 6), CLI/server proper (Phase 6), training in the browser, Firefox/Safari/Windows/macOS browser runs.
+
 ## Goal
 
 `ferrum-gpu`: a GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) that trains, fine-tunes and

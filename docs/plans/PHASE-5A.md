@@ -15,15 +15,21 @@ A local graphical front end for the engine, so a person can see the device, trai
 
 ## Tasks
 
-- [ ] 5a.1 `gpu_gui` crate: std-only HTTP/1.1 server (request line, headers, `Content-Length` bodies, size limits, timeouts), a small JSON reader/writer, routing; each with unit tests and hostile-input tests (oversized headers, bad lengths, truncated bodies, path traversal on static routes).
-- [ ] 5a.2 Engine session behind a trait (`Backend`): `info`, `new_model`, `train`, `generate`, `score`, `export`, `import`; a CPU implementation (oracle) and a GPU implementation; tests run both and compare.
-- [ ] 5a.3 API: `GET /api/info`, `POST /api/model` (preset, seed), `POST /api/train` (text, steps, lr; runs in a background thread), `GET /api/train/status` (loss history), `POST /api/train/stop`, `POST /api/generate`, `GET /api/model.gguf`, `PUT /api/model.gguf`. Errors are JSON with a message, never a panic.
-- [ ] 5a.4 The page: Device, Train (live loss chart), Generate, Model tabs; accessible labels, no external requests, works at phone width.
-- [ ] 5a.5 End-to-end: tests drive the real server over TCP; a headless-Chrome run loads the page, trains a few steps and checks the DOM (skipped with a printed reason when Chrome is absent).
-- [ ] 5a.6 Docs: usage, security notes, screenshot taken from the real run.
+- [x] 5a.1 `gpu_gui` crate: std-only HTTP/1.1 server (request line, headers, `Content-Length` bodies, size limits, timeouts), a small JSON reader/writer, routing; each with unit tests and hostile-input tests (oversized headers, bad lengths, truncated bodies, path traversal on static routes).
+- [x] 5a.2 Engine session behind a trait (`Backend`): `info`, `new_model`, `train`, `generate`, `score`, `export`, `import`; a CPU implementation (oracle) and a GPU implementation; tests run both and compare.
+- [x] 5a.3 API: `GET /api/info`, `POST /api/model` (preset, seed), `POST /api/train` (text, steps, lr; runs in a background thread), `GET /api/train/status` (loss history), `POST /api/train/stop`, `POST /api/generate`, `GET /api/model.gguf`, `PUT /api/model.gguf`. Errors are JSON with a message, never a panic.
+- [x] 5a.4 The page: Device, Train (live loss chart), Generate, Model tabs; accessible labels, no external requests, works at phone width.
+- [x] 5a.5 End-to-end: tests drive the real server over TCP; a headless-Chrome run loads the page, trains a few steps and checks the DOM (skipped with a printed reason when Chrome is absent).
+- [x] 5a.6 Docs: usage, security notes, screenshot taken from the real run.
 
-**Gate:** train, generate and GGUF round trip work through the real server on CPU and GPU with identical API behaviour; the Chrome run passes; suite green with no GPU.
+**Gate (met 2026-11-11; see `docs/gui.md`):** train, generate and GGUF round trip work through the real server on CPU and GPU with identical API behaviour; the Chrome run passes; suite green with no GPU.
 
 ## Not in 5a
 
 Authentication, remote access, multi-user sessions, the real tokenizer (Phase 6), the CLI (Phase 6).
+
+## Outcome notes
+
+- The training text and generation use the byte tokenizer; the GUI holds one model at a time.
+- `tests/api.rs` runs the identical user journey on the CPU and the GPU backend (loss 6.7 -> 0.2 in 60 steps on both; the GPU/CPU loss curves differ by at most 4.5e-7 in the engine test), `tests/browser_ui.rs` drives the real page in headless Chrome.
+- One crash seen and explained: opening several GPU devices concurrently in one test process segfaulted a driver (SIGSEGV); the repo's rule of `--test-threads 1` avoids it and `docs/gui.md` says so.
