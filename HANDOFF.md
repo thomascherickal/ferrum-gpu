@@ -38,6 +38,14 @@ Commits on top of `main` (ddfd1ce): 5.0 `12278d1`, 5.1 `13a0760`, 5.2 `a4cdfd3`,
 - **Verified**: fmt, clippy `-D warnings`, `cargo deny`, 349 tests pass in each of four configurations (MX330, no GPU, llvmpipe, Intel Xe), coverage 99.35% lines (see `docs/COVERAGE.md`).
 - **Not done / next**: merge `worktree-phase5-llama` into `main` (user decision; not merged); generalise `Engine`/training loop/checkpoint beyond GPT-2 so Llama fine-tuning can use them; K-split quantised GEMV; Llama tied head, micro-batching, QAT; Phase 6 (CLI/server/BPE, a real ferrum-cpu GGUF fixture) and Phase 7 (device matrix).
 
+## Layout after the 2026-11-11 restructure (read this before opening files)
+
+`ferrum_wgpu/src`: `device/` (adapter, runtime, tensor, select, budget), `ops/` (kernels: `mod.rs` forward, `bwd`, `opt`, `qat`, `quant`, `llama`, `llama_bwd`, `matmul`), `models/` (`gpt2.rs`, `llama/`), `training/` (`gpt2/`, `llama/`), `shaders/{fwd,bwd,opt,quant,matmul,llama}/`. `ferrum_ref/src`: `kernels/`, `models/{gpt2,llama}`, `training/{grad,optim,qat,trainer/}`. `ferrum_gguf/src`: `codec/`, `io/`. `ferrum_model/src`: `gguf/{gpt2,llama}`, `checkpoint.rs`, `sampling.rs`. Each `lib.rs` re-exports the old flat names (`ops_bwd`, `gpt2`, `train`, `nn`, `grad`, `gpt2_gguf`, ...), so existing paths still compile. Pipelines are looked up with `pipe!(gpu, "group/name")` (ops only); 1-D launches use `Gpu::dispatch_1d`. The independence test resolves `include_str!` paths against the file's directory.
+
+Caveat learned: `EnterWorktree` bases new worktrees on `origin/main`, not the local `main`; after entering run `git reset --hard main` if local `main` is ahead.
+
+State: local `main` is 15+ commits ahead of `origin/main` and has NOT been pushed.
+
 ## Goal
 
 `ferrum-gpu`: a GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) that trains, fine-tunes and
