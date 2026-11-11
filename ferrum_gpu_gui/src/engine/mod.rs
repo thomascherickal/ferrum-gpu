@@ -245,6 +245,11 @@ pub trait Backend: Send + Sync {
         ))
     }
 
+    /// A Llama decoder with a fresh KV cache (token in, next-token logits out).
+    fn llama_decoder<'a>(&'a self, _m: &'a Llama) -> Result<Gpt2Feed<'a>, String> {
+        Err(format!("decoding is not available on {}", self.name()))
+    }
+
     /// `"cpu"` or `"gpu"`.
     fn kind(&self) -> &'static str;
     /// Human-readable device name.

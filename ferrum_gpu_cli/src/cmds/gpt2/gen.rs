@@ -64,7 +64,6 @@ pub fn shape_of(path: &str) -> Result<String, String> {
     ))
 }
 
-/// Sampling and stopping options.
 /// Sampling and stopping options of one generation.
 pub struct Opts {
     /// Most tokens to add.
@@ -77,9 +76,12 @@ pub struct Opts {
     pub stops: Vec<String>,
     /// Emit text as it is produced.
     pub stream: bool,
+    /// Token ids that end the turn (end-of-sequence, `<|im_end|>`): sampling one stops, unprinted.
+    pub stop_ids: Vec<usize>,
 }
 
-fn opts(a: &Args) -> Result<Opts, String> {
+/// Parse the sampling and stopping flags of a generation.
+pub fn opts(a: &Args) -> Result<Opts, String> {
     let name = |names: &[&'static str], d: &'static str| a.first(names).unwrap_or(d);
     let max_new = a
         .first(&["--max-new", "--max-tokens", "--chars"])
@@ -95,6 +97,7 @@ fn opts(a: &Args) -> Result<Opts, String> {
         seed: a.num(name(&["--seed", "--gen-seed"], "--seed"), 1u64)?,
         stops: a.all("--stop").to_vec(),
         stream: a.has("--stream"),
+        stop_ids: vec![],
     })
 }
 
@@ -102,7 +105,7 @@ fn opts(a: &Args) -> Result<Opts, String> {
 /// and the number of tokens sampled.
 pub fn run(
     feed: &mut dyn FnMut(usize) -> Result<Vec<f32>, String>,
-    tok: &ByteBpeTokenizer,
+    decode: &dyn Fn(&[usize]) -> String,
     ctx: usize,
     prompt: &[usize],
     o: &Opts,
@@ -126,9 +129,12 @@ pub fn run(
     let mut text = String::new();
     while new.len() < o.max_new && history.len() < ctx {
         let next = sample(&logits, &o.params, &history, &mut rng);
+        if o.stop_ids.contains(&next) {
+            break;
+        }
         new.push(next);
         history.push(next);
-        text = tok.decode(&new);
+        text = decode(&new);
         if let Some(at) = o
             .stops
             .iter()
@@ -173,11 +179,20 @@ pub fn sample_text(
         seed: 1,
         stops: vec![],
         stream: false,
+        stop_ids: vec![],
     };
     let p = tok.encode(prompt);
     Ok(format!(
         "{prompt}{}",
-        run(&mut *feed, tok, m.cfg.ctx, &p, &o, &mut |_| {})?.0
+        run(
+            &mut *feed,
+            &|ids| tok.decode(ids),
+            m.cfg.ctx,
+            &p,
+            &o,
+            &mut |_| {}
+        )?
+        .0
     ))
 }
 
@@ -208,11 +223,18 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
         write!(out, "{shown}").map_err(|e| e.to_string())?;
     }
     let mut werr = None;
-    let (text, _) = run(&mut *feed, &l.tok, l.model.cfg.ctx, &prompt, &o, &mut |s| {
-        if let Err(e) = write!(out, "{s}") {
-            werr.get_or_insert(e.to_string());
-        }
-    })?;
+    let (text, _) = run(
+        &mut *feed,
+        &|ids| l.tok.decode(ids),
+        l.model.cfg.ctx,
+        &prompt,
+        &o,
+        &mut |s| {
+            if let Err(e) = write!(out, "{s}") {
+                werr.get_or_insert(e.to_string());
+            }
+        },
+    )?;
     if let Some(e) = werr {
         return Err(e);
     }

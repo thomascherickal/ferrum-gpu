@@ -2,9 +2,10 @@
 //! so tests drive them with the CPU backend and a `Vec<u8>`.
 
 use crate::device::{decide, Workload};
-use crate::flags::{val, Args, Flag};
+use crate::flags::{switch, val, Args, Flag};
 
 pub mod gpt2;
+pub mod llm;
 pub mod runtimes;
 use crate::preflight;
 use ferrum_gguf::Gguf;
@@ -127,12 +128,14 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                     &DEVICE,
                     &GEN,
                     &gpt2::GEN_FLAGS,
-                    &[val("--seed"), val("--max-new")],
+                    &[val("--seed"), val("--max-new"), switch("--raw")],
                 ]),
                 rest,
             )?;
             if gpt2::is_gpt2(a.need("--model")?) {
                 gpt2::generate(&a, out, cmd == "run-gguf")
+            } else if llm::has_tokenizer(a.need("--model")?) {
+                llm::generate(&a, out, cmd == "run-gguf")
             } else {
                 generate(&a, out, cmd == "run-gguf")
             }
@@ -176,11 +179,19 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
         ),
         "eval" => {
             let a = Args::parse(
-                &table(&[&[val("--model"), val("--data"), val("--ctx"), val("--json")]]),
+                &table(&[&[
+                    val("--model"),
+                    val("--data"),
+                    val("--ctx"),
+                    val("--json"),
+                    val("--quant"),
+                ]]),
                 rest,
             )?;
             if gpt2::is_gpt2(a.need("--model")?) {
                 gpt2::eval(&a, out)
+            } else if llm::has_tokenizer(a.need("--model")?) {
+                llm::eval(&a, out)
             } else {
                 eval(&a, out)
             }
@@ -218,7 +229,7 @@ pub fn gate(
     let Some(adapter) = adapter.filter(|_| app.backend.kind() == "gpu") else {
         return Ok(());
     };
-    let budget = preflight::budget(mem_mb);
+    let budget = preflight::budget(mem_mb, preflight::nvidia_vram_mb(&adapter.name));
     preflight::check(plan, adapter, budget)?;
     say(out, preflight::report(plan, budget))
 }
@@ -374,8 +385,13 @@ fn export_gguf(a: &Args, out: &mut dyn Write) -> Result<(), String> {
 // ponytail: always on the CPU oracle; use GpuLlama::score for big models if eval gets slow.
 pub fn mean_loss(m: &Llama, text: &[u8]) -> Result<(f64, usize), String> {
     let ids: Vec<usize> = text.iter().map(|&b| usize::from(b)).collect();
+    mean_loss_ids(m, &ids, m.cfg.ctx)
+}
+
+/// Mean next-token loss of token `ids` over non-overlapping windows of at most `ctx` tokens.
+pub fn mean_loss_ids(m: &Llama, ids: &[usize], ctx: usize) -> Result<(f64, usize), String> {
     let (mut sum, mut n) = (0.0f64, 0usize);
-    for w in ids.chunks(m.cfg.ctx) {
+    for w in ids.chunks(ctx.clamp(2, m.cfg.ctx)) {
         if w.len() < 2 {
             continue;
         }
@@ -393,7 +409,7 @@ pub fn mean_loss(m: &Llama, text: &[u8]) -> Result<(f64, usize), String> {
         }
     }
     if n == 0 {
-        return Err("the data needs at least 2 bytes".into());
+        return Err("the data needs at least 2 tokens".into());
     }
     Ok((sum / n as f64, n))
 }

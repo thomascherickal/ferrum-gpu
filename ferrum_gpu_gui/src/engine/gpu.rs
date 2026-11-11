@@ -49,6 +49,11 @@ impl Backend for GpuBackend {
         Ok(Box::new(move |t| m.feed(t).map_err(|e| e.to_string())))
     }
 
+    fn llama_decoder<'a>(&'a self, model: &'a Llama) -> Result<Gpt2Feed<'a>, String> {
+        let mut m = GpuLlama::new(&self.gpu, model, None, None).map_err(|e| e.to_string())?;
+        Ok(Box::new(move |t| m.feed(t).map_err(|e| e.to_string())))
+    }
+
     fn train(
         &self,
         model: &Llama,

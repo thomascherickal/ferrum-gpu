@@ -40,6 +40,11 @@ impl Backend for CpuBackend {
         Ok(Box::new(move |t| m.feed(&mut cache, t)))
     }
 
+    fn llama_decoder<'a>(&'a self, model: &'a Llama) -> Result<Gpt2Feed<'a>, String> {
+        let mut cache = Cache::new(model.cfg.layers);
+        Ok(Box::new(move |t| model.feed(&mut cache, t)))
+    }
+
     fn train(
         &self,
         model: &Llama,

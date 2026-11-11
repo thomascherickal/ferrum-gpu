@@ -214,10 +214,11 @@ impl Decoder for Gpt2Decoder {
             seed: r.seed,
             stops: r.stops.clone(),
             stream: false,
+            stop_ids: vec![],
         };
         run(
             &mut *feed,
-            &self.tok,
+            &|ids| self.tok.decode(ids),
             self.model.cfg.ctx,
             &self.tok.encode_docs(prompt),
             &o,

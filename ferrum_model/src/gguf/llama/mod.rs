@@ -329,3 +329,8 @@ pub(crate) fn write(m: &Llama, quant: Quant, edit: &dyn Fn(&mut Meta), skip: &[&
 pub fn to_gguf(m: &Llama, quant: Quant) -> Vec<u8> {
     write(m, quant, &|_| {}, &[])
 }
+
+/// Like [`to_gguf`], plus extra metadata (a `tokenizer.ggml.*` table, a chat template).
+pub fn to_gguf_with_meta(m: &Llama, quant: Quant, extra: &[(String, Value)]) -> Vec<u8> {
+    write(m, quant, &|kv| kv.extend(extra.iter().cloned()), &[])
+}
