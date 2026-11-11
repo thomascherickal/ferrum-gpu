@@ -4,3 +4,4 @@ target/
 .claude/*
 !.claude/settings.json
 .superpowers/
+.gui-prefs*

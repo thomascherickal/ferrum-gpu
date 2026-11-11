@@ -41,6 +41,21 @@ target/release/ferrum_gpu_gui
 `--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/USER-GUIDE.md) for
 what `auto` does and why.
 
+### Run the GUI
+
+```bash
+scripts/run-gui.sh               # http://127.0.0.1:8080/, --device gpu
+scripts/run-gui.sh --retune      # redo the adapter and thread choice
+scripts/run-gui.sh --port 9000   # extra flags go to the GUI
+```
+
+The script builds in release mode, then starts the GUI on port 8080 with `--device gpu`. On the first run
+it picks the GPU adapter and thread count for this architecture (OS + CPU, for example `Linux-x86_64`) and
+saves them in `.gui-prefs` (git-ignored); later runs reuse them. The adapter is the best hardware one by
+rank: Discrete over Integrated, Vulkan/Metal/DX12 over Gl, never Software such as llvmpipe. This is a
+ranking rule, not a benchmark. Threads are the machine's core count. With no hardware adapter the script
+exits with an error. The GUI listens on loopback only and has no authentication.
+
 ## Status
 
 Phases 0 to 6 are complete: kernels and parity, GGUF I/O, GPT-2 and Llama/Qwen inference, training and
