@@ -280,3 +280,17 @@ fn a_fault_at_any_command_leaves_the_training_state_untouched() {
     assert!(commands > 100, "{commands}");
     assert_eq!(tr.steps(), 2, "only the successful attempt counted");
 }
+
+#[test]
+fn restoring_a_model_without_biases_skips_the_absent_tensors() {
+    let Some(g) = open_for_test() else { return };
+    let m = Llama::random(cfg(RopeType::Norm), 12, false, false);
+    let (ids, targets) = data(&m.cfg, 1, 4);
+    let mut a = GpuLlamaTrainer::new(&g, &m, None).unwrap();
+    a.step(&ids, &targets, 1, &step_cfg(0.02)).unwrap();
+    let snap = a.snapshot().unwrap();
+    assert!(snap.weights.blocks[0].bq.is_empty());
+    let mut b = GpuLlamaTrainer::new(&g, &m, None).unwrap();
+    b.restore(&snap).unwrap();
+    assert_eq!(b.snapshot().unwrap(), snap);
+}
