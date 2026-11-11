@@ -702,3 +702,34 @@ fn tokenize_reads_directories_custom_separators_and_refuses_bad_input() {
     .contains("nofile"));
     assert!(err("tokenize --data x").contains("--tokenizer is required"));
 }
+
+#[test]
+fn prepare_writes_splits_and_a_manifest_and_explains_its_usage() {
+    let d = dir("prepare");
+    let c = d.join("c.txt");
+    std::fs::write(
+        &c,
+        "one doc here<|endoftext|>two doc here<|endoftext|>two doc here",
+    )
+    .unwrap();
+    let o = d.join("out");
+    let s = ok(&format!(
+        "prepare --input {} --out {} --dedup --nfkc --val-frac 0 --test-frac 0",
+        c.display(),
+        o.display()
+    ));
+    assert!(
+        s.contains("train=2 val=0 test=0") && s.contains("duplicate=1"),
+        "{s}"
+    );
+    let m = std::fs::read_to_string(o.join("manifest.json")).unwrap();
+    assert!(m.contains("\"--dedup\"") && m.contains("\"sha256\""));
+    assert!(err("prepare --out x").contains("usage: ferrum-gpu prepare"));
+    assert!(err(&format!("prepare --input {}", c.display())).contains("usage: ferrum-gpu prepare"));
+    assert!(err(&format!(
+        "prepare --input {} --out {} --seed x",
+        c.display(),
+        o.display()
+    ))
+    .contains("--seed"));
+}

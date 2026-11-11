@@ -1,0 +1,6 @@
+Hello world.
+"Quote" fine
+<|endoftext|>
+Fourth ALPHA doc.
+<|endoftext|>
+Sixth gamma doc.

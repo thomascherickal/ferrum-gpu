@@ -53,7 +53,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands; tested with fake tools only (the real tools are installed but registering writes outside the repo, so it was not run) | partial | |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
-| `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes (doc) | none | gap | M2 |
+| `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes | splits and hashes equal ferrum-cpu on `fixtures/prepare/`; manifest differs only in paths, args and version | done | M2 |
 | `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | **have (M2)**: `--data FILE\|DIR`; output is byte-identical to ferrum-cpu's on the fixture | have | |
 | `info` | prints model info | prints device and adapters | different | M4 (add model info; keep device lines under `--device`) |
 | Unknown flags are errors | yes | yes | have | |

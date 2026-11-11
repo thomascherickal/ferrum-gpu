@@ -173,4 +173,10 @@ wrote m.gguf
 
 Our file is byte-identical to the one ferrum-cpu's `tokenize` wrote (`ferrum_model::token_file` tests compare the bytes, and our SHA-256 reproduces the tokenizer digest ferrum-cpu recorded). Training from the token file gives the same model, byte for byte, as training from the text with the same tokenizer (a test). Memory: the file is read window by window; the writer keeps O(1) memory.
 
-Not done: `prepare` (corpus cleaning, deduplication, splits, manifest).
+## prepare (M2, 2026-11-11)
+
+`ferrum-gpu prepare --input FILE|DIR (repeatable) --out DIR [--nfkc] [--lowercase] [--strip-gutenberg] [--dedup] [--min-chars N] [--max-chars N] [--val-frac X] [--test-frac X] [--seed N] [--doc-sep S] [--lossy]` cleans each document (invisible characters, smart punctuation, blank lines, spaces), drops empty, short, long and duplicate documents, splits by a seeded content hash, and writes `train.txt`, `val.txt`, `test.txt` and `manifest.json` (SHA-256 of every input and output). Output is written to `*.part` files and renamed at the end, so a failed run leaves the old files alone.
+
+On the 7-document corpus in `fixtures/prepare/` the three split files are byte-identical to what ferrum-cpu's `prepare` wrote, and the manifest hashes and counts are equal (a test). Not verified: a large corpus run against ferrum-cpu. Not ported: progress callbacks and the stop hook.
+
+`dvc.yaml`, `params.yaml` and `scripts/fetch.sh` give the fetch, prepare, train, eval pipeline. DVC itself was not run (not installed here); the same stages were run by hand on the BPE fixture corpus: prepare, train (loss 5.6535), eval (perplexity 278.05).

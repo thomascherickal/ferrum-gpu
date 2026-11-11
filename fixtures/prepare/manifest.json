@@ -1,0 +1,64 @@
+{
+  "args": [
+    "--input",
+    "c.txt",
+    "--out",
+    "o",
+    "--nfkc",
+    "--dedup",
+    "--strip-gutenberg",
+    "--min-chars",
+    "5",
+    "--val-frac",
+    "0.3",
+    "--test-frac",
+    "0.3",
+    "--seed",
+    "7"
+  ],
+  "ferrum_version": "0.3.0",
+  "inputs": [
+    {
+      "bytes": 401,
+      "path": "c.txt",
+      "sha256": "7cec4d7a22aa4d801d98bef5457b5876ff876f04ee74ee178317fa64f938b590"
+    }
+  ],
+  "outputs": {
+    "test": {
+      "bytes": 15,
+      "chars": 15,
+      "documents": 1,
+      "path": "o/test.txt",
+      "sha256": "257cf22f7b5f50c6f5deea64373adc67f7d1fd773d35f66a13020be6349441ac"
+    },
+    "train": {
+      "bytes": 88,
+      "chars": 58,
+      "documents": 3,
+      "path": "o/train.txt",
+      "sha256": "133d0ee563033fb86f217b17674d2fcc21696c064fb4cec119d5d612c1811e5c"
+    },
+    "val": {
+      "bytes": 106,
+      "chars": 76,
+      "documents": 3,
+      "path": "o/val.txt",
+      "sha256": "abcf128e7182c8dc16b743c998c6eea791016020d69ee143c16b004c31ae54ac"
+    }
+  },
+  "rejected": {
+    "duplicate": 1,
+    "empty": 0,
+    "invalid_utf8": 0,
+    "too_long": 0,
+    "too_short": 1
+  },
+  "train_stats": {
+    "bytes": 88,
+    "chars": 58,
+    "lines": 4,
+    "unique_chars": 28,
+    "words": 10
+  }
+}

@@ -5,3 +5,7 @@ target/
 !.claude/settings.json
 .superpowers/
 .gui-prefs*
+# DVC-managed data and models
+/data/
+/models/
+/metrics/

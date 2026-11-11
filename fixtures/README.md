@@ -16,3 +16,7 @@ Fixtures so far were all made on 2026-11-11 with ferrum-cpu's `train_transformer
 Used by: `ferrum_model/src/tokenizer_gguf/tests.rs` (tokenizer file, model metadata and ids equal ferrum-cpu's; our GPT-2 reader loads `model.gguf`).
 
 `scripts/make-fixtures.sh` holds the commands for each row and prints the ledger line to paste here.
+
+## prepare fixtures (2026-11-11)
+
+`prepare/corpus.txt` is a 401-byte corpus written for this repository. `train.txt`, `val.txt`, `test.txt` and `manifest.json` were written by ferrum-cpu's `train_transformer prepare --input corpus.txt --out o --nfkc --dedup --strip-gutenberg --min-chars 5 --val-frac 0.3 --test-frac 0.3 --seed 7` (binary built from commit 0bb0f92b7e71969f11a49bd80f346140c45f2983). sha256: corpus 7cec4d7a…b590, train 133d0ee5…1e5c, val abcf128e…54ac, test 257cf22f…41ac, manifest 46dd9aef…38e5 (run `sha256sum fixtures/prepare/*` for the full digests). Used by `ferrum_model/src/prepare/tests.rs`.

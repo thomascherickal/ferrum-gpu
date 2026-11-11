@@ -10,3 +10,5 @@ rust-version.workspace = true
 ferrum_gguf = { path = "../ferrum_gguf" }
 ferrum_ref = { path = "../ferrum_ref" }
 ferrum_tok = { path = "../ferrum_tok" }
+# NFKC for `prepare`; no_std-capable, MIT/Apache-2.0.
+unicode-normalization = "0.1"

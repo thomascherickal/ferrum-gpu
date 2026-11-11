@@ -2,10 +2,10 @@
 
 **Goal:** everything a user can do with ferrum-cpu (train, fine-tune, run, score, serve, export small causal Transformers as GGUF), they can do with ferrum-gpu, on any GPU or on the CPU, with the same files going both ways.
 
-**Status (2026-11-11):** Phase 7 (device matrix) is complete for the hardware available. M0, M1, M3, M4, M6 and M7 are done as described in their sections below; M2 is half done (`tokenize` and token files yes, `prepare` no); M5 is partly done through M4 (GPT-2 generate/eval options) but the Llama/Qwen `run-gguf` extras are not; M8 has not been done. Everything above is on `main`. 564 tests per run pass; line coverage is 98.12% (docs/COVERAGE.md). The ledger of what matches and what does not is [docs/PARITY.md](docs/PARITY.md).
+**Status (2026-11-11):** Phase 7 (device matrix) is complete for the hardware available. M0, M1, M3, M4, M6 and M7 are done as described in their sections below; M2 is done (`tokenize`, token files, `prepare`, `scripts/fetch.sh`, `dvc.yaml`; DVC itself not run); M5 is partly done through M4 (GPT-2 generate/eval options) but the Llama/Qwen `run-gguf` extras are not; M8 has not been done. Everything above is on `main`. 564 tests per run pass; line coverage is 98.12% (docs/COVERAGE.md). The ledger of what matches and what does not is [docs/PARITY.md](docs/PARITY.md).
 
 **Still open, in the order I would take them:**
-1. `prepare` (M2): cleaning, NFKC, Gutenberg strip, dedup, splits, manifest; `scripts/fetch.sh`; a DVC pipeline.
+1. (done) `prepare`, fetch script, DVC files.
 2. M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
 3. `--tie`, `--dropout` and character-level (`--vocab 0`) for GPT-2 training: engine work on the CPU and GPU trainers.
 4. Server: request cancel on client disconnect; trying the existing LightEval module against our routes.
@@ -84,9 +84,9 @@ Done: new crate `ferrum_tok` (copied from ferrum-cpu `0bb0f92`, depends only on 
 - Tests: round trip on adversarial UTF-8; merges identical to a fixture trained by ferrum-cpu on a fixed corpus; llama.cpp-style prompts tokenize to the fixture's ids.
 - **Gate:** tokenizer output equals the fixtures byte for byte; our GGUF with BPE metadata carries a fixture-checked token list.
 
-### M2: corpus tools and data pipeline (tokenize and token files done 2026-11-11; `prepare` not done)
+### M2: corpus tools and data pipeline (done 2026-11-11)
 
-Done: `tokenize` (file or directory), token-file writer and streaming reader (`ferrum_model::token_file`, byte-identical to ferrum-cpu's file on the fixture), SHA-256 in std, `TokenSource` so the training loop reads windows from disk, `train` on a token file (equal to training from the text, byte for byte). Not done: `prepare` (cleaning, NFKC, Gutenberg strip, dedup, split, manifest; it needs ~800 lines ported from `dataset.rs`, `prepare/` and a JSON/NFKC decision), `scripts/fetch.sh`, a DVC pipeline.
+Done: `tokenize` (file or directory), token-file writer and streaming reader (`ferrum_model::token_file`, byte-identical to ferrum-cpu's file on the fixture), SHA-256 in std, `TokenSource` so the training loop reads windows from disk, `train` on a token file (equal to training from the text, byte for byte). Also done: `prepare` (`ferrum_model::prepare`, golden test against ferrum-cpu output; hand-written sorted JSON, `unicode-normalization` for NFKC), `scripts/fetch.sh`, `dvc.yaml`/`params.yaml`.
 
 - `ferrum-gpu prepare` (clean, optional NFKC and lowercase, Gutenberg strip, dedup, split, hash manifest) and `tokenize` (token file, 2 bytes per token, streamed windows from disk).
 - `train` accepts a token file and streams windows without loading the corpus.

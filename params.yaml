@@ -1,0 +1,25 @@
+fetch:
+  url: https://huggingface.co/datasets/roneneldan/TinyStories/resolve/f54c09fd23315a6f9c86f9dc80f725de7d8f9c64/TinyStoriesV2-GPT4-valid.txt
+  sha256: 6874bae9a4c1a4e7edcf0e53b86c17817e9cf881fc75ff2368da457b80c0585d
+prepare:
+  min_chars: 50
+  max_chars: 20000
+  val_frac: 0.05
+  test_frac: 0.05
+  seed: 42
+model:
+  context: 128
+  embed: 96
+  heads: 4
+  blocks: 3
+  hidden: 320
+  vocab: 1024
+train:
+  tokens: 2.0e6
+  lr: 0.005
+  warmup: 50
+  clip: 1.0
+  val: 0.02
+  patience: 3
+  seed: 1337
+  quant: int8

@@ -193,7 +193,7 @@ unauthenticated.
 
 ## 10. What is not here yet
 
-Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, `prepare`, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
+Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).
 

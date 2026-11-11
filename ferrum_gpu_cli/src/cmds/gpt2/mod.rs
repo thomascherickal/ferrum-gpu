@@ -7,6 +7,7 @@
 
 pub mod gen;
 mod hooks;
+pub mod prepare;
 mod score;
 mod tokenize;
 mod train;

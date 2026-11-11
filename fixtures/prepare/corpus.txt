@@ -1,0 +1,6 @@
+Hello  world.
+“Quote” ﬁne
+<|endoftext|>Second doc here, with some words.<|endoftext|>Second doc here, with some words.<|endoftext|>x<|endoftext|>*** START OF THE PROJECT GUTENBERG EBOOK X ***
+Book body one.  Tabs	here.
+*** END OF THE PROJECT GUTENBERG EBOOK X ***
+license junk<|endoftext|>Fourth ALPHA doc.<|endoftext|>Fifth beta doc.<|endoftext|>Sixth gamma doc.<|endoftext|>Seventh delta doc.

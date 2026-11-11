@@ -1,0 +1,62 @@
+# Data pipeline: fetch -> prepare -> train -> eval. Run `dvc init` once, then `dvc repro`.
+# DVC is optional; every stage is a plain command you can run by hand.
+# The training device is whatever `--device auto` picks; the CPU and GPU runs give the same loss
+# curve to four decimals, so the stage output does not depend on it.
+stages:
+  fetch:
+    cmd: scripts/fetch.sh ${fetch.url} ${fetch.sha256} data/raw/tinystories.txt
+    deps:
+      - scripts/fetch.sh
+    params:
+      - fetch
+    outs:
+      - data/raw/tinystories.txt
+  prepare:
+    cmd: >-
+      cargo run --release -q -p ferrum_gpu_cli -- prepare
+      --input data/raw/tinystories.txt --out data/prepared
+      --min-chars ${prepare.min_chars} --max-chars ${prepare.max_chars}
+      --val-frac ${prepare.val_frac} --test-frac ${prepare.test_frac}
+      --seed ${prepare.seed} --dedup --nfkc
+    deps:
+      - data/raw/tinystories.txt
+      - ferrum_model/src/prepare
+    params:
+      - prepare
+    outs:
+      - data/prepared/train.txt
+      - data/prepared/val.txt
+      - data/prepared/test.txt
+      - data/prepared/manifest.json:
+          cache: false
+  train:
+    cmd: >-
+      cargo run --release -q -p ferrum_gpu_cli -- train --data data/prepared/train.txt --out models/slm.gguf
+      --context ${model.context} --embed ${model.embed} --heads ${model.heads}
+      --blocks ${model.blocks} --hidden ${model.hidden} --vocab ${model.vocab}
+      --tokens ${train.tokens} --lr ${train.lr} --cosine --warmup ${train.warmup}
+      --clip ${train.clip} --val ${train.val} --patience ${train.patience}
+      --seed ${train.seed} --quant ${train.quant} --tokenizer models/tokenizer.gguf
+    deps:
+      - data/prepared/train.txt
+      - ferrum_ref/src
+      - ferrum_model/src
+    params:
+      - model
+      - train
+    outs:
+      - models/slm.gguf
+      - models/tokenizer.gguf
+  eval:
+    cmd: >-
+      cargo run --release -q -p ferrum_gpu_cli -- eval --model models/slm.gguf --data data/prepared/val.txt --json metrics/val.json &&
+      cargo run --release -q -p ferrum_gpu_cli -- eval --model models/slm.gguf --data data/prepared/test.txt --json metrics/test.json
+    deps:
+      - models/slm.gguf
+      - data/prepared/val.txt
+      - data/prepared/test.txt
+    metrics:
+      - metrics/val.json:
+          cache: false
+      - metrics/test.json:
+          cache: false

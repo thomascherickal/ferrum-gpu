@@ -51,31 +51,86 @@ fn compress(h: &mut [u32; 8], block: &[u8]) {
     }
 }
 
+const INIT: [u32; 8] = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+];
+
+/// Incremental SHA-256, for files hashed while they are written or read.
+pub struct Sha256 {
+    h: [u32; 8],
+    buf: Vec<u8>,
+    len: u64,
+}
+
+impl Default for Sha256 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Sha256 {
+    /// A hasher over zero bytes.
+    pub fn new() -> Self {
+        Sha256 {
+            h: INIT,
+            buf: Vec::with_capacity(128),
+            len: 0,
+        }
+    }
+    /// Hash more bytes.
+    pub fn update(&mut self, data: &[u8]) {
+        self.len += data.len() as u64;
+        self.buf.extend_from_slice(data);
+        let whole = self.buf.len() / 64 * 64;
+        for b in self.buf[..whole].chunks_exact(64) {
+            compress(&mut self.h, b);
+        }
+        self.buf.drain(..whole);
+    }
+    /// The digest as raw bytes.
+    pub fn digest(mut self) -> [u8; 32] {
+        let bits = self.len * 8;
+        self.buf.push(0x80);
+        while self.buf.len() % 64 != 56 {
+            self.buf.push(0);
+        }
+        self.buf.extend(bits.to_be_bytes());
+        for b in self.buf.chunks_exact(64) {
+            compress(&mut self.h, b);
+        }
+        let mut out = [0u8; 32];
+        for (o, x) in out.chunks_exact_mut(4).zip(self.h) {
+            o.copy_from_slice(&x.to_be_bytes());
+        }
+        out
+    }
+    /// The digest as 64 lowercase hex characters.
+    pub fn hex(self) -> String {
+        self.digest().iter().map(|b| format!("{b:02x}")).collect()
+    }
+}
+
 /// The SHA-256 digest of `data` as 64 lowercase hex characters.
 pub fn sha256_hex(data: &[u8]) -> String {
-    let mut h: [u32; 8] = [
-        0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab,
-        0x5be0cd19,
-    ];
-    let mut blocks = data.chunks_exact(64);
-    for b in &mut blocks {
-        compress(&mut h, b);
-    }
-    let mut tail = blocks.remainder().to_vec();
-    tail.push(0x80);
-    while tail.len() % 64 != 56 {
-        tail.push(0);
-    }
-    tail.extend(((data.len() as u64) * 8).to_be_bytes());
-    for b in tail.chunks_exact(64) {
-        compress(&mut h, b);
-    }
-    h.iter().map(|x| format!("{x:08x}")).collect()
+    let mut s = Sha256::new();
+    s.update(data);
+    s.hex()
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn incremental_updates_equal_one_shot_at_every_split() {
+        let data: Vec<u8> = (0..300u32).map(|i| (i * 7) as u8).collect();
+        for cut in [0, 1, 55, 56, 63, 64, 65, 127, 128, 299, 300] {
+            let mut s = Sha256::new();
+            s.update(&data[..cut]);
+            s.update(&data[cut..]);
+            assert_eq!(s.hex(), sha256_hex(&data), "cut {cut}");
+        }
+    }
 
     #[test]
     fn matches_the_published_test_vectors() {

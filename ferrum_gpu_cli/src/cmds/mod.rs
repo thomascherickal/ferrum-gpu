@@ -27,6 +27,7 @@ train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
+prepare       --input FILE|DIR (repeatable) --out DIR [--nfkc] [--lowercase] [--strip-gutenberg] [--dedup] [--min-chars N] [--max-chars N] [--val-frac X] [--test-frac X] [--seed N] [--doc-sep S] [--lossy]   (writes train.txt val.txt test.txt manifest.json)\n  \
 tokenize      --data FILE|DIR --tokenizer TOK.gguf --out TOKENS.gguf [--doc-sep S]   (a token file trains with `train --data TOKENS.gguf --tokenizer TOK.gguf`, windows read from disk)\n  \
 export-ollama --model F.gguf --name NAME [--bin P] [--modelfile-only OUT]   (GPT-2 files; needs the `ollama` tool)\n  \
 export-lmstudio --model F.gguf [--repo publisher/name] [--bin P]   (GPT-2 files; needs the `lms` tool)\n  \
@@ -136,6 +137,11 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 generate(&a, out, cmd == "run-gguf")
             }
         }
+        "prepare" => gpt2::prepare::run(
+            &Args::parse(&gpt2::prepare::PREPARE_FLAGS, rest)?,
+            rest,
+            out,
+        ),
         "tokenize" => gpt2::tokenize(
             &Args::parse(
                 &[
