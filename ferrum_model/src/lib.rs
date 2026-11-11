@@ -5,4 +5,5 @@
 
 pub mod checkpoint;
 pub mod gpt2_gguf;
+pub mod llama_gguf;
 pub mod sampling;
