@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 to 4 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done); Phases 5 to 7 are not started.
+**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI) and 5b (browser WebGPU) are in progress; Phases 6 and 7 are not started.
 
 ## Independence (supersedes the earlier plan)
 
@@ -58,10 +58,12 @@ Round-half-away-from-zero in the Q8_0 snap; f16 scale via integer bit ops; `-1e9
 | 3 | [PHASE-3.md](docs/plans/PHASE-3.md) | GGUF I/O, tokenizer, GPT-2 inference | Generate/score match reference |
 | 4 | [PHASE-4.md](docs/plans/PHASE-4.md) | Backward, Adam, QAT, training, checkpoints | Loss curve parity, deterministic, 2x on larger model |
 | 5 | [PHASE-5.md](docs/plans/PHASE-5.md) | Llama/Qwen inference + fine-tune | Parity on tiny llama |
+| 5a | [PHASE-5A.md](docs/plans/PHASE-5A.md) | Local web GUI: device, train, generate, GGUF in/out (std-only server, byte tokenizer) | Same API behaviour on CPU and GPU; headless-Chrome run passes |
+| 5b | [PHASE-5B.md](docs/plans/PHASE-5B.md) | Inference in the browser tab on WebGPU, sharing the native WGSL | Browser logits match the CPU oracle (headless Chrome) |
 | 6 | [PHASE-6.md](docs/plans/PHASE-6.md) | Own CLI and server, `--device`, pre-flight | E2E through the binaries |
 | 7 | [PHASE-7.md](docs/plans/PHASE-7.md) | Verification matrix, default flip | Only classes with a green row |
 
-Not planned: per-vendor backends, f16/mixed precision, multi-GPU, activation recomputation, browser WebGPU, a GUI.
+Not planned: per-vendor backends, f16/mixed precision, multi-GPU, activation recomputation, wasm builds of the engine, browser training.
 
 ## Risks
 

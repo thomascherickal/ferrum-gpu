@@ -11,6 +11,7 @@ pub mod bench_util;
 pub mod device;
 pub mod models;
 pub mod ops;
+pub mod shaders;
 pub mod tolerance;
 pub mod training;
 

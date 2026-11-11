@@ -184,6 +184,7 @@ dependencies = [
  "ferrum_gguf",
  "ferrum_model",
  "ferrum_ref",
+ "naga",
  "wgpu",
 ]
 
