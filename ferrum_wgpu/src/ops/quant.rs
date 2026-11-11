@@ -173,7 +173,7 @@ pub fn linear_q(
     need("linear_q x", x, rows * w.k)?;
     need("linear_q y", y, rows * w.n)?;
     let kind = u32::from(w.kind == QKind::Q4_0);
-    let p = gpu.pipeline("qlinear", include_str!("../shaders/quant/qlinear.wgsl"))?;
+    let p = pipe!(gpu, "quant/qlinear")?;
     gpu.dispatch_1d(
         &p,
         &[x, &w.buf, y],

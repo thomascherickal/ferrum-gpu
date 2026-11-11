@@ -23,7 +23,7 @@ pub fn rmsnorm(
     need("rmsnorm x", x, rows * cols)?;
     need("rmsnorm y", y, rows * cols)?;
     need("rmsnorm gain", gain, cols)?;
-    let p = gpu.pipeline("rmsnorm", include_str!("../shaders/llama/rmsnorm.wgsl"))?;
+    let p = pipe!(gpu, "llama/rmsnorm")?;
     gpu.dispatch_1d(
         &p,
         &[x, gain, y],
@@ -58,7 +58,7 @@ pub fn rope(
             table_offset + rows
         )));
     }
-    let p = gpu.pipeline("rope", include_str!("../shaders/llama/rope.wgsl"))?;
+    let p = pipe!(gpu, "llama/rope")?;
     let neox = u32::from(ty == RopeType::Neox);
     gpu.dispatch_1d(
         &p,
@@ -79,7 +79,7 @@ pub fn rope(
 pub fn swiglu(gpu: &Gpu, gate: &GpuBuf, up: &GpuBuf, y: &GpuBuf) -> Result<(), GpuError> {
     need("swiglu up", up, gate.len())?;
     need("swiglu y", y, gate.len())?;
-    let p = gpu.pipeline("swiglu", include_str!("../shaders/llama/swiglu.wgsl"))?;
+    let p = pipe!(gpu, "llama/swiglu")?;
     gpu.dispatch_1d(&p, &[gate, up, y], &[gate.len() as u32], gate.len())
 }
 
@@ -100,7 +100,7 @@ pub fn gather_rows(
             table.len()
         )));
     }
-    let p = gpu.pipeline("gather", include_str!("../shaders/llama/gather.wgsl"))?;
+    let p = pipe!(gpu, "llama/gather")?;
     gpu.dispatch_1d(&p, &[table, ids, out], &[rows as u32, c as u32], rows * c)
 }
 
@@ -136,21 +136,12 @@ pub fn attention_gqa(
         hd as u32,
         kv_heads as u32,
     ];
-    let p0 = gpu.pipeline(
-        "attn_gqa_scores",
-        include_str!("../shaders/llama/attn_gqa_scores.wgsl"),
-    )?;
+    let p0 = pipe!(gpu, "llama/attn_gqa_scores")?;
     gpu.dispatch_1d(&p0, &[q, k, probs], &u, batch * heads * t * t)?;
     // The softmax only needs (batch, t, heads); it is the GPT-2 kernel, unchanged.
-    let p1 = gpu.pipeline(
-        "attn_softmax",
-        include_str!("../shaders/fwd/attn_softmax.wgsl"),
-    )?;
+    let p1 = pipe!(gpu, "fwd/attn_softmax")?;
     gpu.dispatch_1d(&p1, &[probs], &u[..4], batch * heads * t)?;
-    let p2 = gpu.pipeline(
-        "attn_gqa_pv",
-        include_str!("../shaders/llama/attn_gqa_pv.wgsl"),
-    )?;
+    let p2 = pipe!(gpu, "llama/attn_gqa_pv")?;
     gpu.dispatch_1d(&p2, &[probs, v, out], &u, batch * t * qd)
 }
 
@@ -181,14 +172,8 @@ pub fn attention_decode_gqa(
         len as u32,
         ctx as u32,
     ];
-    let p1 = gpu.pipeline(
-        "attn_gqd_probs",
-        include_str!("../shaders/llama/attn_gqd_probs.wgsl"),
-    )?;
+    let p1 = pipe!(gpu, "llama/attn_gqd_probs")?;
     gpu.dispatch_1d(&p1, &[q, kc, probs], &u, heads)?;
-    let p2 = gpu.pipeline(
-        "attn_gqd_pv",
-        include_str!("../shaders/llama/attn_gqd_pv.wgsl"),
-    )?;
+    let p2 = pipe!(gpu, "llama/attn_gqd_pv")?;
     gpu.dispatch_1d(&p2, &[probs, vc, out], &u, qd)
 }

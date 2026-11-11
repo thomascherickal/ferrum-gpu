@@ -30,10 +30,7 @@ pub fn matmul_ex(
     need("matmul_ex a", a, m * k)?;
     need("matmul_ex b", b, k * n)?;
     need("matmul_ex c", c, m * n)?;
-    let p = gpu.pipeline(
-        "matmul_blocked4t",
-        include_str!("../shaders/matmul/matmul_blocked4t.wgsl"),
-    )?;
+    let p = pipe!(gpu, "matmul/matmul_blocked4t")?;
     let groups = groups_for((n, m), (64, 64), gpu.max_workgroups())?;
     let flags = u32::from(a_t) | (u32::from(b_t) << 1);
     gpu.dispatch(
@@ -53,7 +50,7 @@ pub fn colsum(
 ) -> Result<(), GpuError> {
     need("colsum x", x, rows * cols)?;
     need("colsum out", out, cols)?;
-    let p = gpu.pipeline("colsum", include_str!("../shaders/bwd/colsum.wgsl"))?;
+    let p = pipe!(gpu, "bwd/colsum")?;
     gpu.dispatch_1d(&p, &[x, out], &[rows as u32, cols as u32], cols)
 }
 
@@ -73,7 +70,7 @@ pub fn linear_bwd(
 pub fn gelu_bwd(gpu: &Gpu, dact: &GpuBuf, f1: &GpuBuf, df: &GpuBuf) -> Result<(), GpuError> {
     need("gelu_bwd f1", f1, dact.len())?;
     need("gelu_bwd df", df, dact.len())?;
-    let p = gpu.pipeline("gelu_bwd", include_str!("../shaders/bwd/gelu_bwd.wgsl"))?;
+    let p = pipe!(gpu, "bwd/gelu_bwd")?;
     gpu.dispatch_1d(&p, &[dact, f1, df], &[dact.len() as u32], dact.len())
 }
 
@@ -93,12 +90,9 @@ pub fn layernorm_bwd(
     }
     need("layernorm_bwd stats", stats, 2 * rows)?;
     let u = [rows as u32, cols as u32];
-    let p1 = gpu.pipeline("ln_bwd_dx", include_str!("../shaders/bwd/ln_bwd_dx.wgsl"))?;
+    let p1 = pipe!(gpu, "bwd/ln_bwd_dx")?;
     gpu.dispatch_1d(&p1, &[x, gain, dy, dx, stats], &u, rows)?;
-    let p2 = gpu.pipeline(
-        "ln_bwd_params",
-        include_str!("../shaders/bwd/ln_bwd_params.wgsl"),
-    )?;
+    let p2 = pipe!(gpu, "bwd/ln_bwd_params")?;
     gpu.dispatch_1d(&p2, &[x, dy, stats, dgain, dshift], &u, cols)
 }
 
@@ -130,35 +124,17 @@ pub fn attention_bwd(
     let (rows, cells, outs) = (batch * heads * t, batch * heads * t * t, batch * t * c);
     // dP = dO V^T once per cell, then dS = P (dP - rowdot) / sqrt(hd) in place; dQ, dK and dV
     // are plain gathers over dS / P. (Recomputing dP per output element was 64x redundant.)
-    let p = gpu.pipeline(
-        "attn_bwd_dp",
-        include_str!("../shaders/bwd/attn_bwd_dp.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dp")?;
     gpu.dispatch_1d(&p, &[dout, v, ds], &u, cells)?;
-    let p = gpu.pipeline(
-        "attn_bwd_dot",
-        include_str!("../shaders/bwd/attn_bwd_dot.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dot")?;
     gpu.dispatch_1d(&p, &[probs, ds, dot], &u, rows)?;
-    let p = gpu.pipeline(
-        "attn_bwd_ds",
-        include_str!("../shaders/bwd/attn_bwd_ds.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_ds")?;
     gpu.dispatch_1d(&p, &[probs, dot, ds], &u, cells)?;
-    let p = gpu.pipeline(
-        "attn_bwd_dv",
-        include_str!("../shaders/bwd/attn_bwd_dv.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dv")?;
     gpu.dispatch_1d(&p, &[probs, dout, dv], &u, outs)?;
-    let p = gpu.pipeline(
-        "attn_bwd_dq",
-        include_str!("../shaders/bwd/attn_bwd_dq.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dq")?;
     gpu.dispatch_1d(&p, &[ds, k, dq], &u, outs)?;
-    let p = gpu.pipeline(
-        "attn_bwd_dk",
-        include_str!("../shaders/bwd/attn_bwd_dk.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dk")?;
     gpu.dispatch_1d(&p, &[ds, q, dk], &u, outs)
 }
 
@@ -209,20 +185,14 @@ pub fn embed_bwd(
         gpu.upload_raw(bytemuck::cast_slice(&start), start.len())?,
         gpu.upload_raw(bytemuck::cast_slice(&order), order.len())?,
     );
-    let p = gpu.pipeline(
-        "embed_bwd_tok",
-        include_str!("../shaders/bwd/embed_bwd_tok.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/embed_bwd_tok")?;
     gpu.dispatch_1d(
         &p,
         &[dx, &gs, &go, dtok],
         &[vocab as u32, c as u32],
         vocab * c,
     )?;
-    let p = gpu.pipeline(
-        "embed_bwd_pos",
-        include_str!("../shaders/bwd/embed_bwd_pos.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/embed_bwd_pos")?;
     gpu.dispatch_1d(
         &p,
         &[dx, dpos],

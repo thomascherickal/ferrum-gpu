@@ -27,20 +27,14 @@ pub fn rmsnorm_bwd(
     need("rmsnorm_bwd gain", gain, cols)?;
     need("rmsnorm_bwd dgain", dgain, cols)?;
     need("rmsnorm_bwd stats", stats, rows)?;
-    let p1 = gpu.pipeline(
-        "rms_bwd_dx",
-        include_str!("../shaders/llama/rms_bwd_dx.wgsl"),
-    )?;
+    let p1 = pipe!(gpu, "llama/rms_bwd_dx")?;
     gpu.dispatch_1d(
         &p1,
         &[x, gain, dy, dx, stats],
         &[rows as u32, cols as u32, eps.to_bits()],
         rows,
     )?;
-    let p2 = gpu.pipeline(
-        "rms_bwd_gain",
-        include_str!("../shaders/llama/rms_bwd_gain.wgsl"),
-    )?;
+    let p2 = pipe!(gpu, "llama/rms_bwd_gain")?;
     gpu.dispatch_1d(
         &p2,
         &[x, dy, stats, dgain],
@@ -58,10 +52,7 @@ pub fn swiglu_bwd(
     for (n, b) in [("up", up), ("dact", dact), ("dgate", dgate), ("dup", dup)] {
         need(&format!("swiglu_bwd {n}"), b, gate.len())?;
     }
-    let p = gpu.pipeline(
-        "swiglu_bwd",
-        include_str!("../shaders/llama/swiglu_bwd.wgsl"),
-    )?;
+    let p = pipe!(gpu, "llama/swiglu_bwd")?;
     gpu.dispatch_1d(
         &p,
         &[gate, up, dact, dgate, dup],
@@ -106,34 +97,16 @@ pub fn attention_gqa_bwd(
     let (rows, cells) = (batch * heads * t, batch * heads * t * t);
     // dP = dO V^T per cell, then dS = P (dP - rowdot) / sqrt(hd) in place (the GPT-2 kernels,
     // which only see the [batch*heads*t, t] layout), then dQ, dK, dV as gathers over dS and P.
-    let p = gpu.pipeline(
-        "attn_gqa_bwd_dp",
-        include_str!("../shaders/llama/attn_gqa_bwd_dp.wgsl"),
-    )?;
+    let p = pipe!(gpu, "llama/attn_gqa_bwd_dp")?;
     gpu.dispatch_1d(&p, &[dout, v, ds], &u, cells)?;
-    let p = gpu.pipeline(
-        "attn_bwd_dot",
-        include_str!("../shaders/bwd/attn_bwd_dot.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_dot")?;
     gpu.dispatch_1d(&p, &[probs, ds, dot], &u[..4], rows)?;
-    let p = gpu.pipeline(
-        "attn_bwd_ds",
-        include_str!("../shaders/bwd/attn_bwd_ds.wgsl"),
-    )?;
+    let p = pipe!(gpu, "bwd/attn_bwd_ds")?;
     gpu.dispatch_1d(&p, &[probs, dot, ds], &u[..4], cells)?;
-    let p = gpu.pipeline(
-        "attn_gqa_bwd_dv",
-        include_str!("../shaders/llama/attn_gqa_bwd_dv.wgsl"),
-    )?;
+    let p = pipe!(gpu, "llama/attn_gqa_bwd_dv")?;
     gpu.dispatch_1d(&p, &[probs, dout, dv], &u, batch * t * kvd)?;
-    let p = gpu.pipeline(
-        "attn_gqa_bwd_dq",
-        include_str!("../shaders/llama/attn_gqa_bwd_dq.wgsl"),
-    )?;
+    let p = pipe!(gpu, "llama/attn_gqa_bwd_dq")?;
     gpu.dispatch_1d(&p, &[ds, k, dq], &u, batch * t * qd)?;
-    let p = gpu.pipeline(
-        "attn_gqa_bwd_dk",
-        include_str!("../shaders/llama/attn_gqa_bwd_dk.wgsl"),
-    )?;
+    let p = pipe!(gpu, "llama/attn_gqa_bwd_dk")?;
     gpu.dispatch_1d(&p, &[ds, q, dk], &u, batch * t * kvd)
 }

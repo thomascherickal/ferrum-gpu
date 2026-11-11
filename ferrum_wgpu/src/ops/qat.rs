@@ -23,7 +23,7 @@ pub fn q8_snap_rows(gpu: &Gpu, src: &GpuBuf, dst: &GpuBuf, ne0: usize) -> Result
     if !eligible(ne0) || !src.len().is_multiple_of(32) {
         return gpu.copy_f32(src, 0, dst, 0, src.len());
     }
-    let p = gpu.pipeline("q8_snap", include_str!("../shaders/quant/q8_snap.wgsl"))?;
+    let p = pipe!(gpu, "quant/q8_snap")?;
     let blocks = src.len() / 32;
     gpu.dispatch_1d(&p, &[src, dst], &[blocks as u32, 0, 0], blocks)
 }
@@ -46,7 +46,7 @@ pub fn q8_snap_cols(
     if !eligible(rows_in) {
         return gpu.copy_f32(src, 0, dst, 0, src.len());
     }
-    let p = gpu.pipeline("q8_snap", include_str!("../shaders/quant/q8_snap.wgsl"))?;
+    let p = pipe!(gpu, "quant/q8_snap")?;
     let blocks = rows_in / 32 * cols_out;
     gpu.dispatch_1d(
         &p,

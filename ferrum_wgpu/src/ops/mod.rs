@@ -3,6 +3,15 @@
 //! ponytail: 1-D kernels cap at 65,535 workgroups x 64 invocations (4.1M elements) per call;
 //! add a 2-D split when a tensor needs more.
 
+/// `pipe!(gpu, "group/name")`: the cached compute pipeline of `shaders/group/name.wgsl`. A macro
+/// (not a function) because `include_str!` needs a literal path; it keeps every call site on one
+/// short line.
+macro_rules! pipe {
+    ($gpu:expr, $name:literal) => {
+        $gpu.pipeline($name, include_str!(concat!("../shaders/", $name, ".wgsl")))
+    };
+}
+
 pub mod bwd;
 pub mod llama;
 pub mod llama_bwd;
@@ -47,7 +56,7 @@ pub fn add(gpu: &Gpu, a: &GpuBuf, b: &GpuBuf, c: &GpuBuf) -> Result<(), GpuError
     let n = a.len();
     need("add b", b, n)?;
     need("add c", c, n)?;
-    let p = gpu.pipeline("add", include_str!("../shaders/fwd/add.wgsl"))?;
+    let p = pipe!(gpu, "fwd/add")?;
     gpu.dispatch_1d(&p, &[a, b, c], &[n as u32], n)
 }
 
@@ -61,7 +70,7 @@ pub fn add_bias(gpu: &Gpu, x: &GpuBuf, bias: &GpuBuf, y: &GpuBuf) -> Result<(), 
             bias.len()
         )));
     }
-    let p = gpu.pipeline("bias_add", include_str!("../shaders/fwd/bias_add.wgsl"))?;
+    let p = pipe!(gpu, "fwd/bias_add")?;
     gpu.dispatch_1d(
         &p,
         &[x, bias, y],
@@ -73,7 +82,7 @@ pub fn add_bias(gpu: &Gpu, x: &GpuBuf, bias: &GpuBuf, y: &GpuBuf) -> Result<(), 
 /// `y = gelu(x)` (tanh approximation).
 pub fn gelu(gpu: &Gpu, x: &GpuBuf, y: &GpuBuf) -> Result<(), GpuError> {
     need("gelu y", y, x.len())?;
-    let p = gpu.pipeline("gelu", include_str!("../shaders/fwd/gelu.wgsl"))?;
+    let p = pipe!(gpu, "fwd/gelu")?;
     gpu.dispatch_1d(&p, &[x, y], &[x.len() as u32], x.len())
 }
 
@@ -90,7 +99,7 @@ pub fn layernorm(
     need("layernorm y", y, rows * cols)?;
     need("layernorm gain", gain, cols)?;
     need("layernorm shift", shift, cols)?;
-    let p = gpu.pipeline("layernorm", include_str!("../shaders/fwd/layernorm.wgsl"))?;
+    let p = pipe!(gpu, "fwd/layernorm")?;
     gpu.dispatch_1d(&p, &[x, gain, shift, y], &[rows as u32, cols as u32], rows)
 }
 
@@ -108,17 +117,11 @@ pub fn attention(
     need("attention probs", probs, batch * heads * t * t)?;
     let u = [batch as u32, t as u32, heads as u32, hd as u32];
     // Scores are computed for every (row, key) cell in parallel, then softmaxed per row.
-    let p0 = gpu.pipeline(
-        "attn_scores",
-        include_str!("../shaders/fwd/attn_scores.wgsl"),
-    )?;
+    let p0 = pipe!(gpu, "fwd/attn_scores")?;
     gpu.dispatch_1d(&p0, &[q, k, probs], &u, batch * heads * t * t)?;
-    let p1 = gpu.pipeline(
-        "attn_softmax",
-        include_str!("../shaders/fwd/attn_softmax.wgsl"),
-    )?;
+    let p1 = pipe!(gpu, "fwd/attn_softmax")?;
     gpu.dispatch_1d(&p1, &[probs], &u, batch * heads * t)?;
-    let p2 = gpu.pipeline("attn_pv", include_str!("../shaders/fwd/attn_pv.wgsl"))?;
+    let p2 = pipe!(gpu, "fwd/attn_pv")?;
     gpu.dispatch_1d(&p2, &[probs, v, out], &u, batch * t * c)
 }
 
@@ -139,14 +142,14 @@ pub fn cross_entropy(
     if rows == 0 {
         return Err(err("cross_entropy: zero rows".into()));
     }
-    let p1 = gpu.pipeline("ce_rows", include_str!("../shaders/fwd/ce_rows.wgsl"))?;
+    let p1 = pipe!(gpu, "fwd/ce_rows")?;
     gpu.dispatch_1d(
         &p1,
         &[logits, targets, grad, row_loss],
         &[rows as u32, vocab as u32],
         rows,
     )?;
-    let p2 = gpu.pipeline("mean_loss", include_str!("../shaders/fwd/mean_loss.wgsl"))?;
+    let p2 = pipe!(gpu, "fwd/mean_loss")?;
     gpu.dispatch(&p2, &[row_loss, loss], &[rows as u32], (1, 1))
 }
 
@@ -161,7 +164,7 @@ pub fn score(
     need("score logits", logits, rows * vocab)?;
     need("score targets", targets, rows)?;
     need("score out", out, 2 * rows)?;
-    let p = gpu.pipeline("score", include_str!("../shaders/fwd/score.wgsl"))?;
+    let p = pipe!(gpu, "fwd/score")?;
     gpu.dispatch_1d(
         &p,
         &[logits, targets, out],
@@ -197,7 +200,7 @@ pub fn embed_at(
             pos.len()
         )));
     }
-    let p = gpu.pipeline("embed", include_str!("../shaders/fwd/embed.wgsl"))?;
+    let p = pipe!(gpu, "fwd/embed")?;
     gpu.dispatch_1d(
         &p,
         &[tok, pos, ids, out],
@@ -217,7 +220,7 @@ pub fn gemv(
     need("gemv w", w, k * n)?;
     need("gemv bias", bias, n)?;
     need("gemv y", y, n)?;
-    let p = gpu.pipeline("gemv", include_str!("../shaders/fwd/gemv.wgsl"))?;
+    let p = pipe!(gpu, "fwd/gemv")?;
     gpu.dispatch_1d(&p, &[x, w, bias, y], &[k as u32, n as u32], n)
 }
 
@@ -241,15 +244,9 @@ pub fn attention_decode(
     need("attention_decode vc", vc, ctx * c)?;
     need("attention_decode probs", probs, heads * ctx)?;
     let u = [heads as u32, hd as u32, len as u32, ctx as u32];
-    let p1 = gpu.pipeline(
-        "attn_dec_probs",
-        include_str!("../shaders/fwd/attn_dec_probs.wgsl"),
-    )?;
+    let p1 = pipe!(gpu, "fwd/attn_dec_probs")?;
     gpu.dispatch_1d(&p1, &[q, kc, probs], &u, heads)?;
-    let p2 = gpu.pipeline(
-        "attn_dec_pv",
-        include_str!("../shaders/fwd/attn_dec_pv.wgsl"),
-    )?;
+    let p2 = pipe!(gpu, "fwd/attn_dec_pv")?;
     gpu.dispatch_1d(&p2, &[probs, vc, out], &u, c)
 }
 

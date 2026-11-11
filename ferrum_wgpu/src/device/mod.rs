@@ -150,12 +150,12 @@ impl Gpu {
 /// Poll until the asynchronous device-lost callback has landed (bounded, never panics).
 #[cfg(test)]
 pub(crate) fn wait_for_loss(g: &Gpu) {
+    // Always nap after polling, so every line runs whether or not the loss has landed yet.
     (0..200).any(|_| {
         let _ = g.device.poll(wgpu::PollType::Poll);
-        g.check().is_err() || {
-            std::thread::sleep(std::time::Duration::from_millis(5));
-            false
-        }
+        let lost = g.check().is_err();
+        std::thread::sleep(std::time::Duration::from_millis(5));
+        lost
     });
 }
 

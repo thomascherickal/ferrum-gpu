@@ -44,7 +44,7 @@ pub fn sumsq_parts(gpu: &Gpu, g: &GpuBuf, part: &GpuBuf, offset: usize) -> Resul
         )));
     }
     check_dispatchable(k)?;
-    let p = gpu.pipeline("sumsq_part", include_str!("../shaders/opt/sumsq_part.wgsl"))?;
+    let p = pipe!(gpu, "opt/sumsq_part")?;
     gpu.dispatch(
         &p,
         &[g, part],
@@ -68,7 +68,7 @@ pub fn norm_scale(
             part.len()
         )));
     }
-    let p = gpu.pipeline("norm_final", include_str!("../shaders/opt/norm_final.wgsl"))?;
+    let p = pipe!(gpu, "opt/norm_final")?;
     gpu.dispatch(
         &p,
         &[part, out],
@@ -86,7 +86,7 @@ pub fn accumulate(
     first: bool,
 ) -> Result<(), GpuError> {
     need("accumulate g", g, acc.len())?;
-    let p = gpu.pipeline("accumulate", include_str!("../shaders/opt/accumulate.wgsl"))?;
+    let p = pipe!(gpu, "opt/accumulate")?;
     gpu.dispatch_1d(
         &p,
         &[acc, g],
@@ -127,7 +127,7 @@ pub fn adam_update(
         bc1.to_bits(),
         bc2.to_bits(),
     ];
-    let pipe = gpu.pipeline("adam", include_str!("../shaders/opt/adam.wgsl"))?;
+    let pipe = pipe!(gpu, "opt/adam")?;
     gpu.dispatch_1d(&pipe, &[p, g, m, v, scale], &u, n)
 }
 
