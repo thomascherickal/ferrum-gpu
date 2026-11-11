@@ -95,7 +95,14 @@ fn info(app: &App) -> Response {
             ])
         })
         .collect();
-    let model = lock(&app.model).as_ref().map_or(Json::Null, model_json);
+    let version = app.version.load(std::sync::atomic::Ordering::SeqCst);
+    let model = lock(&app.model).as_ref().map_or(Json::Null, |m| {
+        let mut j = model_json(m);
+        if let Json::Obj(o) = &mut j {
+            o.push(("version".into(), num(version as usize)));
+        }
+        j
+    });
     Response::json(
         200,
         &Json::obj([
@@ -143,7 +150,7 @@ fn new_model(app: &App, req: &Request) -> Response {
     match fresh_model(name, seed) {
         Ok(m) => {
             let out = model_json(&m);
-            *lock(&app.model) = Some(m);
+            app.set_model(m);
             Response::json(200, &out)
         }
         Err(e) => Response::error(400, &e),
@@ -291,7 +298,7 @@ fn import(app: &App, req: &Request) -> Response {
         ),
         Ok(m) => {
             let out = model_json(&m);
-            *lock(&app.model) = Some(m);
+            app.set_model(m);
             Response::json(200, &out)
         }
         Err(e) => Response::error(400, &format!("not a usable llama/qwen2 GGUF: {e}")),
@@ -317,6 +324,7 @@ pub fn route(app: &Arc<App>, req: &Request) -> Response {
             *lock(&app.selftest) = Some(String::from_utf8_lossy(&req.body).into_owned());
             Response::json(200, &Json::obj([("ok", Json::Bool(true))]))
         }
+        ("GET", "/api/selftest/vectors") => Response::json(200, &crate::selftest::vectors()),
         ("GET", "/api/selftest/result") => match lock(&app.selftest).clone() {
             Some(s) => Response::new(200, "application/json", s),
             None => Response::error(404, "no self-test result yet"),

@@ -285,18 +285,21 @@ impl Gguf {
         self.index.get(name).map(|&i| &self.tensors[i])
     }
 
+    /// The stored bytes of a tensor, undecoded (blocks of Q8_0 / Q4_0 stay packed).
+    pub fn tensor_bytes(&self, name: &str) -> Result<&[u8], GgufError> {
+        let t = self
+            .tensor(name)
+            .ok_or_else(|| err(format!("missing tensor '{name}'")))?;
+        let start = self.data_start + t.offset as usize; // proven in range by parse
+        Ok(&self.bytes[start..start + nbytes(t.ggml_type, t.elements()?)?])
+    }
+
     /// Decode a tensor to f32 (row-major, GGML dim 0 contiguous).
     pub fn tensor_f32(&self, name: &str) -> Result<Vec<f32>, GgufError> {
         let t = self
             .tensor(name)
             .ok_or_else(|| err(format!("missing tensor '{name}'")))?;
-        let n = t.elements()?;
-        let start = self.data_start + t.offset as usize; // proven in range by parse
-        decode(
-            t.ggml_type,
-            &self.bytes[start..start + nbytes(t.ggml_type, n)?],
-            n,
-        )
+        decode(t.ggml_type, self.tensor_bytes(name)?, t.elements()?)
     }
 }
 
@@ -318,6 +321,22 @@ mod tests {
         b.tensor_f32("w", &[3, 2], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
         b.tensor_f32("b", &[2], &[0.5, -0.5]);
         b.into_bytes()
+    }
+
+    #[test]
+    fn raw_bytes_are_the_stored_encoding() {
+        let g = Gguf::parse(sample()).unwrap();
+        let raw = g.tensor_bytes("b").unwrap();
+        assert_eq!(
+            raw,
+            [0.5f32.to_le_bytes(), (-0.5f32).to_le_bytes()].concat()
+        );
+        assert_eq!(g.tensor_bytes("w").unwrap().len(), 24);
+        assert!(g
+            .tensor_bytes("nope")
+            .unwrap_err()
+            .to_string()
+            .contains("missing tensor"));
     }
 
     #[test]

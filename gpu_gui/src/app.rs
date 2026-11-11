@@ -4,6 +4,7 @@ use crate::engine::{preset, Backend, CpuBackend, GpuBackend, Progress, TrainSpec
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::device::select::AdapterSummary;
 use ferrum_wgpu::Gpu;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 
 /// Which device the user asked for.
@@ -84,8 +85,10 @@ pub struct App {
     pub fallback_note: Option<String>,
     /// Every adapter the machine reports.
     pub adapters: Vec<AdapterSummary>,
-    /// The current model.
+    /// The current model. Replace it with [`App::set_model`] so [`App::version`] moves.
     pub model: Mutex<Option<Llama>>,
+    /// Bumped whenever the model is replaced (the browser runtime re-downloads on a change).
+    pub version: AtomicU64,
     /// The training job.
     pub job: Mutex<Job>,
     /// The last self-test result posted by a browser (Phase 5b).
@@ -134,6 +137,7 @@ impl App {
             fallback_note,
             adapters,
             model: Mutex::new(None),
+            version: AtomicU64::new(0),
             job: Mutex::new(Job {
                 state: JobState::Idle,
                 progress: Arc::new(Mutex::new(Progress::default())),
@@ -165,7 +169,7 @@ impl App {
             let mut job = lock(&app.job);
             job.state = match result {
                 Ok(w) => {
-                    *lock(&app.model) = Some(w);
+                    app.set_model(w);
                     if stopped {
                         JobState::Stopped
                     } else {
@@ -176,6 +180,12 @@ impl App {
             };
         });
         Ok(())
+    }
+
+    /// Replace the current model and move the version.
+    pub fn set_model(&self, m: Llama) {
+        *lock(&self.model) = Some(m);
+        self.version.fetch_add(1, Ordering::SeqCst);
     }
 
     /// Ask a running job to stop after its current step.

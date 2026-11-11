@@ -9,5 +9,6 @@ pub mod assets;
 pub mod engine;
 pub mod http;
 pub mod json;
+pub mod selftest;
 pub mod server;
 pub mod tokenizer;

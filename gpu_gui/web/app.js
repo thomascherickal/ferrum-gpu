@@ -200,3 +200,10 @@ async function uiAutotest() {
   } catch (err) { await reportSelfTest({ kind: 'ui', pass: false, steps, error: String(err) }); }
 }
 if (params.get('autotest') === 'ui') uiAutotest();
+if (params.get('autotest') === 'webgpu') {
+  import('/web/selftest.js').then((m) => m.runSelfTest()).then(reportSelfTest)
+    .catch((err) => reportSelfTest({ kind: 'webgpu', pass: false, error: String(err) }));
+}
+
+// The "this browser" runner loads the WebGPU runtime only when it is used.
+window.ferrumBrowser = { generate: async (req) => (await import('/web/browser.js')).generate(req) };

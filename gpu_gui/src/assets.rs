@@ -9,7 +9,13 @@ const STYLE: &str = include_str!("../web/style.css");
 const APP: &str = include_str!("../web/app.js");
 
 /// The embedded browser modules, by file name under `/web/`.
-pub const MODULES: &[(&str, &str)] = &[];
+pub const MODULES: &[(&str, &str)] = &[
+    ("gguf.js", include_str!("../web/gguf.js")),
+    ("webgpu.js", include_str!("../web/webgpu.js")),
+    ("llama.js", include_str!("../web/llama.js")),
+    ("browser.js", include_str!("../web/browser.js")),
+    ("selftest.js", include_str!("../web/selftest.js")),
+];
 
 /// The response for a static `path`, or `None` if it names nothing embedded.
 pub fn serve(path: &str) -> Option<Response> {

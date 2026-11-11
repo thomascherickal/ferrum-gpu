@@ -29,6 +29,11 @@ impl Json {
         Json::Obj(pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
     }
 
+    /// Build an object from a runtime list of `(key, value)` pairs.
+    pub fn obj_vec(pairs: Vec<(&str, Json)>) -> Json {
+        Json::Obj(pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
+    }
+
     /// The value of `key` if this is an object that has it.
     pub fn get(&self, key: &str) -> Option<&Json> {
         match self {
