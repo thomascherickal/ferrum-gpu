@@ -10,10 +10,10 @@ rust-version.workspace = true
 bytemuck = "1.25.2"
 wgpu = "30.0.1"
 ferrum_ref = { path = "../ferrum_ref" }
+ferrum_gguf = { path = "../ferrum_gguf" }
 
 [dev-dependencies]
 ferrum_model = { path = "../ferrum_model" }
-ferrum_gguf = { path = "../ferrum_gguf" }
 
 [[bench]]
 name    = "matmul"
