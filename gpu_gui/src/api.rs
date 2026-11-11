@@ -217,7 +217,7 @@ fn generate(app: &App, req: &Request) -> Response {
     }
     let prompt = match j.get("prompt").and_then(Json::as_str) {
         Some(p) if !p.is_empty() && p.len() <= MAX_PROMPT => p,
-        Some(p) if p.is_empty() => return Response::error(400, "the prompt is empty"),
+        Some("") => return Response::error(400, "the prompt is empty"),
         Some(_) => return Response::error(413, &format!("the prompt is over {MAX_PROMPT} bytes")),
         None => return Response::error(400, "'prompt' (a string) is required"),
     };

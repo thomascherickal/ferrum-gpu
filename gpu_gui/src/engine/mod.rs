@@ -125,12 +125,16 @@ pub fn make_batch(
     (ids, targets)
 }
 
+/// One optimizer step: `(ids, targets, batch, config)` to the step's stats.
+pub type StepFn<'a> =
+    dyn FnMut(&[usize], &[usize], usize, &StepConfig) -> Result<StepStats, String> + 'a;
+
 /// The training loop both backends share: warmup + cosine learning rate, global-norm clip 1.0,
 /// AdamW, progress after every step, early stop. `step` runs one optimizer step.
 pub fn run_training(
     spec: &TrainSpec,
     progress: &Arc<Mutex<Progress>>,
-    step: &mut dyn FnMut(&[usize], &[usize], usize, &StepConfig) -> Result<StepStats, String>,
+    step: &mut StepFn,
 ) -> Result<(), String> {
     let sched = Schedule {
         base_lr: spec.lr,

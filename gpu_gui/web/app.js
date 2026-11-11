@@ -1,4 +1,10 @@
 // ferrum-gpu GUI: talks to the local server's JSON API. No external requests.
+// In a scripted run any uncaught error is reported to the server so the test can show it.
+if (new URLSearchParams(location.search).get('autotest')) {
+  const send = (m) => fetch('/api/selftest/result', { method: 'POST', body: JSON.stringify({ kind: 'error', pass: false, error: String(m) }) });
+  window.addEventListener('error', (e) => send(`${e.message} at ${e.filename}:${e.lineno}`));
+  window.addEventListener('unhandledrejection', (e) => send(`unhandled: ${e.reason}`));
+}
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -164,3 +170,33 @@ async function checkWebGpu() {
 refreshInfo().then(checkWebGpu).catch((err) => { $('device-badge').textContent = err.message; });
 pollTrain();
 window.addEventListener('resize', pollTrain);
+
+// ---- scripted run used by the headless-browser test: drives the real controls, then reports.
+const params = new URLSearchParams(location.search);
+if (params.get('tab')) { const t = $('tab-' + params.get('tab')); if (t) showTab(t); }
+const until = async (fn, ms = 120000) => {
+  const t0 = performance.now();
+  while (!fn()) { if (performance.now() - t0 > ms) throw new Error('timed out'); await new Promise((r) => setTimeout(r, 50)); }
+};
+async function reportSelfTest(result) {
+  await fetch('/api/selftest/result', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(result) });
+}
+async function uiAutotest() {
+  const steps = [];
+  try {
+    await refreshInfo();
+    showTab($('tab-model')); $('preset').value = 'tiny'; $('model-form').requestSubmit();
+    await until(() => $('model-msg').textContent.startsWith('Created')); steps.push('model');
+    showTab($('tab-train'));
+    $('text').value = 'the quick brown fox jumps over the lazy dog. '.repeat(10);
+    $('steps').value = 40; $('batch').value = 4; $('context').value = 24; $('train-start').click();
+    await until(() => /^done/.test($('train-status').textContent)); steps.push('train');
+    const s = await api('/api/train/status');
+    const improved = s.losses.length === 40 && s.losses[39] < 0.7 * s.losses[0];
+    showTab($('tab-generate')); $('prompt').value = 'the quick brown '; $('max_new').value = 12; $('generate').click();
+    await until(() => $('output').textContent.length > 16); steps.push('generate');
+    const out = $('output').textContent;
+    await reportSelfTest({ kind: 'ui', pass: improved && out.startsWith('the quick brown ') && out.includes('fox'), steps, first: s.losses[0], last: s.losses[39], output: out, device: $('device-badge').textContent });
+  } catch (err) { await reportSelfTest({ kind: 'ui', pass: false, steps, error: String(err) }); }
+}
+if (params.get('autotest') === 'ui') uiAutotest();
