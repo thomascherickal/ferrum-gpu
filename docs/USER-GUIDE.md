@@ -139,7 +139,7 @@ unauthenticated.
 |---|---|
 | `libEGL warning: ... failed to create dri2 screen` on every run | The NVIDIA/Mesa driver stack writes these to stderr while `wgpu` enumerates adapters. Harmless; redirect stderr (`2>/dev/null`) to hide them. |
 | `auto` always says "using the CPU for decoding" | That is the rule, not a fault ([section 4](#4-choosing-the-device)). Force with `--device gpu`. |
-| `only software adapters found; name one explicitly` | The machine has only llvmpipe-style adapters. Use `--device cpu`, or name the software adapter with `--gpu-adapter` knowing it is slow. |
+| `only software or OpenGL adapters found; name one explicitly` | The machine has only llvmpipe-style or OpenGL (Gl) adapters; `auto` and `--device gpu` skip both unless named. Use `--device cpu`, or name the software adapter with `--gpu-adapter` knowing it is slow. |
 | `no adapter matches 'X'; available: ...` | The fragment did not match. Copy part of a name from `ferrum-gpu info`. |
 | `refusing to start on <GPU>: needs N bytes ...` | The pre-flight refused the run. Follow the advice in the message. |
 | `the loss became NaN at step N; lower the learning rate` | Divergence. Lower `--lr` or the batch. |

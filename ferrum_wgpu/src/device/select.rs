@@ -60,7 +60,7 @@ impl std::fmt::Display for SelectError {
             SelectError::OnlySoftware => {
                 write!(
                     f,
-                    "only software adapters found; name one explicitly with --gpu-adapter"
+                    "only software or OpenGL adapters found; name one explicitly with --gpu-adapter"
                 )
             }
         }
@@ -70,8 +70,9 @@ impl std::fmt::Display for SelectError {
 impl std::error::Error for SelectError {}
 
 /// Choose an adapter index. A name fragment (case-insensitive) wins and may pick a software
-/// adapter. Otherwise: first discrete, else first integrated, else first other; software is
-/// never chosen unprompted.
+/// adapter. Otherwise: first discrete, else first integrated, else first other; software and
+/// OpenGL-backend adapters are never chosen unprompted (Phase 7: the Mesa GL adapter failed the GELU
+/// parity test, see docs/DEVICES.md).
 pub fn choose(list: &[AdapterSummary], name: Option<&str>) -> Result<usize, SelectError> {
     if list.is_empty() {
         return Err(SelectError::NoAdapters);
@@ -87,7 +88,10 @@ pub fn choose(list: &[AdapterSummary], name: Option<&str>) -> Result<usize, Sele
             });
     }
     for kind in [Kind::Discrete, Kind::Integrated, Kind::Other] {
-        if let Some(i) = list.iter().position(|a| a.kind == kind) {
+        if let Some(i) = list
+            .iter()
+            .position(|a| a.kind == kind && a.backend != "Gl")
+        {
             return Ok(i);
         }
     }
@@ -107,6 +111,16 @@ mod tests {
             max_binding: 1 << 27,
             max_workgroup_invocations: 256,
         }
+    }
+
+    #[test]
+    fn never_picks_an_opengl_adapter_unprompted() {
+        let mut gl = a("Mesa Intel", Kind::Integrated);
+        gl.backend = "Gl".into();
+        assert_eq!(choose(&[gl.clone()], None), Err(SelectError::OnlySoftware));
+        let vk = a("Intel Xe", Kind::Integrated);
+        assert_eq!(choose(&[gl.clone(), vk], None), Ok(1));
+        assert_eq!(choose(&[gl], Some("mesa")), Ok(0));
     }
 
     #[test]
