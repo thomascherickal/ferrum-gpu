@@ -2,7 +2,7 @@
 
 **Goal:** everything a user can do with ferrum-cpu (train, fine-tune, run, score, serve, export small causal Transformers as GGUF), they can do with ferrum-gpu, on any GPU or on the CPU, with the same files going both ways.
 
-**Status:** plan only, written 2026-11-11, after Phase 6. Phase 7 (device matrix) runs first and is tracked in [docs/plans/PHASE-7.md](docs/plans/PHASE-7.md). The M-phases below follow it.
+**Status:** Phase 7 (device matrix) is complete for the hardware available. M0 (audit) is complete, against ferrum-cpu commit `56a9d3ada59df2a7f3f4e128d04a96b59211581c`; the ledger is [docs/PARITY.md](docs/PARITY.md). M1 is next.
 
 ## 0. The independence rule (CRITICAL, unchanged)
 
@@ -31,6 +31,8 @@ Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu 
 
 ## 2. Gap table (ferrum-gpu today versus ferrum-cpu)
 
+> **Superseded by [docs/PARITY.md](docs/PARITY.md)** (M0). The audit changed three things below: (1) `ferrum-gpu train` writes a Llama-style model while ferrum-cpu writes a GPT-2 model, so M4 adds `train --arch gpt2|llama` with `gpt2` as the default; (2) presets are different models under the same names; (3) ferrum-cpu reads Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K (11 block formats against our 3), and its server also has `/v1/loglikelihood_rolling` and a 32-request in-flight cap. The table below is kept as written for history.
+
 "Have" is from this repository's code. "Gap" rows get a phase.
 
 | Area | ferrum-cpu | ferrum-gpu today | Phase |
@@ -57,12 +59,12 @@ Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu 
 
 Each phase ends at a gate. A failed gate is recorded with real numbers and the consequence, and work continues with the recommended action (CLAUDE.md rule 9).
 
-### M0: audit and parity ledger
+### M0: audit and parity ledger (done 2026-11-11)
 
 - Read the ferrum-cpu CLI, server and GGUF code named in the table; correct the table.
 - Create `docs/PARITY.md`: one row per feature, status (have / partial / gap / deliberately different), with the reason for any difference.
 - Create `fixtures/README.md` (empty ledger) and a `scripts/make-fixtures.sh` that *documents* the ferrum-cpu commands to run in scratch; it never runs from tests.
-- **Gate:** every table row is confirmed against source, with the ferrum-cpu commit hash recorded.
+- **Gate (met):** rows confirmed against source where source was read, otherwise marked "doc" and re-read in their phase; commit hash recorded in PARITY.md.
 
 ### M1: BPE tokenizer and GGUF tokenizer metadata
 
