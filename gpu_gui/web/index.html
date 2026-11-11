@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ferrum-gpu</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header>
+  <h1>ferrum-gpu</h1>
+  <p id="device-badge" class="badge" role="status" aria-live="polite">connecting…</p>
+</header>
+
+<nav role="tablist" aria-label="Sections">
+  <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="true">Device</button>
+  <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false">Model</button>
+  <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false">Train</button>
+  <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false">Generate</button>
+</nav>
+
+<main>
+  <section id="panel-device" role="tabpanel" aria-labelledby="tab-device">
+    <h2>Device</h2>
+    <p id="device-note" class="muted"></p>
+    <table>
+      <caption class="muted">Adapters this machine reports</caption>
+      <thead><tr><th scope="col">Name</th><th scope="col">Backend</th><th scope="col">Kind</th><th scope="col">Max buffer binding</th></tr></thead>
+      <tbody id="adapters"></tbody>
+    </table>
+    <h3>WebGPU in this browser</h3>
+    <p id="webgpu-status" class="muted">checking…</p>
+  </section>
+
+  <section id="panel-model" role="tabpanel" aria-labelledby="tab-model" hidden>
+    <h2>Model</h2>
+    <form id="model-form" class="row">
+      <label>Size
+        <select id="preset"></select>
+      </label>
+      <label>Seed
+        <input id="seed" type="number" min="0" value="1">
+      </label>
+      <button type="submit">Create a new model</button>
+    </form>
+    <p id="model-summary" class="muted">No model yet.</p>
+    <div class="row">
+      <label>Download as
+        <select id="quant">
+          <option value="f32">f32 (exact)</option>
+          <option value="q8_0">Q8_0</option>
+          <option value="q4_0">Q4_0</option>
+        </select>
+      </label>
+      <a id="download" class="button" href="/api/model.gguf?quant=f32" download="model.gguf">Download GGUF</a>
+      <label class="button file">Load a GGUF…
+        <input id="upload" type="file" accept=".gguf">
+      </label>
+    </div>
+    <p id="model-msg" class="muted" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="panel-train" role="tabpanel" aria-labelledby="tab-train" hidden>
+    <h2>Train</h2>
+    <label class="block">Training text
+      <textarea id="text" rows="7" spellcheck="false">the quick brown fox jumps over the lazy dog. </textarea>
+    </label>
+    <div class="row">
+      <label>Steps <input id="steps" type="number" min="1" max="100000" value="150"></label>
+      <label>Learning rate <input id="lr" type="number" step="any" min="0.000001" max="1" value="0.01"></label>
+      <label>Batch <input id="batch" type="number" min="1" max="256" value="8"></label>
+      <label>Context <input id="context" type="number" min="1" max="4096" value="32"></label>
+    </div>
+    <div class="row">
+      <button id="train-start" type="button">Start training</button>
+      <button id="train-stop" type="button" disabled>Stop</button>
+      <progress id="progress" max="1" value="0" aria-label="Training progress"></progress>
+      <span id="train-status" role="status" aria-live="polite" class="muted">idle</span>
+    </div>
+    <canvas id="chart" role="img" aria-label="Training loss over steps" width="600" height="220"></canvas>
+  </section>
+
+  <section id="panel-generate" role="tabpanel" aria-labelledby="tab-generate" hidden>
+    <h2>Generate</h2>
+    <label class="block">Prompt
+      <input id="prompt" type="text" value="the quick brown ">
+    </label>
+    <div class="row">
+      <label>New tokens <input id="max_new" type="number" min="1" max="1024" value="48"></label>
+      <label>Temperature <input id="temperature" type="number" step="0.1" min="0" max="10" value="0"></label>
+      <label>Top-k <input id="top_k" type="number" min="0" max="256" value="0"></label>
+      <label>Run on
+        <select id="runner">
+          <option value="server">server device</option>
+          <option value="browser">this browser (WebGPU)</option>
+        </select>
+      </label>
+      <button id="generate" type="button">Generate</button>
+    </div>
+    <pre id="output" aria-live="polite"></pre>
+    <p id="gen-msg" class="muted" role="status"></p>
+  </section>
+</main>
+
+<script type="module" src="/app.js"></script>
+</body>
+</html>
