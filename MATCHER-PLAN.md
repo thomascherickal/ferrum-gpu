@@ -2,7 +2,15 @@
 
 **Goal:** everything a user can do with ferrum-cpu (train, fine-tune, run, score, serve, export small causal Transformers as GGUF), they can do with ferrum-gpu, on any GPU or on the CPU, with the same files going both ways.
 
-**Status:** Phase 7 (device matrix) is complete for the hardware available. M0 (audit) is complete, against ferrum-cpu commit `56a9d3ada59df2a7f3f4e128d04a96b59211581c`; the ledger is [docs/PARITY.md](docs/PARITY.md). M1 is next.
+**Status (2026-11-11):** Phase 7 (device matrix) is complete for the hardware available. M0, M1, M3, M4, M6 and M7 are done as described in their sections below; M2 is half done (`tokenize` and token files yes, `prepare` no); M5 is partly done through M4 (GPT-2 generate/eval options) but the Llama/Qwen `run-gguf` extras are not; M8 has not been done. Everything above is on `main`. 564 tests per run pass; line coverage is 98.12% (docs/COVERAGE.md). The ledger of what matches and what does not is [docs/PARITY.md](docs/PARITY.md).
+
+**Still open, in the order I would take them:**
+1. `prepare` (M2): cleaning, NFKC, Gutenberg strip, dedup, splits, manifest; `scripts/fetch.sh`; a DVC pipeline.
+2. M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
+3. `--tie`, `--dropout` and character-level (`--vocab 0`) for GPT-2 training: engine work on the CPU and GPU trainers.
+4. Server: request cancel on client disconnect; trying the existing LightEval module against our routes.
+5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.
+6. First CI run on GitHub, and Apple, AMD and Windows hardware rows (Phase 7).
 
 ## 0. The independence rule (CRITICAL, unchanged)
 
