@@ -66,7 +66,9 @@ Each phase ends at a gate. A failed gate is recorded with real numbers and the c
 - Create `fixtures/README.md` (empty ledger) and a `scripts/make-fixtures.sh` that *documents* the ferrum-cpu commands to run in scratch; it never runs from tests.
 - **Gate (met):** rows confirmed against source where source was read, otherwise marked "doc" and re-read in their phase; commit hash recorded in PARITY.md.
 
-### M1: BPE tokenizer and GGUF tokenizer metadata
+### M1: BPE tokenizer and GGUF tokenizer metadata (library part done 2026-11-11)
+
+Done: new crate `ferrum_tok` (copied from ferrum-cpu `0bb0f92`, depends only on `unicode-general-category`, cargo deny ok), `ferrum_model::tokenizer_gguf` (tokenizer file and model metadata, both directions), integer tensor types in the GGUF reader, golden fixtures in `fixtures/bpe/` (tokenizer file, model file, token file, corpus). Results: tokenizer file, metadata and the 942 corpus ids equal ferrum-cpu's; our GPT-2 reader loads ferrum-cpu's `model.gguf`. Not done and moved: character-level mode (`--vocab 0`) goes with M4 (it is a model-type change, not a tokenizer one); using BPE in `train`/`generate`/the server goes with M4/M5.
 
 - Copy in the byte-level BPE trainer, encoder/decoder and GPT-2 pre-tokenizer (provenance headers), plus the Unicode category and normalization it needs. Decide, by a short measurement, between a small hand-written table and the two pure-Rust crates ferrum-cpu uses; either is acceptable under the rule, a dependency needs a `cargo deny` pass.
 - Read and write `tokenizer.ggml.*` metadata in our GGUF layer; keep byte mode for old files.

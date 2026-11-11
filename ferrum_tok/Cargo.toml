@@ -1,0 +1,12 @@
+[package]
+name = "ferrum_tok"
+description = "Byte-level BPE tokenizer with the GPT-2 pre-tokenizer; GGUF vocabulary arrays."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+# Pure-Rust Unicode tables (general category for the GPT-2 pre-tokenizer). Hand-writing the
+# category table is thousands of lines; the crate is MIT/Apache, safe Rust, and passes cargo deny.
+unicode-general-category = "1.1"

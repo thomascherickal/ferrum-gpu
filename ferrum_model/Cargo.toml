@@ -9,3 +9,4 @@ rust-version.workspace = true
 [dependencies]
 ferrum_gguf = { path = "../ferrum_gguf" }
 ferrum_ref = { path = "../ferrum_ref" }
+ferrum_tok = { path = "../ferrum_tok" }

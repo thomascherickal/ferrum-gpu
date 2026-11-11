@@ -23,6 +23,10 @@ pub const DEFAULT_ALIGNMENT: u64 = 32;
 pub const GGML_F32: u32 = 0;
 /// ggml tensor type: 16-bit float.
 pub const GGML_F16: u32 = 1;
+/// ggml tensor type: 16-bit signed integer (token files).
+pub const GGML_I16: u32 = 25;
+/// ggml tensor type: 32-bit signed integer (token files).
+pub const GGML_I32: u32 = 26;
 /// ggml tensor type: 4-bit blocks of 32 with an f16 scale.
 pub const GGML_Q4_0: u32 = 2;
 /// ggml tensor type: 8-bit blocks of 32 with an f16 scale.

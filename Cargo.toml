@@ -1,5 +1,5 @@
 [workspace]
-members  = ["ferrum_gguf", "ferrum_model", "ferrum_ref", "ferrum_wgpu", "ferrum_gpu_cli", "ferrum_gpu_gui", "ferrum_gpu_server", "tests"]
+members  = ["ferrum_tok", "ferrum_gguf", "ferrum_model", "ferrum_ref", "ferrum_wgpu", "ferrum_gpu_cli", "ferrum_gpu_gui", "ferrum_gpu_server", "tests"]
 resolver = "2"
 
 [workspace.package]

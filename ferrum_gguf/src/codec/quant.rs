@@ -2,7 +2,7 @@
 
 use crate::f16::{f16_to_f32, f32_to_f16};
 use crate::reader::GgufError;
-use crate::{GGML_F16, GGML_F32, GGML_Q4_0, GGML_Q8_0, QK};
+use crate::{GGML_F16, GGML_F32, GGML_I16, GGML_I32, GGML_Q4_0, GGML_Q8_0, QK};
 
 fn err(m: impl Into<String>) -> GgufError {
     GgufError(m.into())
@@ -23,7 +23,8 @@ pub fn nbytes(ty: u32, n: usize) -> Result<usize, GgufError> {
     };
     match ty {
         GGML_F32 => n.checked_mul(4).ok_or_else(|| err("tensor size overflows")),
-        GGML_F16 => n.checked_mul(2).ok_or_else(|| err("tensor size overflows")),
+        GGML_F16 | GGML_I16 => n.checked_mul(2).ok_or_else(|| err("tensor size overflows")),
+        GGML_I32 => n.checked_mul(4).ok_or_else(|| err("tensor size overflows")),
         GGML_Q8_0 => blocks(2 + QK),
         GGML_Q4_0 => blocks(2 + QK / 2),
         other => Err(err(format!("unsupported ggml tensor type {other}"))),
@@ -35,6 +36,11 @@ pub fn decode(ty: u32, bytes: &[u8], n: usize) -> Result<Vec<f32>, GgufError> {
     if bytes.len() != nbytes(ty, n)? {
         return Err(err(
             "tensor byte length does not match its type and element count",
+        ));
+    }
+    if ty == GGML_I16 || ty == GGML_I32 {
+        return Err(err(
+            "integer tensors have no f32 form; read them with tensor_bytes",
         ));
     }
     let h = |b: &[u8]| f16_to_f32(u16::from_le_bytes([b[0], b[1]]));
@@ -102,6 +108,14 @@ pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn integer_tensor_types_have_sizes_but_no_f32_form() {
+        assert_eq!(nbytes(crate::GGML_I16, 5).unwrap(), 10);
+        assert_eq!(nbytes(crate::GGML_I32, 5).unwrap(), 20);
+        assert!(decode(crate::GGML_I16, &[0; 10], 5).is_err());
+        assert!(decode(crate::GGML_I32, &[0; 20], 5).is_err());
+    }
+
     use super::*;
 
     fn data(n: usize) -> Vec<f32> {

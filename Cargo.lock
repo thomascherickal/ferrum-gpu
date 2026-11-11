@@ -199,6 +199,7 @@ version = "0.1.0"
 dependencies = [
  "ferrum_gguf",
  "ferrum_ref",
+ "ferrum_tok",
 ]
 
 [[package]]
@@ -206,6 +207,13 @@ name = "ferrum_ref"
 version = "0.1.0"
 dependencies = [
  "ferrum_gguf",
+]
+
+[[package]]
+name = "ferrum_tok"
+version = "0.1.0"
+dependencies = [
+ "unicode-general-category",
 ]
 
 [[package]]
@@ -861,6 +869,12 @@ checksum = "b52fd3255258d26fac7264ab5a76b53c13367136dc011d3d6ad4f8ed070396a3"
 dependencies = [
  "pin-project-lite",
 ]
+
+[[package]]
+name = "unicode-general-category"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b993bddc193ae5bd0d623b49ec06ac3e9312875fdae725a975c51db1cc1677f"
 
 [[package]]
 name = "unicode-ident"

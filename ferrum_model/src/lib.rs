@@ -8,3 +8,4 @@ pub mod gguf;
 
 pub use gguf::{gpt2 as gpt2_gguf, llama as llama_gguf};
 pub mod sampling;
+pub mod tokenizer_gguf;
