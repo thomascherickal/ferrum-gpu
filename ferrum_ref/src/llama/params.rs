@@ -117,3 +117,86 @@ impl Llama {
         blocks + self.tok.len() + self.out_norm.len() + if self.tied { 0 } else { self.head.len() }
     }
 }
+
+/// Parameters per block in canonical order (see [`Llama::params`]).
+pub const BLOCK_PARAMS: usize = 12;
+
+impl Block {
+    /// The block's parameters in canonical order: attention norm, `wq`, `bq`, `wk`, `bk`, `wv`,
+    /// `bv`, `wo`, FFN norm, `gate`, `up`, `down`. An absent bias is an empty vector.
+    pub fn params(&self) -> [&Vec<f32>; BLOCK_PARAMS] {
+        [
+            &self.attn_norm,
+            &self.wq,
+            &self.bq,
+            &self.wk,
+            &self.bk,
+            &self.wv,
+            &self.bv,
+            &self.wo,
+            &self.ffn_norm,
+            &self.gate,
+            &self.up,
+            &self.down,
+        ]
+    }
+
+    /// Mutable access in canonical order.
+    pub fn params_mut(&mut self) -> [&mut Vec<f32>; BLOCK_PARAMS] {
+        [
+            &mut self.attn_norm,
+            &mut self.wq,
+            &mut self.bq,
+            &mut self.wk,
+            &mut self.bk,
+            &mut self.wv,
+            &mut self.bv,
+            &mut self.wo,
+            &mut self.ffn_norm,
+            &mut self.gate,
+            &mut self.up,
+            &mut self.down,
+        ]
+    }
+}
+
+impl Llama {
+    /// All trainable parameters in canonical order: token embedding, each block's
+    /// [`BLOCK_PARAMS`], output norm, head. (A tied head is not a separate parameter; training
+    /// refuses tied models.)
+    pub fn params(&self) -> Vec<&Vec<f32>> {
+        let mut v = vec![&self.tok];
+        self.blocks.iter().for_each(|b| v.extend(b.params()));
+        v.extend([&self.out_norm, &self.head]);
+        v
+    }
+
+    /// Mutable parameters in canonical order.
+    pub fn params_mut(&mut self) -> Vec<&mut Vec<f32>> {
+        let mut v = vec![&mut self.tok];
+        self.blocks
+            .iter_mut()
+            .for_each(|b| v.extend(b.params_mut()));
+        v.extend([&mut self.out_norm, &mut self.head]);
+        v
+    }
+
+    /// A model of the same shape with every parameter zero (a gradient or moment container).
+    pub fn zeros_like(&self) -> Llama {
+        let mut z = self.clone();
+        z.params_mut().into_iter().for_each(|p| p.fill(0.0));
+        z
+    }
+
+    /// Whether AdamW decays canonical parameter `i`: weight matrices and the embedding are
+    /// decayed; norm gains and biases are not.
+    pub fn decays(&self, i: usize) -> bool {
+        let n = self.blocks.len() * BLOCK_PARAMS;
+        match i {
+            0 => true,
+            _ if i < 1 + n => matches!((i - 1) % BLOCK_PARAMS, 1 | 3 | 5 | 7 | 9 | 10 | 11),
+            _ if i == 1 + n => false, // output norm
+            _ => true,                // head
+        }
+    }
+}
