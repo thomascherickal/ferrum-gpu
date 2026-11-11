@@ -54,13 +54,17 @@ impl Llama {
                 .map(|v| 1.0 + 0.1 * v)
                 .collect::<Vec<f32>>()
         };
+        // q/k scale with 1/sqrt(dim) so attention scores stay O(1) at any width (a saturated
+        // softmax would amplify f32 rounding and make parity tests measure conditioning, not
+        // kernels). Unchanged at dim 8.
+        let qk = 0.5 * (8.0 / d as f32).sqrt();
         let bias = |n: usize| if biases { mat(n, 0.1) } else { Vec::new() };
         let blocks = (0..cfg.layers)
             .map(|_| Block {
                 attn_norm: gain(d),
-                wq: mat(d * qd, 0.5),
+                wq: mat(d * qd, qk),
                 bq: bias(qd),
-                wk: mat(d * kvd, 0.5),
+                wk: mat(d * kvd, qk),
                 bk: bias(kvd),
                 wv: mat(d * kvd, 0.5),
                 bv: bias(kvd),
