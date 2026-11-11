@@ -190,6 +190,7 @@ dependencies = [
  "ferrum_gpu_gui",
  "ferrum_model",
  "ferrum_ref",
+ "ferrum_wgpu",
 ]
 
 [[package]]

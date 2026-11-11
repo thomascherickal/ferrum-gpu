@@ -4,4 +4,5 @@
 //! the commands `train`, `generate`, `eval`, `run-gguf`, `finetune-gguf` and `info`.
 
 pub mod cmds;
+pub mod device;
 pub mod flags;

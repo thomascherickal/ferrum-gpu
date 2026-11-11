@@ -1,6 +1,7 @@
 //! The commands. Each writes its report to `out` and returns an error string instead of exiting,
 //! so tests drive them with the CPU backend and a `Vec<u8>`.
 
+use crate::device::{decide, Workload};
 use crate::flags::{val, Args, Flag};
 use ferrum_gguf::Gguf;
 use ferrum_gpu_gui::app::{App, DeviceChoice};
@@ -10,6 +11,7 @@ use ferrum_model::checkpoint::atomic_write;
 use ferrum_model::gpt2_gguf::Quant;
 use ferrum_model::llama_gguf::{from_gguf, to_gguf};
 use ferrum_ref::llama::Llama;
+use ferrum_wgpu::Gpu;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 
@@ -86,13 +88,18 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
 }
 
 /// Build the app (device) from the shared device flags.
-fn app(a: &Args) -> Result<App, String> {
-    let choice = DeviceChoice::parse(a.get("--device").unwrap_or("auto"))?;
+fn app(a: &Args, work: Workload) -> Result<App, String> {
+    let requested = DeviceChoice::parse(a.get("--device").unwrap_or("auto"))?;
     let threads = a.num(
         "--threads",
         std::thread::available_parallelism().map_or(1, |n| n.get()),
     )?;
-    App::new(choice, a.get("--gpu-adapter"), threads.max(1))
+    let d = decide(requested, work, &Gpu::list(), a.get("--gpu-adapter"))?;
+    let mut app = App::new(d.choice, d.adapter.as_deref(), threads.max(1))?;
+    if d.note.is_some() {
+        app.fallback_note = d.note;
+    }
+    Ok(app)
 }
 
 fn say(out: &mut dyn Write, s: String) -> Result<(), String> {
@@ -125,7 +132,7 @@ fn shape(m: &Llama) -> String {
 }
 
 fn info(a: &Args, out: &mut dyn Write) -> Result<(), String> {
-    let app = app(a)?;
+    let app = app(a, Workload::Decode)?;
     device_line(out, &app)?;
     for ad in &app.adapters {
         say(
@@ -167,7 +174,7 @@ fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {
     spec.validate(&model.cfg)?;
     let q = quant(a)?;
     let target = a.need("--out")?;
-    let app = app(a)?;
+    let app = app(a, Workload::Train)?;
     device_line(out, &app)?;
     say(out, shape(&model))?;
     let progress = Arc::new(Mutex::new(Progress::default()));
@@ -198,7 +205,7 @@ fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), String> 
         top_k: a.num("--top-k", 0)?,
         seed: a.num("--seed", 1u64)?,
     };
-    let app = app(a)?;
+    let app = app(a, Workload::Decode)?;
     if verbose {
         device_line(out, &app)?;
         say(out, shape(&model))?;

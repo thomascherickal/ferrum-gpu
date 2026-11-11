@@ -1,5 +1,6 @@
 //! `ferrum-gpu-server --model F.gguf [--port N] [--device cpu|gpu|auto] [--gpu-adapter NAME]`
 
+use ferrum_gpu_cli::device::{decide, Workload};
 use ferrum_gpu_cli::flags::{val, Args};
 use ferrum_gpu_gui::app::{App, DeviceChoice};
 use ferrum_gpu_server::decoder::ModelDecoder;
@@ -23,7 +24,16 @@ fn run(args: &[String]) -> Result<(), String> {
         "--threads",
         std::thread::available_parallelism().map_or(1, |n| n.get()),
     )?;
-    let app = App::new(choice, a.get("--gpu-adapter"), threads.max(1))?;
+    let d = decide(
+        choice,
+        Workload::Decode,
+        &ferrum_wgpu::Gpu::list(),
+        a.get("--gpu-adapter"),
+    )?;
+    let mut app = App::new(d.choice, d.adapter.as_deref(), threads.max(1))?;
+    if d.note.is_some() {
+        app.fallback_note = d.note;
+    }
     println!("device: {} ({})", app.backend.name(), app.backend.kind());
     if let Some(n) = &app.fallback_note {
         println!("note: {n}");
