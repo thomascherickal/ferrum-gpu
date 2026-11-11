@@ -52,6 +52,10 @@ Done on branch `worktree-gui-webgpu` (merged to `main` only if the log says so).
 
 Things to know: browser tests launch Chrome in its own process group and kill only that group (never `pkill`/`pgrep` by name: the machine also runs the user's own browsers); Chrome only offers real GPUs with `--use-gl=angle --use-angle=vulkan` (otherwise SwiftShader); `CLAUDE_JOB_DIR` is not set in the shell, use full paths; the GUI is loopback-only with no auth; run suites with `--test-threads 1` (concurrent GPU device opens can SIGSEGV a driver). Not done: tokenizer (Phase 6), CLI/server proper (Phase 6), training in the browser, Firefox/Safari/Windows/macOS browser runs.
 
+## Phase 6 (2026-11-11), branch `worktree-phase6`, NOT merged, NOT pushed
+
+6.1 to 6.5 done: crates `ferrum_gpu_cli` (binary `ferrum-gpu`, `device.rs` = the auto rule, `preflight.rs`) and `ferrum_gpu_server` (binary `ferrum-gpu-server`); both reuse `ferrum_gpu_gui` (engine, http, json, byte tokenizer). Tutorial with real output: `docs/cli.md`. Gate met (e2e green, GPU leg ran on the MX330). Not done: BPE, ferrum-cpu GGUF fixture, GPU-side scoring, VRAM discovery, full four-configuration suite and coverage after Phase 6 (only the new crates' tests, fmt, clippy and the independence tests were run). Next: merge to `main` (user decision), then Phase 7.
+
 ## Goal
 
 `ferrum-gpu`: a GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) that trains, fine-tunes and
