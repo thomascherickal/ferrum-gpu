@@ -82,3 +82,8 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     sensible default, or for a hard blocker (needs credentials, sudo, or an action outside
     this repository). The existing limits still apply: never invent numbers, never touch
     ferrum-cpu, never force-push, and never push or merge to `main` unless the user asks.
+13. **Model size limit (user decision 2026-11-11, strict).** Never download a model larger than
+    1.5B parameters, from any source or tool (`ollama pull`, `lms get`, `curl`, Hugging Face,
+    anything). Models above 1.5B parameters found on this machine are deleted when found. Check
+    the parameter count (model card, file name or GGUF header) before downloading; if it cannot
+    be established, do not download.
