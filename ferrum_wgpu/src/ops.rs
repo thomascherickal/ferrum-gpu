@@ -6,11 +6,11 @@
 use crate::device::{Gpu, GpuError};
 use crate::tensor::GpuBuf;
 
-fn err(msg: String) -> GpuError {
+pub(crate) fn err(msg: String) -> GpuError {
     GpuError(msg)
 }
 
-fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
+pub(crate) fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     if b.len() == want {
         Ok(())
     } else {

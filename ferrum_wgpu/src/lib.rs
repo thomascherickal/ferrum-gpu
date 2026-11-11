@@ -10,6 +10,7 @@ pub mod gpt2;
 pub mod matmul;
 pub mod ops;
 pub mod ops_bwd;
+pub mod ops_llama;
 pub mod ops_opt;
 pub mod ops_qat;
 pub mod runtime;
