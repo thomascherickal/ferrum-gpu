@@ -21,9 +21,9 @@ impl Variant {
 
     fn source(self) -> &'static str {
         match self {
-            Variant::Naive => include_str!("shaders/matmul_naive.wgsl"),
-            Variant::Tiled16 => include_str!("shaders/matmul_tiled16.wgsl"),
-            Variant::Blocked4 => include_str!("shaders/matmul_blocked4.wgsl"),
+            Variant::Naive => include_str!("../shaders/matmul/matmul_naive.wgsl"),
+            Variant::Tiled16 => include_str!("../shaders/matmul/matmul_tiled16.wgsl"),
+            Variant::Blocked4 => include_str!("../shaders/matmul/matmul_blocked4.wgsl"),
         }
     }
 

@@ -75,8 +75,11 @@ fn stays_inside(dir: &Path, rel: &str, root: &Path) -> bool {
     resolved.starts_with(root)
 }
 
-/// Source lines that use ferrum_core or read files outside the repo.
-fn source_violations(text: &str) -> Vec<String> {
+/// Source lines that use ferrum_core or read files outside the repo. A path literal in an
+/// `include_str!`/`include_bytes!`/`read` call is resolved against the file's directory `dir`
+/// and must stay under `root` (so `"../shaders/x.wgsl"` inside the repo is fine, while
+/// `"../../../ferrum-cpu/x"` is not).
+fn source_violations(text: &str, dir: &Path, root: &Path) -> Vec<String> {
     text.lines()
         .map(str::trim)
         .filter(|l| !l.starts_with("//"))
@@ -87,10 +90,16 @@ fn source_violations(text: &str) -> Vec<String> {
                     || l.contains("include_bytes!")
                     || l.contains("read(\"")
                     || l.contains("read_to_string(\""))
-                    && (l.contains("\"../") || l.contains("ferrum-cpu")))
+                    && (l.contains("ferrum-cpu")
+                        || quoted(l).is_some_and(|p| !stays_inside(dir, &p, root))))
         })
         .map(String::from)
         .collect()
+}
+
+/// The first double-quoted string on a line.
+fn quoted(line: &str) -> Option<String> {
+    Some(line.split('"').nth(1)?.to_string())
 }
 
 fn unsafe_lines(text: &str) -> Vec<String> {
@@ -106,13 +115,13 @@ fn unsafe_lines(text: &str) -> Vec<String> {
         .collect()
 }
 
-fn scan(ext: &str, name: Option<&str>, f: fn(&str) -> Vec<String>) -> Vec<String> {
+fn scan(ext: &str, name: Option<&str>, f: &dyn Fn(&str, &Path) -> Vec<String>) -> Vec<String> {
     let mut bad = vec![];
     for p in files(ext, name) {
         if p.ends_with("test_independence.rs") {
             continue;
         }
-        for v in f(&fs::read_to_string(&p).unwrap()) {
+        for v in f(&fs::read_to_string(&p).unwrap(), p.parent().unwrap()) {
             bad.push(format!("{}: {v}", p.display()));
         }
     }
@@ -134,13 +143,13 @@ fn no_manifest_points_at_ferrum_cpu_or_outside() {
 
 #[test]
 fn no_source_reaches_ferrum_cpu() {
-    let bad = scan("rs", None, source_violations);
+    let bad = scan("rs", None, &|t, d| source_violations(t, d, &root()));
     assert!(bad.is_empty(), "{bad:#?}");
 }
 
 #[test]
 fn no_unsafe_anywhere() {
-    let bad = scan("rs", None, unsafe_lines);
+    let bad = scan("rs", None, &|t, _| unsafe_lines(t));
     assert!(bad.is_empty(), "{bad:#?}");
 }
 
@@ -159,10 +168,19 @@ fn the_detectors_catch_what_they_should() {
         Some("../a")
     );
     assert_eq!(path_value("wgpu = \"30\""), None);
-    assert!(!source_violations("use ferrum_core::Tensor;").is_empty());
-    assert!(!source_violations("let s = include_str!(\"../../ferrum-cpu/x\");").is_empty());
-    assert!(source_violations("// from ferrum_core::ops (provenance)").is_empty());
-    assert!(source_violations("let s = include_str!(\"shaders/a.wgsl\");").is_empty());
+    let sv = |t: &str| source_violations(t, dir, root);
+    assert!(!sv("use ferrum_core::Tensor;").is_empty());
+    assert!(!sv("let s = include_str!(\"../../ferrum-cpu/x\");").is_empty());
+    assert!(
+        !sv("let s = include_str!(\"../../other/x\");").is_empty(),
+        "leaves the repo"
+    );
+    assert!(sv("// from ferrum_core::ops (provenance)").is_empty());
+    assert!(sv("let s = include_str!(\"shaders/a.wgsl\");").is_empty());
+    assert!(
+        sv("let s = include_str!(\"../shaders/a.wgsl\");").is_empty(),
+        "inside the repo"
+    );
     assert!(!unsafe_lines("unsafe { x() }").is_empty());
     assert!(unsafe_lines("#![forbid(unsafe_code)]").is_empty());
 }

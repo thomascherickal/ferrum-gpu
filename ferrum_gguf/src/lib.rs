@@ -6,10 +6,11 @@
 //! the public GGUF/ggml specification and was cross-checked against ferrum-cpu's reader
 //! (`ferrum_core/src/gguf/`, commit 56a9d3a); the code here is our own.
 
-pub mod f16;
-pub mod quant;
-pub mod reader;
-pub mod writer;
+pub mod codec;
+pub mod io;
+
+pub use codec::{f16, quant};
+pub use io::{reader, writer};
 
 pub use reader::{Gguf, GgufError, TensorInfo, Value};
 pub use writer::GgufBuilder;

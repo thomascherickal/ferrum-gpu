@@ -4,6 +4,7 @@
 //! token-level sampling.
 
 pub mod checkpoint;
-pub mod gpt2_gguf;
-pub mod llama_gguf;
+pub mod gguf;
+
+pub use gguf::{gpt2 as gpt2_gguf, llama as llama_gguf};
 pub mod sampling;

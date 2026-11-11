@@ -1,6 +1,11 @@
 //! Real adapter enumeration and device opening. All direct wgpu device calls live in this file,
 //! `tensor.rs` and `matmul.rs` so a wgpu upgrade touches three places.
 
+pub mod budget;
+pub mod runtime;
+pub mod select;
+pub mod tensor;
+
 use crate::select::{choose, AdapterSummary, Kind, SelectError};
 use std::collections::HashMap;
 use std::future::Future;
