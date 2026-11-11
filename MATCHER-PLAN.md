@@ -110,7 +110,9 @@ Done: `train --arch gpt2` (default) with BPE, ferrum-cpu's presets and size flag
 - Decide where scoring runs: keep it on the CPU oracle unless a measurement shows a GPU win.
 - **Gate:** for fixtures, the continuation, perplexity and log-likelihood equal the recorded ferrum-cpu values (greedy: exact tokens; scores: within 1e-5).
 
-### M6: export to other runtimes
+### M6: export to other runtimes (done 2026-11-11, with fake tools)
+
+Done: `export-ollama` and `export-lmstudio` with ferrum-cpu's Modelfile text and `lms` command lines, tool discovery (flag, env, PATH, home), GPT-2 files only. Honest limit: the gate asked for a manual check that llama.cpp loads our GGUF; Ollama and LM Studio are installed on the dev box (llama.cpp is not), but registering a model writes under the home directory, outside the repository, which the project rules forbid without asking, so no real `ollama create` / `lms import` was run. What was run instead is the reverse: ferrum-cpu's own binary loaded and continued a file we wrote (docs/cli.md).
 
 - `export-ollama` (Modelfile, and the `ollama create` call behind a flag) and `export-lmstudio`.
 - **Gate:** generated Modelfile and metadata equal the fixtures; the manual check that llama.cpp loads our GGUF is recorded in the phase doc with command and date.

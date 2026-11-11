@@ -55,6 +55,8 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 | `generate` | Continue a prompt with sampled text | `--model F.gguf`, `--prompt TEXT` | `--max-new` (64), `--temperature` (0 = greedy), `--top-k` (0), `--seed` (1); GPT-2 files also `--top-p`, `--repetition-penalty`, `--stop S` (repeatable), `--stream`, `--ids "1 2 3"` |
 | `run-gguf` | Same as `generate`, and first prints the device and the model's shape | as `generate` | as `generate` |
 | `tokenize` | Encode a text file or directory into a token file for `train` | `--data`, `--tokenizer`, `--out` | `--doc-sep S` |
+| `export-ollama` | Register a GPT-2 model with Ollama (`ollama create`) or only write the Modelfile | `--model`, `--name` (not with `--modelfile-only`) | `--bin P`, `--modelfile-only OUT` |
+| `export-lmstudio` | Import a GPT-2 model into LM Studio (`lms import`, then wait for `lms ls --json`) | `--model` | `--repo publisher/name` (ferrum/<file stem>), `--bin P` |
 | `export-gguf` | Re-write a model as f32, int8 or int4 (reads every format in docs/GGUF.md) | `--model`, `--out` | `--quant` (int8) |
 | `eval` | Mean next-token loss and perplexity of a file under a model | `--model`, `--data` | `--ctx N`, `--json F` |
 
@@ -194,3 +196,7 @@ unauthenticated.
 Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, `prepare`, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).
+
+### Ollama and LM Studio
+
+`export-ollama` and `export-lmstudio` accept GPT-2 files only (what `train` writes; Llama-style files have no BPE vocabulary inside). The tools are found by `--bin`, then the `FERRUM_OLLAMA` / `FERRUM_LMS` environment variable, then `PATH`, then `~/.local/bin/ollama` / `~/.lmstudio/bin/lms`. The Modelfile is the one ferrum-cpu writes (`FROM`, a plain `{{ .Prompt }}` template, stop `<|endoftext|>`, temperature 0.8, `num_ctx` from the model). With `--modelfile-only OUT` no tool is needed. These were tested with fake `ollama` and `lms` scripts. Both real tools are installed on the dev box, but a real `ollama create` or `lms import` was **not** run: they write under the home directory, outside this repository, which the project rules forbid without asking. `--modelfile-only` involves no tool.

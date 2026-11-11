@@ -5,6 +5,7 @@ use crate::device::{decide, Workload};
 use crate::flags::{val, Args, Flag};
 
 pub mod gpt2;
+pub mod runtimes;
 use crate::preflight;
 use ferrum_gguf::Gguf;
 use ferrum_gpu_gui::app::{App, DeviceChoice};
@@ -27,6 +28,8 @@ finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
 tokenize      --data FILE|DIR --tokenizer TOK.gguf --out TOKENS.gguf [--doc-sep S]   (a token file trains with `train --data TOKENS.gguf --tokenizer TOK.gguf`, windows read from disk)\n  \
+export-ollama --model F.gguf --name NAME [--bin P] [--modelfile-only OUT]   (GPT-2 files; needs the `ollama` tool)\n  \
+export-lmstudio --model F.gguf [--repo publisher/name] [--bin P]   (GPT-2 files; needs the `lms` tool)\n  \
 export-gguf   --model F.gguf --out G.gguf [--quant f32|int8|int4]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
 eval          --model F.gguf --data FILE [--ctx N] [--json F]\n\
 device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
@@ -143,6 +146,22 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 ],
                 rest,
             )?,
+            out,
+        ),
+        "export-ollama" => runtimes::export_ollama(
+            &Args::parse(
+                &[
+                    val("--model"),
+                    val("--name"),
+                    val("--bin"),
+                    val("--modelfile-only"),
+                ],
+                rest,
+            )?,
+            out,
+        ),
+        "export-lmstudio" => runtimes::export_lmstudio(
+            &Args::parse(&[val("--model"), val("--repo"), val("--bin")], rest)?,
             out,
         ),
         "export-gguf" => export_gguf(

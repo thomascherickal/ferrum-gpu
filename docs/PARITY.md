@@ -50,7 +50,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
 | `export-gguf` (`--quant`) | yes | **have (M3)**: f32/int8/int4 out | have | |
-| `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | none | gap | M6 |
+| `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands; tested with fake tools only (the real tools are installed but registering writes outside the repo, so it was not run) | partial | |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes (doc) | none | gap | M2 |
