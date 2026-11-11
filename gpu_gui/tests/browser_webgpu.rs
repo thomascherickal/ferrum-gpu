@@ -90,12 +90,20 @@ fn the_in_browser_runtime_matches_the_cpu_oracle_in_headless_chrome() {
         return;
     }
     assert_eq!(j.get("pass"), Some(&Json::Bool(true)), "{text}");
-    let Some(Json::Arr(cases)) = j.get("cases") else {
-        panic!("no cases in {text}")
+    let Some(Json::Arr(adapters)) = j.get("adapters") else {
+        panic!("no adapters in {text}")
     };
-    assert_eq!(cases.len(), 6);
-    for c in cases {
-        assert_eq!(c.get("ok"), Some(&Json::Bool(true)), "{c}");
+    assert!(!adapters.is_empty());
+    for a in adapters {
+        let who = a.get("adapter").map(|d| d.to_string()).unwrap_or_default();
+        assert_eq!(a.get("pass"), Some(&Json::Bool(true)), "{who}: {a}");
+        let Some(Json::Arr(cases)) = a.get("cases") else {
+            panic!("no cases for {who}")
+        };
+        assert_eq!(cases.len(), 6, "{who}");
+        for c in cases {
+            assert_eq!(c.get("ok"), Some(&Json::Bool(true)), "{who}: {c}");
+        }
     }
     server.stop();
 }

@@ -196,13 +196,27 @@ async function uiAutotest() {
     showTab($('tab-generate')); $('prompt').value = 'the quick brown '; $('max_new').value = 12; $('generate').click();
     await until(() => $('output').textContent.length > 16); steps.push('generate');
     const out = $('output').textContent;
-    await reportSelfTest({ kind: 'ui', pass: improved && out.startsWith('the quick brown ') && out.includes('fox'), steps, first: s.losses[0], last: s.losses[39], output: out, device: $('device-badge').textContent });
+    // the same prompt through the in-browser WebGPU runner must give the server's greedy text
+    let browser = { skipped: true };
+    if (navigator.gpu && await navigator.gpu.requestAdapter()) {
+      $('runner').value = 'browser'; $('output').textContent = ''; $('generate').click();
+      await until(() => $('output').textContent.length > 16 || $('gen-msg').className === 'bad'); steps.push('browser');
+      browser = { text: $('output').textContent, error: $('gen-msg').className === 'bad' ? $('gen-msg').textContent : null, note: $('gen-msg').textContent };
+      browser.matches = browser.text === out;
+    }
+    const browserOk = browser.skipped || browser.matches === true;
+    await reportSelfTest({ kind: 'ui', pass: improved && out.startsWith('the quick brown ') && out.includes('fox') && browserOk, steps, first: s.losses[0], last: s.losses[39], output: out, browser, device: $('device-badge').textContent });
   } catch (err) { await reportSelfTest({ kind: 'ui', pass: false, steps, error: String(err) }); }
 }
 if (params.get('autotest') === 'ui') uiAutotest();
 if (params.get('autotest') === 'webgpu') {
   import('/web/selftest.js').then((m) => m.runSelfTest()).then(reportSelfTest)
     .catch((err) => reportSelfTest({ kind: 'webgpu', pass: false, error: String(err) }));
+}
+
+if (params.get('autotest') === 'bench') {
+  import('/web/bench.js').then((m) => m.runBench()).then(reportSelfTest)
+    .catch((err) => reportSelfTest({ kind: 'bench', pass: false, error: String(err) }));
 }
 
 // The "this browser" runner loads the WebGPU runtime only when it is used.

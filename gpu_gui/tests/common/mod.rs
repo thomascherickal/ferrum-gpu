@@ -46,7 +46,12 @@ impl Browser {
                 "--no-sandbox",
                 "--disable-gpu-sandbox",
                 "--enable-unsafe-webgpu",
+                // route Chrome's GPU stack through ANGLE/Vulkan so real adapters are offered
+                "--use-gl=angle",
+                "--use-angle=vulkan",
                 "--enable-features=Vulkan",
+                "--ignore-gpu-blocklist",
+                "--disable-gpu-driver-bug-workarounds",
                 "--enable-logging=stderr",
                 "--v=0",
                 "--no-first-run",

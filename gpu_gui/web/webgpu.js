@@ -14,9 +14,10 @@ export function groups1d(n) {
 }
 
 export class Gpu {
-  static async create() {
+  /** Open an adapter. `options` is a GPURequestAdapterOptions ({powerPreference} or {forceFallbackAdapter}). */
+  static async create(options = {}) {
     if (!navigator.gpu) throw new Error('WebGPU is not available in this browser');
-    const adapter = await navigator.gpu.requestAdapter();
+    const adapter = await navigator.gpu.requestAdapter(options);
     if (!adapter) throw new Error('WebGPU is available but no adapter was granted');
     // Ask for what the adapter offers for buffer sizes; everything else stays at the baseline.
     const l = adapter.limits;

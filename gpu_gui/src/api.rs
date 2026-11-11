@@ -325,6 +325,13 @@ pub fn route(app: &Arc<App>, req: &Request) -> Response {
             Response::json(200, &Json::obj([("ok", Json::Bool(true))]))
         }
         ("GET", "/api/selftest/vectors") => Response::json(200, &crate::selftest::vectors()),
+        ("GET", "/api/selftest/bench-model.gguf") => match crate::selftest::bench_gguf(
+            req.param("shape").unwrap_or("small"),
+            req.param("quant").unwrap_or("f32"),
+        ) {
+            Ok(b) => Response::new(200, "application/octet-stream", b),
+            Err(e) => Response::error(400, &e),
+        },
         ("GET", "/api/selftest/result") => match lock(&app.selftest).clone() {
             Some(s) => Response::new(200, "application/json", s),
             None => Response::error(404, "no self-test result yet"),
