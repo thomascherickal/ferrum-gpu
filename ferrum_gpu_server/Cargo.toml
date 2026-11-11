@@ -1,0 +1,18 @@
+[package]
+name = "ferrum_gpu_server"
+description = "Loopback JSON server for ferrum-gpu: /health, /v1/info, /v1/generate, /v1/loglikelihood."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ferrum_ref = { path = "../ferrum_ref" }
+ferrum_model = { path = "../ferrum_model" }
+# ponytail: reuses the GUI crate's HTTP server, JSON, backends and tokenizer (see ferrum_gpu_cli).
+ferrum_gpu_gui = { path = "../ferrum_gpu_gui" }
+ferrum_gpu_cli = { path = "../ferrum_gpu_cli" }
+
+[[bin]]
+name = "ferrum-gpu-server"
+path = "src/main.rs"
