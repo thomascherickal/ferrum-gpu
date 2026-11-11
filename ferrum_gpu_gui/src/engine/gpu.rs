@@ -1,9 +1,12 @@
 //! The GPU backend: `ferrum_wgpu`'s resident Llama decoder and trainer.
 
-use super::{generate_with, run_training, Backend, GenOpts, Progress, TrainSpec};
+use super::{generate_with, run_training, Backend, Engine, GenOpts, Gpt2Feed, Progress, TrainSpec};
+use ferrum_ref::gpt2::Gpt2;
 use ferrum_ref::llama::Llama;
+use ferrum_wgpu::gpt2::GpuGpt2;
 use ferrum_wgpu::llama::GpuLlama;
 use ferrum_wgpu::llama_train::GpuLlamaTrainer;
+use ferrum_wgpu::train::GpuTrainer;
 use ferrum_wgpu::Gpu;
 use std::sync::{Arc, Mutex};
 
@@ -33,6 +36,17 @@ impl Backend for GpuBackend {
 
     fn name(&self) -> String {
         self.gpu.info().name.clone()
+    }
+
+    fn gpt2_engine<'a>(&'a self, w: &Gpt2, qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
+        let mut t = GpuTrainer::new(&self.gpu, w, None).map_err(|e| e.to_string())?;
+        t.set_qat(qat).map_err(|e| e.to_string())?;
+        Ok(Box::new(t))
+    }
+
+    fn gpt2_decoder<'a>(&'a self, w: &Gpt2) -> Result<Gpt2Feed<'a>, String> {
+        let mut m = GpuGpt2::new(&self.gpu, w, None).map_err(|e| e.to_string())?;
+        Ok(Box::new(move |t| m.feed(t).map_err(|e| e.to_string())))
     }
 
     fn train(

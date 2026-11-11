@@ -1,7 +1,9 @@
 //! The CPU backend: `ferrum_ref::llama`, the oracle the GPU is checked against.
 
-use super::{generate_with, run_training, Backend, GenOpts, Progress, TrainSpec};
+use super::{generate_with, run_training, Backend, Engine, GenOpts, Gpt2Feed, Progress, TrainSpec};
+use ferrum_ref::gpt2::{Cache as Gpt2Cache, Gpt2};
 use ferrum_ref::llama::{Cache, Llama, LlamaTrainer};
+use ferrum_ref::trainer::CpuTrainer;
 use std::sync::{Arc, Mutex};
 
 /// Runs everything on the CPU.
@@ -25,6 +27,17 @@ impl Backend for CpuBackend {
 
     fn name(&self) -> String {
         format!("CPU ({} threads)", self.threads)
+    }
+
+    fn gpt2_engine<'a>(&'a self, w: &Gpt2, qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
+        Ok(Box::new(
+            CpuTrainer::new(w.clone(), self.threads).with_qat(qat),
+        ))
+    }
+
+    fn gpt2_decoder<'a>(&'a self, w: &Gpt2) -> Result<Gpt2Feed<'a>, String> {
+        let (m, mut cache) = (w.clone(), Gpt2Cache::new(w.cfg.layers));
+        Ok(Box::new(move |t| m.feed(&mut cache, t)))
     }
 
     fn train(

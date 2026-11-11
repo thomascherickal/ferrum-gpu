@@ -165,15 +165,56 @@ impl Out {
     }
 }
 
-/// Serialise as a `gpt2` GGUF. The tied head is omitted when it equals the transposed
-/// embedding. No tokenizer metadata is written (Phase 6), so llama.cpp cannot run the file yet.
+/// Serialise as a `gpt2` GGUF with no tokenizer (byte-level token ids).
 pub fn to_gguf(m: &Gpt2, quant: Quant) -> Vec<u8> {
+    to_gguf_with(m, quant, None)
+}
+
+/// The generic `ferrum.metadata` JSON ferrum-cpu reads from every model file. Its shape follows a
+/// ferrum-cpu `gpt2` file (fixtures/bpe/model.gguf); the fields a language model does not use are
+/// the same constants.
+fn ferrum_metadata(c: &Config) -> String {
+    let names: Vec<String> = (0..c.ctx).map(|i| format!("\"c_{i}\"")).collect();
+    let range = format!("[0.000000,{:.6}]", c.vocab as f64);
+    let ranges = vec![range.clone(); c.ctx].join(",");
+    format!(
+        "{{\"dataset_name\":\"ferrum-gpu Transformer\",\"task\":\"transformer_slm\",\"feature_names\":[{}],\"feature_ranges\":[{ranges}],\"class_names\":[],\"target_name\":\"next_char\",\"target_range\":{range},\"input_dim\":{},\"output_dim\":{},\"tokenizer_state\":\"\"}}",
+        names.join(","),
+        c.ctx,
+        c.vocab
+    )
+}
+
+/// Serialise as a `gpt2` GGUF. The tied head is omitted when it equals the transposed
+/// embedding. With a tokenizer the file carries the `tokenizer.ggml.*` vocabulary (so llama.cpp
+/// tokenizes the same way) and the `ferrum.*` keys ferrum-cpu needs to load it; the tokenizer's
+/// vocabulary size must equal the model's.
+pub fn to_gguf_with(m: &Gpt2, quant: Quant, tok: Option<&ferrum_tok::ByteBpeTokenizer>) -> Vec<u8> {
     let (c, d) = (&m.cfg, m.cfg.dim);
     let mut o = Out {
         b: GgufBuilder::new(),
         quant,
     };
     o.b.meta("general.architecture", Value::Str("gpt2".into()));
+    o.b.meta("general.name", Value::Str("ferrum-gpu Transformer".into()));
+    o.b.meta("general.quantization_version", Value::U32(2));
+    o.b.meta("ferrum.format", Value::U32(1));
+    o.b.meta(
+        "ferrum.quant",
+        Value::Str(
+            match quant {
+                Quant::F32 => "f32",
+                Quant::Q8_0 => "int8",
+                Quant::Q4_0 => "int4",
+            }
+            .into(),
+        ),
+    );
+    o.b.meta("ferrum.normalizer", Value::Str(String::new()));
+    o.b.meta("ferrum.metadata", Value::Str(ferrum_metadata(c)));
+    if let Some(t) = tok {
+        crate::tokenizer_gguf::put_vocab(&mut o.b, t);
+    }
     for (key, v) in [
         ("context_length", c.ctx),
         ("embedding_length", d),

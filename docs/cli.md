@@ -85,3 +85,58 @@ $ curl -s -d '{"context":"the cat sat on the","continuation":" mat"}' http://127
 ## Not done
 
 BPE tokenizer; a real ferrum-cpu GGUF fixture; GPU-side scoring; VRAM discovery for the budget; Windows and macOS runs.
+
+## GPT-2 models with BPE (M4, 2026-11-11)
+
+`train` now defaults to `--arch gpt2`, the architecture ferrum-cpu trains. The output below is real, from the debug-free release build on the dev box (Intel Iris Xe + NVIDIA GeForce MX330 + llvmpipe, Vulkan, `wgpu` 30.0.1, ferrum-cpu `56a9d3a` for the cross-load). The earlier sections of this page used the Llama-style path, which is now `--arch llama`.
+
+The corpus is `the cat sat on the mat. ` repeated 80 times. On the CPU:
+
+```
+$ ferrum-gpu train --data c.txt --out m.gguf --preset tiny --vocab 300 --epochs 30 --device cpu --seed 1 --tokenizer tok.gguf --metrics-csv m.csv --verbose
+tokenizer: trained 269 tokens
+wrote tok.gguf
+device: CPU (8 threads) (cpu)
+model: vocab 269 ctx 64 dim 64 heads 4 layers 2 hidden 256
+corpus: 561 tokens, 8 windows, 30 steps of 16
+step 10/30 loss 1.7545 grad_norm 0.300 tokens/s 22801 elapsed 0.4s eta 1s
+step 20/30 loss 1.7407 grad_norm 0.149 tokens/s 22417 elapsed 0.9s eta 0s
+step 30/30 loss 1.7336 grad_norm 0.113 tokens/s 22314 elapsed 1.4s eta 0s
+steps: 30 loss 5.5769 -> 1.7336
+wrote m.gguf
+```
+
+`--vocab 300` asked for 300 tokens; the text only supports 269 merges, so the tokenizer stopped there. The same command with `--device gpu` (the MX330) printed `preflight: GPU buffers 23.5 MiB in 202 allocations (budget unknown)` and the same loss curve to four decimals, `5.5769 -> 1.7336`.
+
+```
+$ ferrum-gpu generate --model m.gguf --prompt "the cat" --max-new 20 --device cpu
+the cat the the the the the the the the the the the the the the the the the the the the
+
+$ ferrum-gpu eval --model m.gguf --data c.txt --json e.json
+tokens: 552 loss: 1.7604 perplexity: 5.815
+```
+
+### Cross-load with ferrum-cpu
+
+The file this run wrote loads in ferrum-cpu's own binary, built from commit `56a9d3a` in a scratch directory (ferrum-cpu untouched), and it continues the prompt the same way:
+
+```
+$ train_transformer info m.gguf
+Model     : m.gguf  (173088 bytes)
+Format    : GGUF v3 (gpt2, int8)
+Params    : 138624
+Name      : ferrum-gpu Transformer
+Task      : TransformerSLM
+Input dim : 64
+Output dim: 269
+Tokenizer : byte-level BPE (269 tokens, 12 merges)
+
+$ train_transformer generate m.gguf "the cat" --chars 20 --temp 0
+the cat the the the the the
+```
+
+(`--chars` counts characters in ferrum-cpu, tokens here, so ferrum-cpu's text is shorter; both are the same greedy continuation.) This direction is a manual check and is not an automated test. The other direction is automated: `fixtures/bpe/` holds a tokenizer file, a model and a token file written by ferrum-cpu, and our tests load them (`ferrum_model/src/tokenizer_gguf/tests.rs`).
+
+### Options that were run
+
+Validation with early stopping (`--val 0.2 --patience 3 --cosine --warmup 2 --clip 1 --weight_decay 0.01 --quant int4 --checkpoint ck.gguf --sample`) printed `epoch N val loss ...` lines with `(best)` marks and ended with `steps: 20 loss 5.5896 -> 0.7376` and a greedy `sample:`. A `--resume` with a changed validation split was refused: `cannot resume: the run shape changed (...)`. A `<out>.stop` file ended a run after one step (`stopped early: ... found; stopped after step 1`). `--tie` and `--dropout 0.1` are refused by name.

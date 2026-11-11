@@ -115,7 +115,7 @@ fn train_eval_generate_finetune_and_refusals_on_the_cpu() {
         "q8_0",
     ]);
     assert!(f.contains("wrote"), "{f}");
-    assert!(ok(&["info", "--device", "cpu", "--model", m2]).contains("model: vocab 256"));
+    assert!(ok(&["info", "--device", "cpu", "--model", m2]).contains("model: gpt2 vocab"));
 
     // refusals exit non-zero with a message on stderr
     for bad in [

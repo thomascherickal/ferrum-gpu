@@ -89,7 +89,9 @@ Done: new crate `ferrum_tok` (copied from ferrum-cpu `0bb0f92`, depends only on 
 - `export-gguf` (re-quantize an imported model to a chosen format).
 - **Gate:** every listed format loads, dequantizes to the fixture values, and decodes a fixture model to the same greedy tokens as the recorded ferrum-cpu output.
 
-### M4: training parity
+### M4: training parity (core done 2026-11-11)
+
+Done: `train --arch gpt2` (default) with BPE, ferrum-cpu's presets and size flags, epochs/steps/tokens budgets, stride, weight decay, cosine and warmup, clip, QAT on by default, `--quant int8/int4/f32`, checkpoint and resume, `--val`/`--patience`, `--max-seconds` and stop file, `--metrics-csv`, `--verbose`, `--sample`, `finetune-gguf` for GPT-2 files, and the GPU runs the same loop (loss curve identical to four decimals on the MX330). Our `train` output loads in ferrum-cpu (manual check, docs/cli.md). Left in M4: `--tie` and `--dropout` (need engine work, refused by name today), `--vocab 0` character-level, token-file input (M2), VRAM discovery for the pre-flight, presets for the Llama path unchanged. Also found: the server only loads Llama-style files; serving GPT-2 files moves to M7.
 
 - Expose every engine option the CPU CLI has: epochs and `--tokens` budget, stride with random phase, `--val`/`--patience` (best-epoch keep, early stop), `--max-seconds` and `<model>.stop`, `--metrics-csv`, `--verbose` with tokens/s, grad norm and ETA, `--tie`, `--no-qat`, `--weight_decay`, `--dropout`, `--cosine`, `--warmup`, `--clip`, `--sample`.
 - Presets: check ours against ferrum-cpu's tiny/small/medium and record any difference.

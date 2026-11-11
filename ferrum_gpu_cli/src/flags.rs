@@ -10,22 +10,42 @@ pub struct Flag {
     pub name: &'static str,
     /// `true` if a value follows (`--steps 10` or `--steps=10`); `false` for a switch.
     pub value: bool,
+    /// `true` if the flag may be given more than once (read with [`Args::all`]).
+    pub many: bool,
 }
 
 /// A flag that takes a value.
 pub const fn val(name: &'static str) -> Flag {
-    Flag { name, value: true }
+    Flag {
+        name,
+        value: true,
+        many: false,
+    }
+}
+
+/// A flag that takes a value and may be repeated.
+pub const fn many(name: &'static str) -> Flag {
+    Flag {
+        name,
+        value: true,
+        many: true,
+    }
 }
 
 /// A switch.
 pub const fn switch(name: &'static str) -> Flag {
-    Flag { name, value: false }
+    Flag {
+        name,
+        value: false,
+        many: false,
+    }
 }
 
 /// Parsed flags.
 #[derive(Debug, Default)]
 pub struct Args {
     map: HashMap<&'static str, String>,
+    rep: HashMap<&'static str, Vec<String>>,
 }
 
 impl Args {
@@ -52,7 +72,10 @@ impl Args {
                 (false, None) => String::new(),
                 (false, Some(_)) => return Err(format!("{name} takes no value")),
             };
-            if out.map.insert(flag.name, value).is_some() {
+            if flag.many {
+                out.rep.entry(flag.name).or_default().push(value.clone());
+                out.map.insert(flag.name, value);
+            } else if out.map.insert(flag.name, value).is_some() {
                 return Err(format!("{name} given twice"));
             }
         }
@@ -67,6 +90,16 @@ impl Args {
     /// The raw value, if given.
     pub fn get(&self, name: &str) -> Option<&str> {
         self.map.get(name).map(String::as_str)
+    }
+
+    /// Every value of a repeatable flag, in order (empty if absent).
+    pub fn all(&self, name: &str) -> &[String] {
+        self.rep.get(name).map_or(&[], Vec::as_slice)
+    }
+
+    /// The first of `names` that was given (for flags with several spellings).
+    pub fn first(&self, names: &[&'static str]) -> Option<&'static str> {
+        names.iter().copied().find(|n| self.has(n))
     }
 
     /// The raw value, or an error naming the flag.
@@ -115,6 +148,16 @@ mod tests {
             let e = Args::parse(T, &a(bad)).unwrap_err();
             assert!(e.contains(why), "{bad}: {e}");
         }
+    }
+
+    #[test]
+    fn repeatable_flags_collect_every_value() {
+        let t = [many("--stop"), val("--a"), val("--b")];
+        let p = Args::parse(&t, &a("--stop x --stop=y")).unwrap();
+        assert_eq!(p.all("--stop"), ["x", "y"]);
+        assert!(p.all("--a").is_empty());
+        assert_eq!(p.first(&["--a", "--stop"]), Some("--stop"));
+        assert_eq!(p.first(&["--a", "--b"]), None);
     }
 
     #[test]

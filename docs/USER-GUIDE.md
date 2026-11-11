@@ -19,17 +19,26 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 
 ## 2. Concepts you need
 
-- **Model.** A small Llama-style Transformer. The CLI's `train` creates one from a **preset**, trains it on a
-  text file and writes a GGUF file. Presets (byte vocabulary 256):
+- **Model.** `train` has two architectures, chosen with `--arch`:
+  - `gpt2` (the default, what ferrum-cpu trains): learned positions, LayerNorm, GELU, **byte-level BPE
+    tokenizer stored inside the GGUF**. Sizes come from `--preset` and these flags: `--context --embed --heads
+    --blocks --hidden --vocab`. Defaults without a preset: context 16, embed 32, 4 heads, 2 blocks, hidden 64,
+    vocab 512, lr 0.01.
 
-  | Preset | Context | Dim | Heads (q/kv) | Layers | FFN hidden | Parameters |
-  |---|---|---|---|---|---|---|
-  | `tiny` | 64 | 32 | 4 / 2 | 2 | 64 | 34,976 |
-  | `small` | 128 | 64 | 4 / 2 | 3 | 176 | about 171K |
-  | `medium` | 128 | 128 | 8 / 2 | 4 | 352 | about 771K |
+    | Preset | Context | Embed | Heads | Blocks | Hidden | Vocab | lr |
+    |---|---|---|---|---|---|---|---|
+    | `tiny` | 64 | 64 | 4 | 2 | 256 | 512 | 0.01 |
+    | `small` | 128 | 128 | 4 | 4 | 512 | 2048 | 0.003 |
+    | `medium` | 256 | 256 | 8 | 6 | 1024 | 4096 | 0.001 |
 
-- **Tokens are bytes.** One token per UTF-8 byte (vocabulary 256). There is no BPE tokenizer yet, so models
-  trained here take text in and give text out, and a GGUF with another vocabulary cannot be driven from text.
+    The vocabulary is a ceiling: if the text has no pair left worth merging, the tokenizer stops short (the
+    vocabulary printed in the `model:` line is the real one).
+  - `llama` (`--arch llama`): a Llama-style model (RMSNorm, RoPE, GQA, SwiGLU) over **bytes** (vocabulary 256).
+    This is also what imported Llama/Qwen files are. Presets: `tiny` 64/32/4:2/2/64, `small` 128/64/4:2/3/176,
+    `medium` 128/128/8:2/4/352 (context/dim/heads q:kv/layers/hidden).
+- **Tokens.** GPT-2 files use their stored BPE tokenizer (a vocabulary-256 file without one is read as bytes).
+  Llama-style files are byte-level. `generate`, `eval` and `finetune-gguf` pick the right path from the file's
+  architecture.
 - **Device.** `cpu` is the reference implementation (slow, always available). `gpu` needs a hardware adapter.
   `auto` decides per task (section 4).
 
@@ -41,11 +50,31 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 | Command | Purpose | Required | Optional (default) |
 |---|---|---|---|
 | `info` | Show the device that would be used, every adapter, and optionally a model's shape | | `--model F.gguf` |
-| `train` | Train a fresh preset model and write a GGUF | `--data FILE`, `--out F.gguf` | `--preset` (tiny), `--steps` (100), `--lr` (0.003), `--batch` (4), `--context` (min(model ctx, 32)), `--seed` (1), `--quant f32\|q8_0\|q4_0` (f32) |
-| `finetune-gguf` | Continue training a GGUF model | `--model`, `--data`, `--out` | the same training flags |
-| `generate` | Continue a prompt with sampled text | `--model F.gguf`, `--prompt TEXT` | `--max-new` (64), `--temperature` (0 = greedy), `--top-k` (0 = off), `--seed` (1) |
+| `train` | Train a fresh model and write a GGUF | `--data FILE`, `--out F.gguf` | see below |
+| `finetune-gguf` | Continue training a GGUF model (GPT-2 files keep their tokenizer) | `--model`, `--data`, `--out` | the training flags |
+| `generate` | Continue a prompt with sampled text | `--model F.gguf`, `--prompt TEXT` | `--max-new` (64), `--temperature` (0 = greedy), `--top-k` (0), `--seed` (1); GPT-2 files also `--top-p`, `--repetition-penalty`, `--stop S` (repeatable), `--stream`, `--ids "1 2 3"` |
 | `run-gguf` | Same as `generate`, and first prints the device and the model's shape | as `generate` | as `generate` |
-| `eval` | Mean next-token loss and perplexity of a file under a model | `--model`, `--data` | |
+| `eval` | Mean next-token loss and perplexity of a file under a model | `--model`, `--data` | `--ctx N`, `--json F` |
+
+**`train` flags (GPT-2, the default).** Sizes: the preset flags above. How long: `--epochs` (100), or
+`--steps N`, or `--tokens N` (a token budget; steps = tokens / (batch x context)). Optimiser: `--lr` (preset's),
+`--batch` (16), `--seed` (1337), `--weight_decay` (0), `--clip` (0 = off), `--cosine` with `--warmup N`, `--stride`
+(0 = non-overlapping windows). Tokenizer: `--tokenizer F` loads the BPE tokenizer file if it exists, else trains
+one and saves it there; without the flag one is trained and kept only inside the model. Output: `--quant
+f32|int8|int4` (default int8; `q8_0`/`q4_0` also accepted), `--no-qat` (plain f32 training; QAT is on by
+default, as in ferrum-cpu). Safety and control: `--checkpoint F` with `--checkpoint-every N` (a checkpoint is
+always written at the end), `--resume F` (refuses a different run shape or tokenizer), `--val X` holds out the
+last fraction X of the tokens and reports the validation loss after every epoch, keeping the best epoch;
+`--patience N` stops after N epochs without improvement; `--max-seconds X` and a `<out>.stop` file (create it
+to stop cleanly after the current step); `--metrics-csv F`; `--verbose` (progress every 10 steps with tokens/s,
+gradient norm and ETA); `--sample` (print a short greedy sample at the end).
+
+Not supported yet and refused by name: `--tie` (tied output head), `--dropout` above 0, `--vocab 0`
+(character-level). `--force` is accepted and does nothing (there is no RAM guard).
+
+**`train --arch llama` flags.** `--preset`, `--steps` (100), `--lr` (0.003), `--batch` (4), `--context`
+(min(model ctx, 32)), `--seed` (1), `--quant f32|q8_0|q4_0` (f32). The GPT-2-only flags above are refused with
+`needs --arch gpt2`.
 
 Device flags for `info`, `train`, `finetune-gguf`, `generate` and `run-gguf`: `--device cpu|gpu|auto`
 (default `auto`), `--gpu-adapter NAME` (case-insensitive fragment of the adapter name), `--gpu-mem-mb N`,
@@ -150,6 +179,6 @@ unauthenticated.
 
 ## 10. What is not here yet
 
-A BPE tokenizer (so no text interface to arbitrary GGUF vocabularies), GPU-side scoring (it runs on the
+Serving GPT-2 files with `ferrum-gpu-server` (it loads Llama-style files), tied heads, dropout and character-level models for GPT-2 training, `tokenize`/`prepare` and token files, K-quant and other block formats, GPU-side scoring (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
-Windows and macOS verification, and a stored ferrum-cpu fixture for cross-loading.
+Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).

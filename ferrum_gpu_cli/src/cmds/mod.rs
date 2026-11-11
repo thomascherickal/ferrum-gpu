@@ -3,6 +3,8 @@
 
 use crate::device::{decide, Workload};
 use crate::flags::{val, Args, Flag};
+
+mod gpt2;
 use crate::preflight;
 use ferrum_gguf::Gguf;
 use ferrum_gpu_gui::app::{App, DeviceChoice};
@@ -20,11 +22,11 @@ use std::sync::{Arc, Mutex};
 pub const USAGE: &str = "usage: ferrum-gpu <command> [flags]\n\
 commands:\n  \
 info          [--model F.gguf]\n  \
-train         --data FILE --out F.gguf [--preset tiny|small|medium] [--steps N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|q8_0|q4_0]\n  \
+train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
-generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n  \
+generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
-eval          --model F.gguf --data FILE\n\
+eval          --model F.gguf --data FILE [--ctx N] [--json F]\n\
 device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
 
 const DEVICE: [Flag; 4] = [
@@ -54,8 +56,15 @@ fn table(parts: &[&[Flag]]) -> Vec<Flag> {
     parts.iter().flat_map(|p| p.iter().copied()).collect()
 }
 
+/// Adapter enumeration (EGL/Vulkan drivers) is not safe from several threads at once, and every
+/// command lists adapters; tests run many commands in parallel, so they take turns.
+#[cfg(test)]
+static ONE_AT_A_TIME: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 /// Run `args` (without the program name), writing the report to `out`.
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
+    #[cfg(test)]
+    let _turn = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
     let (cmd, rest) = args.split_first().ok_or(USAGE)?;
     let w = |e: std::io::Error| e.to_string();
     match cmd.as_str() {
@@ -64,31 +73,75 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             &Args::parse(&table(&[&DEVICE, &[val("--model")]]), rest)?,
             out,
         ),
-        "train" => train(
-            &Args::parse(
-                &table(&[&DEVICE, &TRAIN, &[val("--preset"), val("--quant")]]),
+        "train" => {
+            let a = Args::parse(
+                &table(&[
+                    &DEVICE,
+                    &TRAIN,
+                    &gpt2::SIZE_FLAGS,
+                    &gpt2::TRAIN_FLAGS,
+                    &[val("--quant"), val("--arch"), val("--epochs")],
+                ]),
                 rest,
-            )?,
-            out,
-            false,
-        ),
-        "finetune-gguf" => train(
-            &Args::parse(
-                &table(&[&DEVICE, &TRAIN, &[val("--model"), val("--quant")]]),
+            )?;
+            match a.get("--arch").unwrap_or("gpt2") {
+                "gpt2" => gpt2::train(&a, out, None),
+                "llama" => {
+                    if let Some(f) = gpt2::only_gpt2(&a) {
+                        return Err(format!("{f} needs --arch gpt2"));
+                    }
+                    train(&a, out, false)
+                }
+                o => Err(format!("--arch: unknown '{o}' (gpt2, llama)")),
+            }
+        }
+        "finetune-gguf" => {
+            let a = Args::parse(
+                &table(&[
+                    &DEVICE,
+                    &TRAIN,
+                    &gpt2::TRAIN_FLAGS,
+                    &[val("--model"), val("--quant"), val("--epochs")],
+                ]),
                 rest,
-            )?,
-            out,
-            true,
-        ),
-        "generate" | "run-gguf" => generate(
-            &Args::parse(&table(&[&DEVICE, &GEN, &[val("--seed")]]), rest)?,
-            out,
-            cmd == "run-gguf",
-        ),
-        "eval" => eval(
-            &Args::parse(&table(&[&[val("--model"), val("--data")]]), rest)?,
-            out,
-        ),
+            )?;
+            let model = a.need("--model")?;
+            if gpt2::is_gpt2(model) {
+                gpt2::train(&a, out, Some(gpt2::load(model)?))
+            } else {
+                if let Some(f) = gpt2::only_gpt2(&a) {
+                    return Err(format!("{f} needs a gpt2 model"));
+                }
+                train(&a, out, true)
+            }
+        }
+        "generate" | "run-gguf" => {
+            let a = Args::parse(
+                &table(&[
+                    &DEVICE,
+                    &GEN,
+                    &gpt2::GEN_FLAGS,
+                    &[val("--seed"), val("--max-new")],
+                ]),
+                rest,
+            )?;
+            if gpt2::is_gpt2(a.need("--model")?) {
+                gpt2::generate(&a, out, cmd == "run-gguf")
+            } else {
+                generate(&a, out, cmd == "run-gguf")
+            }
+        }
+        "eval" => {
+            let a = Args::parse(
+                &table(&[&[val("--model"), val("--data"), val("--ctx"), val("--json")]]),
+                rest,
+            )?;
+            if gpt2::is_gpt2(a.need("--model")?) {
+                gpt2::eval(&a, out)
+            } else {
+                eval(&a, out)
+            }
+        }
         other => Err(format!("unknown command '{other}'\n{USAGE}")),
     }
 }
@@ -172,7 +225,14 @@ fn info(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         )?;
     }
     if let Some(p) = a.get("--model") {
-        say(out, shape(&load(p)?))?;
+        say(
+            out,
+            if gpt2::is_gpt2(p) {
+                gpt2::shape_of(p)?
+            } else {
+                shape(&load(p)?)
+            },
+        )?;
     }
     Ok(())
 }

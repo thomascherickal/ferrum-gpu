@@ -12,8 +12,10 @@ pub use gpu::GpuBackend;
 
 use crate::tokenizer::VOCAB;
 use ferrum_model::sampling::{sample, Params, Rng};
+use ferrum_ref::gpt2::Gpt2;
 use ferrum_ref::llama::{Config, Llama, RopeType};
 use ferrum_ref::optim::{Adam, Schedule};
+pub use ferrum_ref::trainer::Engine;
 use ferrum_ref::trainer::{StepConfig, StepStats};
 use std::sync::{Arc, Mutex};
 
@@ -222,8 +224,27 @@ pub fn generate_with(
     Ok(out)
 }
 
+/// A one-token-at-a-time GPT-2 decoder: feed a token id, get the next-token logits.
+pub type Gpt2Feed<'a> = Box<dyn FnMut(usize) -> Result<Vec<f32>, String> + 'a>;
+
 /// A place to run models.
 pub trait Backend: Send + Sync {
+    /// A GPT-2 training engine for `w` (quantisation-aware when `qat`), borrowed from the backend.
+    fn gpt2_engine<'a>(&'a self, _w: &Gpt2, _qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
+        Err(format!(
+            "GPT-2 training is not available on {}",
+            self.name()
+        ))
+    }
+
+    /// A GPT-2 decoder with a fresh KV cache.
+    fn gpt2_decoder<'a>(&'a self, _w: &Gpt2) -> Result<Gpt2Feed<'a>, String> {
+        Err(format!(
+            "GPT-2 decoding is not available on {}",
+            self.name()
+        ))
+    }
+
     /// `"cpu"` or `"gpu"`.
     fn kind(&self) -> &'static str;
     /// Human-readable device name.

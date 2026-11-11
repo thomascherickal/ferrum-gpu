@@ -10,6 +10,7 @@ rust-version.workspace = true
 ferrum_gguf = { path = "../ferrum_gguf" }
 ferrum_model = { path = "../ferrum_model" }
 ferrum_ref = { path = "../ferrum_ref" }
+ferrum_tok = { path = "../ferrum_tok" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
 # ponytail: reuses the GUI crate's engine, backends and byte tokenizer instead of a second copy;
 # move them to a shared crate if a third consumer appears.

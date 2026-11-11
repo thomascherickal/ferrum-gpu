@@ -51,7 +51,7 @@ fn train_generate_run_eval_finetune_round_trip_on_cpu() {
     let m1 = d.join("m1.gguf").display().to_string();
     let m2 = d.join("m2.gguf").display().to_string();
     let t = run_ok(&format!(
-        "train --device cpu --preset tiny --data {data} --out {m1} --steps 30 --batch 2 --context 16"
+        "train --arch llama --device cpu --preset tiny --data {data} --out {m1} --steps 30 --batch 2 --context 16"
     ));
     assert!(
         t.contains("device: ") && t.contains("steps: 30") && t.contains("wrote "),
@@ -81,15 +81,15 @@ fn errors_name_the_problem() {
     let data = corpus(&d);
     let out = d.join("o.gguf").display().to_string();
     assert!(run_err(&format!(
-        "train --device cpu --preset huge --data {data} --out {out}"
+        "train --arch llama --device cpu --preset huge --data {data} --out {out}"
     ))
     .contains("unknown preset"));
     assert!(run_err(&format!(
-        "train --device cpu --data {data} --out {out} --quant q2"
+        "train --arch llama --device cpu --data {data} --out {out} --quant q2"
     ))
     .contains("--quant"));
     assert!(run_err(&format!(
-        "train --device cpu --data {data} --out {out} --steps 0"
+        "train --arch llama --device cpu --data {data} --out {out} --steps 0"
     ))
     .contains("steps"));
     assert!(run_err(&format!("train --device cpu --data /nope --out {out}")).contains("--data"));

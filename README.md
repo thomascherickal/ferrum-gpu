@@ -27,14 +27,16 @@ Requirements: Rust 1.87 or newer, and a GPU driver with Vulkan, Metal or DX12 if
 ```bash
 cargo build --release -p ferrum_gpu_cli -p ferrum_gpu_server -p ferrum_gpu_gui
 
-# train a tiny byte-level model on a text file, then use it
+# train a tiny GPT-2 model with its own BPE tokenizer on a text file, then use it.
+# The file is a GPT-2 GGUF that ferrum-cpu and llama.cpp-style tools can load.
 target/release/ferrum-gpu info
-target/release/ferrum-gpu train    --preset tiny --data corpus.txt --out m.gguf --steps 150 --batch 4 --context 32 --lr 0.01
+target/release/ferrum-gpu train    --preset tiny --data corpus.txt --out m.gguf --epochs 30 --batch 16 --vocab 300
 target/release/ferrum-gpu eval     --model m.gguf --data corpus.txt
 target/release/ferrum-gpu generate --model m.gguf --prompt "the c" --max-new 24
 
-# serve it, or open the GUI
-target/release/ferrum-gpu-server --model m.gguf --port 8787
+# a Llama-style byte-level model (served by ferrum-gpu-server until the server learns GPT-2 files), or the GUI
+target/release/ferrum-gpu train --arch llama --preset tiny --data corpus.txt --out l.gguf --steps 150 --batch 4 --context 32 --lr 0.01
+target/release/ferrum-gpu-server --model l.gguf --port 8787
 target/release/ferrum_gpu_gui
 ```
 

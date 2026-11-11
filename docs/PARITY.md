@@ -8,7 +8,7 @@ Status words: **have** (works here), **partial**, **gap**, **different** (delibe
 
 ## Findings that change the plan
 
-1. **`train` makes a different architecture.** ferrum-cpu `train` writes a `gpt2` GGUF (learned positions, LayerNorm, GELU, byte-level BPE) that also runs in llama.cpp. `ferrum-gpu train` builds a Llama-style model (RMSNorm, RoPE, GQA, SwiGLU; heads shown as `4/2`) and writes a `llama` GGUF. The engine has a GPT-2 trainer (`ferrum_wgpu::training::gpt2`) but the CLI does not expose it. Parity needs `train --arch gpt2|llama` (M4), with `gpt2` the default to match ferrum-cpu.
+1. **(Closed in M4, 2026-11-11.) `train` made a different architecture.** ferrum-cpu `train` writes a `gpt2` GGUF (learned positions, LayerNorm, GELU, byte-level BPE) that also runs in llama.cpp. `ferrum-gpu train` builds a Llama-style model (RMSNorm, RoPE, GQA, SwiGLU; heads shown as `4/2`) and writes a `llama` GGUF. The engine has a GPT-2 trainer (`ferrum_wgpu::training::gpt2`) but the CLI does not expose it. Parity needs `train --arch gpt2|llama` (M4), with `gpt2` the default to match ferrum-cpu.
 2. **Presets differ.** See the table below. They are different models under the same names.
 3. **Quantization is a bigger gap than listed.** ferrum-cpu reads 11 block formats; we read 3 plus F32/F16.
 4. **The server has one more route** than the plan said (`/v1/loglikelihood_rolling`) and a fixed in-flight cap of 32.
@@ -29,27 +29,29 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 
 | Feature | ferrum-cpu | ferrum-gpu | Status | Phase |
 |---|---|---|---|---|
-| `train`: size flags `--context --embed --heads --blocks --hidden --vocab` | yes | `--context` only; sizes come from `--preset` | gap | M4 |
-| `train`: `--epochs`, `--tokens` budget, `--stride` | yes | `--steps` only | gap | M4 |
+| `train`: size flags `--context --embed --heads --blocks --hidden --vocab` | yes | **have (M4)**, same defaults and presets for `--arch gpt2` | have | |
+| `train`: `--epochs`, `--tokens` budget, `--stride` | yes | **have (M4)**, plus our `--steps` | have | |
 | `train`: `--lr --batch --seed --threads` | yes | yes | have | |
-| `train`: `--weight_decay --dropout --cosine --warmup --clip --tie --no-qat` | yes | engine supports most; CLI exposes none | partial | M4 |
-| `train`: `--quant int8\|int4\|f32` | yes | `--quant f32\|q8_0\|q4_0` | partial (names differ) | M4 (accept both spellings) |
+| `train`: `--weight_decay --cosine --warmup --clip --no-qat` | yes | **have (M4)** | have | |
+| `train`: `--tie`, `--dropout` | yes | refused by name: the GPU and CPU trainers have no tied head or dropout | gap | engine work, later |
+| `train`: `--quant int8\|int4\|f32` | yes | **have (M4)**: both spellings accepted | have | |
 | `train`: `--tokenizer` (BPE file, trained and saved if missing) | yes | tokenizer exists (M1); the CLI/engine still train on bytes | partial | M4 |
-| `train`: `--checkpoint --checkpoint-every --resume` | yes | engine has checkpoint and resume; CLI flags missing | partial | M4 |
-| `train`: `--val --patience` | yes | none | gap | M4 |
-| `train`: `--max-seconds`, stop file `<model>.stop` | yes | none | gap | M4 |
-| `train`: `--metrics-csv`, `--verbose`/`-v`, `--debug`, `--sample`, `--force` | yes | none | gap | M4 |
-| `train`: `--preset` | yes | yes (different sizes) | different | M4 |
+| `train`: `--checkpoint --checkpoint-every --resume` | yes | **have (M4)**; our checkpoint is a different GGUF kind, not interchangeable with ferrum-cpu's `.fckp` | different | |
+| `train`: `--val --patience` | yes | **have (M4)** (validation after each epoch, best epoch kept) | have | |
+| `train`: `--max-seconds`, stop file `<model>.stop` | yes | **have (M4)** (the stop file is `<out>.stop` with the extension replaced) | have | |
+| `train`: `--metrics-csv`, `--verbose`, `--sample` | yes | **have (M4)**; `-v` short form not accepted; `--debug` and `--force` accepted and ignored | have | |
+| `train`: `--preset` | yes | **have (M4)**: ferrum-cpu's sizes for `--arch gpt2`; the old sizes stay under `--arch llama` | have | |
 | `train` on a token file (`tokens.gguf`, streamed) | yes (doc) | none | gap | M2 |
 | `run` (train then generate in one command) | yes | none | gap | M4 (thin wrapper) |
-| `generate`: `--chars --temp --gen-seed --top-k --top-p --repetition-penalty` | yes | sampling in `ferrum_model::sampling`; CLI flags partly exposed | partial | M5 |
-| `generate`: `--stream`, `--stop` (repeatable), `--max-tokens` | yes | none | gap | M5 |
+| `generate`: `--chars --temp --gen-seed --top-k --top-p --repetition-penalty` | yes | **have (M4)** for GPT-2 files (ferrum-cpu's spellings are aliases of ours) | have | |
+| `generate`: `--stream`, `--stop` (repeatable), `--max-tokens` | yes | **have (M4)** for GPT-2 files | have | |
 | `run-gguf`: `--quant --max --temp --gen-seed --top-k --top-p --rep` | yes | `run-gguf` exists, subset of flags | partial | M5 |
 | `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | none | gap | M5 |
+| `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
 | `export-gguf` (`--quant`) | yes | none | gap | M3 |
 | `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | none | gap | M6 |
-| `eval` (`--json`) | yes | `eval` exists, no `--json` | partial | M5 |
+| `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes (doc) | none | gap | M2 |
 | `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | none | gap | M2 |
