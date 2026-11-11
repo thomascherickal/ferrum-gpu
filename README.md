@@ -93,4 +93,4 @@ source file and commit. A test (`tests/tests/test_independence.rs`) enforces thi
 
 ## License
 
-MIT (see `license` in the workspace `Cargo.toml`). The repository does not yet contain a `LICENSE` file.
+MIT, see [`LICENSE`](LICENSE) (also `license` in the workspace `Cargo.toml`).
