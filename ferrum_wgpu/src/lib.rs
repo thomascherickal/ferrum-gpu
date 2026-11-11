@@ -8,6 +8,7 @@ pub mod budget;
 pub mod device;
 pub mod gpt2;
 pub mod llama;
+pub mod llama_train;
 pub mod matmul;
 pub mod ops;
 pub mod ops_bwd;
