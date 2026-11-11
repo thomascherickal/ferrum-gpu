@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feat/**', 'fix/**']
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Required gate. No GPU on the hosted runner: the suite passes with GPU tests skipping, and the
+  # Mesa software Vulkan driver (lavapipe) gives one real adapter row (docs/DEVICES.md).
+  test:
+    name: Lint, deny, test (Linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "clippy, rustfmt" }
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers
+      - run: cargo fmt --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - uses: EmbarkStudios/cargo-deny-action@v2
+      # Independence guard and the context-script tests live in the `tests` crate.
+      - run: cargo test -p integration_tests --locked
+      - run: cargo test --workspace --locked
+      - name: Device row (lavapipe)
+        run: FERRUM_GPU_ADAPTER=llvmpipe cargo test --release -p ferrum_wgpu --locked
+
+  # Not required (fail-fast off): macOS (Metal) and Windows (DX12) build and run the suite. Hosted
+  # runners have no hardware GPU, so a green job is not a device row; it shows the build and the
+  # no-GPU path work. Rows for Apple, AMD and Windows hardware need a machine that has one.
+  portable:
+    name: Portable (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test --workspace --locked

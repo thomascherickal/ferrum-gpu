@@ -4,7 +4,7 @@ One row per adapter class. A row is **green** only if the `ferrum_wgpu` test sui
 
 What was run: `cargo test --release -p ferrum_wgpu` per adapter. What was **not** run per adapter: the other crates' tests (they use the CPU backend or the first adapter), the benchmarks (those are in [train-speed.md](train-speed.md) and [decode-crossover.md](decode-crossover.md) for the two hardware adapters), and any long training run.
 
-Host for every row: Linux 7.0.0-42-generic x86_64, `wgpu` 30.0.1, 2026-11-11.
+Host for every row: Linux 7.0.0-42-generic x86_64, `wgpu` 30.0.1, 2026-11-11. Drivers (read from the system, not from wgpu): NVIDIA proprietary 580.178.04 (`nvidia-smi`) for the MX330; Mesa 25.2.8 (`mesa-vulkan-drivers` and `libgl1-mesa-dri`, Ubuntu 24.04 package 25.2.8-0ubuntu0.24.04.4) for the Intel Xe Vulkan row, the llvmpipe row and the Mesa OpenGL row.
 
 | Class | Adapter (backend) | Result | Used by `auto` |
 |---|---|---|---|
@@ -27,3 +27,7 @@ Host for every row: Linux 7.0.0-42-generic x86_64, `wgpu` 30.0.1, 2026-11-11.
 ## To add a row
 
 Run `scripts/device-matrix.sh` on the machine (it lists the adapters `ferrum-gpu info` finds), paste its lines here with the driver version, and note any failing test as above.
+
+## CI
+
+`.github/workflows/ci.yml` (written 2026-11-11, **not yet run on GitHub**): the required Linux job runs `fmt --check`, clippy with `-D warnings`, `cargo deny`, the `tests` crate (independence guard, context scripts), the workspace suite, and the `ferrum_wgpu` suite on lavapipe. macOS and Windows jobs build and test but are not required, and a hosted runner has no hardware GPU, so they do not make an Apple or Windows row. Those rows stay "not run" until the suite is run on such a machine with `scripts/device-matrix.sh`.

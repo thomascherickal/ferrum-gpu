@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI, `docs/gui.md`) and 5b (browser WebGPU, `docs/browser-webgpu.md`) are complete; Phase 6 (CLI `ferrum-gpu`, server `ferrum-gpu-server`, the `auto` device rule, the memory pre-flight; `docs/cli.md`) is complete; Phase 7 (device matrix) is started: see docs/DEVICES.md; the follow-on parity work is in MATCHER-PLAN.md. Start with `README.md` for the documentation set.
+**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI, `docs/gui.md`) and 5b (browser WebGPU, `docs/browser-webgpu.md`) are complete; Phase 6 (CLI `ferrum-gpu`, server `ferrum-gpu-server`, the `auto` device rule, the memory pre-flight; `docs/cli.md`) is complete; Phase 7 (device matrix, docs/DEVICES.md) is complete for the hardware available; the follow-on parity work is in MATCHER-PLAN.md. Start with `README.md` for the documentation set.
 
 ## Independence (supersedes the earlier plan)
 
@@ -27,7 +27,7 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 | Backend | `wgpu` (pinned, 30.0.1 at time of writing) + WGSL. One safe-Rust path to Vulkan, Metal, DX12. |
 | Precision | f32 on device; Q8_0/Q4_0 dequantised in-kernel for inference. No f16 requirement. |
 | Determinism | Bit-identical across repeat runs on the same adapter/driver/wgpu version. CPU-vs-GPU by tolerance. |
-| Default device | `auto` (training on a hardware GPU, decoding on the CPU, from the Phase 3/4 measurements); Phase 7's matrix will decide where else the GPU is trusted. |
+| Default device | `auto` (training on a hardware GPU, decoding on the CPU, from the Phase 3/4 measurements); Phase 7's matrix (docs/DEVICES.md): hardware Vulkan is trusted, OpenGL and software adapters are only used when named. |
 | Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), `ferrum_gpu_gui` (GUI server and in-browser runtime), `ferrum_gpu_cli`, `ferrum_gpu_server`, `tests`. |
 
 ## Baselines
