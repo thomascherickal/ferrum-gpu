@@ -604,3 +604,75 @@ fn an_engine_failure_ends_the_run_with_its_message() {
         .restore(&Mock::default().snapshot().unwrap())
         .is_ok());
 }
+
+/// A source that computes its tokens on demand, like a file read window by window.
+struct Lazy(usize);
+
+impl TokenSource for Lazy {
+    fn len(&self) -> usize {
+        self.0
+    }
+    fn window(&self, start: usize, len: usize) -> Result<Vec<usize>, String> {
+        if start + len > self.0 {
+            return Err("past the end".into());
+        }
+        Ok((start..start + len).map(|i| (i * 7) % 50).collect())
+    }
+}
+
+#[test]
+fn a_lazy_source_trains_exactly_like_the_same_tokens_in_memory() {
+    let toks: Vec<usize> = (0..60).map(|i| (i * 7) % 50).collect();
+    let c = TrainConfig {
+        context: 6,
+        batch: 3,
+        epochs: 2,
+        ..TrainConfig::default()
+    };
+    let (mut a, mut b) = (Mock::default(), Mock::default());
+    let ra = train(&mut a, &toks, &c, None, None, &mut NoHooks).unwrap();
+    let rb = train(&mut b, &Lazy(60), &c, None, None, &mut NoHooks).unwrap();
+    assert_eq!(ra, rb);
+    assert_eq!(a.calls, b.calls, "the same batches in the same order");
+    // a slice and a boxed trait object work too
+    let mut s = Mock::default();
+    train(&mut s, &toks[..], &c, None, None, &mut NoHooks).unwrap();
+    let dynamic: &dyn TokenSource = &Lazy(60);
+    train(&mut Mock::default(), dynamic, &c, None, None, &mut NoHooks).unwrap();
+    assert_eq!(s.calls, a.calls);
+}
+
+#[test]
+fn a_prefix_hides_the_held_out_tail() {
+    let toks: Vec<usize> = (0..30).collect();
+    let p = Prefix {
+        inner: &toks,
+        len: 20,
+    };
+    assert_eq!((TokenSource::len(&p), p.is_empty()), (20, false));
+    assert_eq!(p.window(5, 3).unwrap(), vec![5, 6, 7]);
+    assert!(p.window(18, 3).unwrap_err().contains("first 20"));
+    let c = TrainConfig {
+        context: 4,
+        batch: 2,
+        epochs: 1,
+        ..TrainConfig::default()
+    };
+    let mut m = Mock::default();
+    train(&mut m, &p, &c, None, None, &mut NoHooks).unwrap();
+    assert!(m
+        .calls
+        .iter()
+        .all(|call| call.0.iter().chain(&call.1).all(|&t| t < 20)));
+    assert!(
+        Prefix {
+            inner: &toks,
+            len: 99
+        }
+        .len()
+            == 30,
+        "never longer than the source"
+    );
+    assert!(TokenSource::is_empty(&Vec::<usize>::new()));
+    assert!(toks.window(25, 9).unwrap_err().contains("outside"));
+}

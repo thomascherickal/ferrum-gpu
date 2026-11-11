@@ -506,3 +506,199 @@ fn export_gguf_changes_precision_and_keeps_the_tokenizer() {
     .contains("--quant"));
     assert!(err("export-gguf --out x").contains("--model is required"));
 }
+
+const FIX_TOK: &[u8] = include_bytes!("../../../../fixtures/bpe/tok.gguf");
+const FIX_CORPUS: &[u8] = include_bytes!("../../../../fixtures/bpe/corpus.txt");
+const FIX_TOKENS: &[u8] = include_bytes!("../../../../fixtures/bpe/corpus.tok.gguf");
+
+#[test]
+fn tokenize_writes_the_same_file_as_ferrum_cpu() {
+    let d = dir("tokenize_golden");
+    let (c, t, o) = (d.join("c.txt"), d.join("tok.gguf"), d.join("o.tok.gguf"));
+    std::fs::write(&c, FIX_CORPUS).unwrap();
+    std::fs::write(&t, FIX_TOK).unwrap();
+    let r = ok(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        c.display(),
+        t.display(),
+        o.display()
+    ));
+    assert!(
+        r.contains("942 tokens, 31 documents, vocab 320 (2010 bytes in, 2332 bytes out)"),
+        "{r}"
+    );
+    assert_eq!(std::fs::read(&o).unwrap(), FIX_TOKENS);
+}
+
+#[test]
+fn training_from_a_token_file_equals_training_from_the_text() {
+    let d = dir("tokentrain");
+    let (c, tok, toks) = (data(&d), d.join("tok.gguf"), d.join("t.tok.gguf"));
+    let (from_text, from_tokens) = (d.join("a.gguf"), d.join("b.gguf"));
+    let common = "--device cpu --context 16 --embed 16 --heads 2 --blocks 1 --hidden 32 --batch 4 --epochs 3 --quant f32";
+    ok(&format!(
+        "train {common} --data {c} --tokenizer {} --out {}",
+        tok.display(),
+        from_text.display()
+    ));
+    ok(&format!(
+        "tokenize --data {c} --tokenizer {} --out {}",
+        tok.display(),
+        toks.display()
+    ));
+    let r = ok(&format!(
+        "train {common} --data {} --tokenizer {} --out {}",
+        toks.display(),
+        tok.display(),
+        from_tokens.display()
+    ));
+    assert!(r.contains("tokenizer: ") && !r.contains("trained"), "{r}");
+    assert_eq!(
+        std::fs::read(&from_text).unwrap(),
+        std::fs::read(&from_tokens).unwrap()
+    );
+    // validation and --sample work on a token file too
+    let v = ok(&format!(
+        "train {common} --val 0.2 --sample --data {} --tokenizer {} --out {}",
+        toks.display(),
+        tok.display(),
+        from_tokens.display()
+    ));
+    assert!(v.contains("val loss") && v.contains("sample: "), "{v}");
+}
+
+#[test]
+fn a_token_file_needs_the_tokenizer_it_was_made_with() {
+    let d = dir("tokenmismatch");
+    let (c, tok, other, toks) = (
+        data(&d),
+        d.join("tok.gguf"),
+        d.join("other.gguf"),
+        d.join("t.tok.gguf"),
+    );
+    let c2 = d.join("c2.txt");
+    std::fs::write(&c2, "dog dig dug dig dog bog bug. ".repeat(60)).unwrap();
+    let small = "--device cpu --context 16 --embed 16 --heads 2 --blocks 1 --hidden 32 --epochs 1";
+    // two different tokenizer files, each made by training on different text
+    ok(&format!(
+        "train {small} --data {c} --tokenizer {} --out {}",
+        tok.display(),
+        d.join("a.gguf").display()
+    ));
+    ok(&format!(
+        "train {small} --data {} --tokenizer {} --out {}",
+        c2.display(),
+        other.display(),
+        d.join("b.gguf").display()
+    ));
+    ok(&format!(
+        "tokenize --data {c} --tokenizer {} --out {}",
+        tok.display(),
+        toks.display()
+    ));
+    let train = |tokenizer: &str| {
+        err(&format!(
+            "train {small} --data {} {tokenizer} --out {}",
+            toks.display(),
+            d.join("x.gguf").display()
+        ))
+    };
+    assert!(train("").contains("needs --tokenizer"));
+    assert!(
+        train(&format!("--tokenizer {}", d.join("missing.gguf").display()))
+            .contains("needs --tokenizer")
+    );
+    assert!(train(&format!("--tokenizer {}", other.display()))
+        .contains("not the tokenizer this token file was made with"));
+}
+
+#[test]
+fn tokenize_reads_directories_custom_separators_and_refuses_bad_input() {
+    let d = dir("tokenize_more");
+    let (c, tok) = (data(&d), d.join("tok.gguf"));
+    ok(&format!(
+        "train {FAST} --epochs 1 --data {c} --tokenizer {} --out {}",
+        tok.display(),
+        d.join("m.gguf").display()
+    ));
+    let docs = d.join("docs");
+    std::fs::create_dir_all(&docs).unwrap();
+    std::fs::write(docs.join("b.txt"), "the mat. ").unwrap();
+    std::fs::write(docs.join("a.txt"), "the cat. ").unwrap();
+    let o = d.join("d.tok.gguf");
+    let r = ok(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        docs.display(),
+        tok.display(),
+        o.display()
+    ));
+    assert!(r.contains("2 documents"), "{r}"); // one end-of-text id between the two files
+    let f = ferrum_model::token_file::TokenFile::open(o.to_str().unwrap()).unwrap();
+    let t = load(d.join("m.gguf").to_str().unwrap()).unwrap().tok;
+    let want = [
+        t.encode_docs("the cat. "),
+        vec![t.eos_id().unwrap()],
+        t.encode_docs("the mat. "),
+    ]
+    .concat();
+    assert_eq!(f.read(0, want.len()).unwrap(), want, "files in path order");
+    // a custom separator becomes the end-of-text id
+    let s = d.join("s.txt");
+    std::fs::write(&s, "one||two||three").unwrap();
+    let r = ok(&format!(
+        "tokenize --data {} --tokenizer {} --out {} --doc-sep ||",
+        s.display(),
+        tok.display(),
+        o.display()
+    ));
+    assert!(r.contains("3 documents"), "{r}");
+    let empty = d.join("empty");
+    std::fs::create_dir_all(&empty).unwrap();
+    assert!(err(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        empty.display(),
+        tok.display(),
+        o.display()
+    ))
+    .contains("holds no files"));
+    let empty_sep: Vec<String> = [
+        "tokenize",
+        "--data",
+        s.to_str().unwrap(),
+        "--tokenizer",
+        tok.to_str().unwrap(),
+        "--out",
+        o.to_str().unwrap(),
+        "--doc-sep",
+        "",
+    ]
+    .iter()
+    .map(|x| x.to_string())
+    .collect();
+    assert!(run(&empty_sep, &mut Vec::new())
+        .unwrap_err()
+        .contains("--doc-sep must not be empty"));
+    let bin = d.join("bin");
+    std::fs::write(&bin, [0xffu8, 0xfe]).unwrap();
+    assert!(err(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        bin.display(),
+        tok.display(),
+        o.display()
+    ))
+    .contains("not valid UTF-8"));
+    assert!(err(&format!(
+        "tokenize --data {} --tokenizer /nope --out {}",
+        s.display(),
+        o.display()
+    ))
+    .contains("/nope"));
+    assert!(err(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        d.join("nofile").display(),
+        tok.display(),
+        o.display()
+    ))
+    .contains("nofile"));
+    assert!(err("tokenize --data x").contains("--tokenizer is required"));
+}

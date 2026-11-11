@@ -150,3 +150,27 @@ the cat the the the the the
 ### Options that were run
 
 Validation with early stopping (`--val 0.2 --patience 3 --cosine --warmup 2 --clip 1 --weight_decay 0.01 --quant int4 --checkpoint ck.gguf --sample`) printed `epoch N val loss ...` lines with `(best)` marks and ended with `steps: 20 loss 5.5896 -> 0.7376` and a greedy `sample:`. A `--resume` with a changed validation split was refused: `cannot resume: the run shape changed (...)`. A `<out>.stop` file ended a run after one step (`stopped early: ... found; stopped after step 1`). `--tie` and `--dropout 0.1` are refused by name.
+
+## Token files (M2, 2026-11-11)
+
+`tokenize` encodes a text file (or the files directly inside a directory, in path order, with an end-of-text id between files) into a token file, the same `ferrum-tokens` GGUF layout ferrum-cpu writes. `train --data FILE.tok.gguf --tokenizer TOK.gguf` then reads windows from disk instead of holding the corpus; the tokenizer file must be the one the ids were made with (its SHA-256 is recorded in the token file and checked).
+
+Real output, using the corpus and tokenizer file in `fixtures/bpe/` (made by ferrum-cpu):
+
+```
+$ ferrum-gpu tokenize --data corpus.txt --tokenizer tok.gguf --out mine.tok.gguf
+tokenized corpus.txt -> mine.tok.gguf: 942 tokens, 31 documents, vocab 320 (2010 bytes in, 2332 bytes out)
+$ cmp mine.tok.gguf fixtures/bpe/corpus.tok.gguf && echo IDENTICAL
+IDENTICAL
+$ ferrum-gpu train --data mine.tok.gguf --tokenizer tok.gguf --out m.gguf --preset tiny --epochs 5 --batch 8 --device cpu
+tokenizer: tok.gguf (320 tokens)
+device: CPU (8 threads) (cpu)
+model: vocab 320 ctx 64 dim 64 heads 4 layers 2 hidden 256
+corpus: 942 tokens, 14 windows, 10 steps of 8
+steps: 10 loss 5.7723 -> 4.7297
+wrote m.gguf
+```
+
+Our file is byte-identical to the one ferrum-cpu's `tokenize` wrote (`ferrum_model::token_file` tests compare the bytes, and our SHA-256 reproduces the tokenizer digest ferrum-cpu recorded). Training from the token file gives the same model, byte for byte, as training from the text with the same tokenizer (a test). Memory: the file is read window by window; the writer keeps O(1) memory.
+
+Not done: `prepare` (corpus cleaning, deduplication, splits, manifest).

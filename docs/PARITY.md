@@ -41,7 +41,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `train`: `--max-seconds`, stop file `<model>.stop` | yes | **have (M4)** (the stop file is `<out>.stop` with the extension replaced) | have | |
 | `train`: `--metrics-csv`, `--verbose`, `--sample` | yes | **have (M4)**; `-v` short form not accepted; `--debug` and `--force` accepted and ignored | have | |
 | `train`: `--preset` | yes | **have (M4)**: ferrum-cpu's sizes for `--arch gpt2`; the old sizes stay under `--arch llama` | have | |
-| `train` on a token file (`tokens.gguf`, streamed) | yes (doc) | none | gap | M2 |
+| `train` on a token file (`tokens.gguf`, streamed) | yes (doc) | **have (M2)**: windows read from disk; the tokenizer file's SHA-256 is checked | have | |
 | `run` (train then generate in one command) | yes | none | gap | M4 (thin wrapper) |
 | `generate`: `--chars --temp --gen-seed --top-k --top-p --repetition-penalty` | yes | **have (M4)** for GPT-2 files (ferrum-cpu's spellings are aliases of ours) | have | |
 | `generate`: `--stream`, `--stop` (repeatable), `--max-tokens` | yes | **have (M4)** for GPT-2 files | have | |
@@ -54,7 +54,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes (doc) | none | gap | M2 |
-| `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | none | gap | M2 |
+| `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | **have (M2)**: `--data FILE\|DIR`; output is byte-identical to ferrum-cpu's on the fixture | have | |
 | `info` | prints model info | prints device and adapters | different | M4 (add model info; keep device lines under `--device`) |
 | Unknown flags are errors | yes | yes | have | |
 

@@ -8,9 +8,11 @@
 pub mod gen;
 mod hooks;
 mod score;
+mod tokenize;
 mod train;
 
 pub use gen::{eval, generate, is_gpt2, load, shape_of};
+pub use tokenize::tokenize;
 pub use train::train;
 
 use crate::flags::{many, switch, val, Args, Flag};

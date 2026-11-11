@@ -8,11 +8,13 @@ use crate::device::Workload;
 use crate::flags::Args;
 use ferrum_model::checkpoint::{atomic_write, from_bytes};
 use ferrum_model::gpt2_gguf::to_gguf_with;
+use ferrum_model::sha256::sha256_hex;
+use ferrum_model::token_file::{is_token_file, TokenFile};
 use ferrum_model::tokenizer_gguf;
 use ferrum_ref::gpt2::{Config, Gpt2};
 use ferrum_ref::optim::Schedule;
 use ferrum_ref::trainer::{
-    steps_per_epoch, train as run_loop, window_starts, RunShape, TrainConfig,
+    steps_per_epoch, train as run_loop, window_starts, Prefix, RunShape, TokenSource, TrainConfig,
 };
 use ferrum_tok::ByteBpeTokenizer;
 use std::io::Write;
@@ -51,6 +53,29 @@ fn tokenizer(
     Ok(t)
 }
 
+/// The tokenizer for a token file: `--tokenizer` must exist and be the file the ids were made with.
+fn token_file_tokenizer(
+    a: &Args,
+    tf: &TokenFile,
+    out: &mut dyn Write,
+) -> Result<ByteBpeTokenizer, String> {
+    let p = a
+        .get("--tokenizer")
+        .filter(|p| Path::new(p).exists())
+        .ok_or("a token file needs --tokenizer with the tokenizer file it was made with")?;
+    let bytes = std::fs::read(p).map_err(|e| format!("{p}: {e}"))?;
+    if sha256_hex(&bytes) != tf.tokenizer_sha256() {
+        return Err(format!(
+            "{p} is not the tokenizer this token file was made with (sha256 {} != {})",
+            sha256_hex(&bytes),
+            tf.tokenizer_sha256()
+        ));
+    }
+    let t = tokenizer_gguf::from_gguf_bytes(&bytes).map_err(|e| format!("{p}: {e}"))?;
+    say(out, format!("tokenizer: {p} ({} tokens)", t.vocab_size()))?;
+    Ok(t)
+}
+
 /// A short identity of the tokenizer, recorded in checkpoints so a resume cannot mix vocabularies.
 fn corpus_id(t: &ByteBpeTokenizer) -> String {
     let h = t
@@ -76,9 +101,17 @@ fn refuse_unsupported(a: &Args) -> Result<(), String> {
 pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), String> {
     refuse_unsupported(a)?;
     let target = a.need("--out")?;
-    let data = std::fs::read(a.need("--data")?).map_err(|e| format!("--data: {e}"))?;
-    let text =
-        String::from_utf8(data).map_err(|_| "--data: the corpus is not valid UTF-8".to_string())?;
+    let data_path = a.need("--data")?;
+    let token_file = is_token_file(data_path)
+        .then(|| TokenFile::open(data_path))
+        .transpose()?;
+    let text = match token_file {
+        Some(_) => None,
+        None => Some(
+            String::from_utf8(std::fs::read(data_path).map_err(|e| format!("--data: {e}"))?)
+                .map_err(|_| "--data: the corpus is not valid UTF-8".to_string())?,
+        ),
+    };
     let sizes = Sizes::from_flags(a)?;
     let resume = a
         .get("--resume")
@@ -88,11 +121,27 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
                 .and_then(|b| from_bytes(b).map_err(|e| format!("{p}: {e}")))
         })
         .transpose()?;
-    let (tok, base_model) = match base {
-        Some(l) => (l.tok, Some(l.model)),
-        None => (tokenizer(a, &text, sizes.vocab, out)?, None),
+    let (tok, base_model) = match (base, &text, &token_file) {
+        (Some(l), _, _) => (l.tok, Some(l.model)),
+        (None, Some(t), _) => (tokenizer(a, t, sizes.vocab, out)?, None),
+        (None, None, Some(tf)) => (token_file_tokenizer(a, tf, out)?, None),
+        (None, None, None) => unreachable!("a corpus is either text or a token file"),
     };
-    let mut ids = tok.encode_docs(&text);
+    if let Some(tf) = &token_file {
+        if tf.vocab_size() != tok.vocab_size() {
+            return Err(format!(
+                "the token file was made for a vocabulary of {} but the tokenizer has {}",
+                tf.vocab_size(),
+                tok.vocab_size()
+            ));
+        }
+    }
+    let source: Box<dyn TokenSource> = match (token_file, &text) {
+        (Some(tf), _) => Box::new(tf),
+        (None, Some(t)) => Box::new(tok.encode_docs(t)),
+        (None, None) => unreachable!(),
+    };
+    let mut train_len = source.len();
     let mut val = None;
     if let Some(f) = a.get("--val") {
         let f: f64 = f
@@ -101,12 +150,17 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
         if !(0.0..0.9).contains(&f) || f == 0.0 {
             return Err("--val must be in (0, 0.9)".into());
         }
-        let cut = ids.len() - ((ids.len() as f64 * f) as usize).max(2);
+        let cut = train_len - ((train_len as f64 * f) as usize).max(2);
         val = Some(Validation {
-            tokens: ids.split_off(cut),
+            tokens: source.window(cut, train_len - cut)?,
             patience: a.num("--patience", 0)?,
         });
+        train_len = cut;
     }
+    let train_src = Prefix {
+        inner: &*source,
+        len: train_len,
+    };
     let cfg = match (&resume, &base_model) {
         (Some(cp), _) => cp.snapshot.weights.cfg,
         (None, Some(m)) => m.cfg,
@@ -136,7 +190,7 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
     let batch = a.num("--batch", 16usize)?;
     let context = cfg.ctx;
     let spe = steps_per_epoch(
-        window_starts(ids.len(), context, a.num("--stride", 0)?).len(),
+        window_starts(train_len, context, a.num("--stride", 0)?).len(),
         batch,
     );
     let max_steps = match (a.get("--steps"), a.num("--tokens", 0.0f64)?) {
@@ -181,8 +235,8 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
         out,
         format!(
             "corpus: {} tokens, {} windows, {total} steps of {batch}",
-            ids.len(),
-            window_starts(ids.len(), context, tc.stride).len()
+            train_len,
+            window_starts(train_len, context, tc.stride).len()
         ),
     )?;
     let mut plan = ferrum_wgpu::train::static_plan(&cfg);
@@ -238,7 +292,7 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
     let expect: Option<RunShape> = resume.as_ref().map(|cp| cp.shape.clone());
     let report = run_loop(
         &mut *engine,
-        &ids,
+        &train_src,
         &tc,
         expect.as_ref(),
         Some(&id),
@@ -268,7 +322,10 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
         .map_err(|e| format!("{target}: {e}"))?;
     say(out, format!("wrote {target}"))?;
     if a.has("--sample") {
-        let prompt = text.chars().take(8).collect::<String>();
+        let prompt = match &text {
+            Some(t) => t.chars().take(8).collect::<String>(),
+            None => tok.decode(&source.window(0, 8.min(source.len()))?),
+        };
         say(
             out,
             format!(

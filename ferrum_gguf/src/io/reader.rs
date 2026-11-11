@@ -165,6 +165,15 @@ impl<'a> Cur<'a> {
 impl Gguf {
     /// Parse a GGUF v3 file.
     pub fn parse(bytes: Vec<u8>) -> Result<Gguf, GgufError> {
+        let total = bytes.len() as u64;
+        Gguf::parse_prefix(bytes, total)
+    }
+
+    /// Parse the header of a file that is `total` bytes long from its first bytes `bytes` (at
+    /// least the metadata and tensor directory). Tensor extents are checked against `total`, so a
+    /// truncated file is still refused; reading tensor data that lies beyond `bytes` is an error.
+    /// Used to open huge files without reading them (token files).
+    pub fn parse_prefix(bytes: Vec<u8>, total: u64) -> Result<Gguf, GgufError> {
         let mut c = Cur { b: &bytes, p: 0 };
         if c.u32()? != MAGIC {
             return Err(err("bad magic: not a GGUF file"));
@@ -211,7 +220,7 @@ impl Gguf {
         };
         let data_start = (c.p as u64).div_ceil(alignment) * alignment;
         let data_start = usize::try_from(data_start).map_err(|_| err("data offset overflows"))?;
-        if data_start > bytes.len() {
+        if data_start as u64 > total {
             return Err(err("file ends before the tensor data"));
         }
         let mut index = HashMap::new();
@@ -222,7 +231,7 @@ impl Gguf {
                 .and_then(|o| o.checked_add(data_start));
             if start
                 .and_then(|s| s.checked_add(size))
-                .is_none_or(|e| e > bytes.len())
+                .is_none_or(|e| e as u64 > total)
             {
                 return Err(err(format!(
                     "tensor '{}' extends past the end of the file",
@@ -290,8 +299,18 @@ impl Gguf {
         let t = self
             .tensor(name)
             .ok_or_else(|| err(format!("missing tensor '{name}'")))?;
-        let start = self.data_start + t.offset as usize; // proven in range by parse
-        Ok(&self.bytes[start..start + nbytes(t.ggml_type, t.elements()?)?])
+        let start = self.data_start + t.offset as usize; // inside the file, proven by parse
+        let end = start + nbytes(t.ggml_type, t.elements()?)?;
+        self.bytes.get(start..end).ok_or_else(|| {
+            err(format!(
+                "tensor '{name}' data was not loaded (header-only parse)"
+            ))
+        })
+    }
+
+    /// Where the tensor data starts in the file (the absolute offset of tensor offset 0).
+    pub fn data_offset(&self) -> usize {
+        self.data_start
     }
 
     /// Decode a tensor to f32 (row-major, GGML dim 0 contiguous).
@@ -321,6 +340,26 @@ mod tests {
         b.tensor_f32("w", &[3, 2], &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
         b.tensor_f32("b", &[2], &[0.5, -0.5]);
         b.into_bytes()
+    }
+
+    #[test]
+    fn a_header_only_parse_checks_extents_against_the_file_length() {
+        let mut b = GgufBuilder::new();
+        b.meta("general.architecture", Value::Str("x".into()));
+        b.tensor_f32("w", &[100], &[1.0; 100]);
+        let bytes = b.into_bytes();
+        let total = bytes.len() as u64;
+        let head_len = bytes.len() - 400;
+        let head = bytes[..head_len].to_vec();
+        let g = Gguf::parse_prefix(head.clone(), total).unwrap();
+        assert_eq!(g.tensor("w").unwrap().dims, vec![100]);
+        assert!(g.data_offset() <= head_len && g.data_offset().is_multiple_of(32));
+        assert!(g.tensor_bytes("w").unwrap_err().0.contains("header-only"));
+        // the same header against a shorter file is a truncated file
+        assert!(Gguf::parse_prefix(head, g.data_offset() as u64 + 399)
+            .unwrap_err()
+            .0
+            .contains("extends past"));
     }
 
     #[test]

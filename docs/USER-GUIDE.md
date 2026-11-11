@@ -54,8 +54,11 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 | `finetune-gguf` | Continue training a GGUF model (GPT-2 files keep their tokenizer) | `--model`, `--data`, `--out` | the training flags |
 | `generate` | Continue a prompt with sampled text | `--model F.gguf`, `--prompt TEXT` | `--max-new` (64), `--temperature` (0 = greedy), `--top-k` (0), `--seed` (1); GPT-2 files also `--top-p`, `--repetition-penalty`, `--stop S` (repeatable), `--stream`, `--ids "1 2 3"` |
 | `run-gguf` | Same as `generate`, and first prints the device and the model's shape | as `generate` | as `generate` |
+| `tokenize` | Encode a text file or directory into a token file for `train` | `--data`, `--tokenizer`, `--out` | `--doc-sep S` |
 | `export-gguf` | Re-write a model as f32, int8 or int4 (reads every format in docs/GGUF.md) | `--model`, `--out` | `--quant` (int8) |
 | `eval` | Mean next-token loss and perplexity of a file under a model | `--model`, `--data` | `--ctx N`, `--json F` |
+
+A token file (from `tokenize`) can be given as `--data`; it is detected by content and must come with the `--tokenizer` file it was made with. Windows are read from disk, so the corpus need not fit in memory.
 
 **`train` flags (GPT-2, the default).** Sizes: the preset flags above. How long: `--epochs` (100), or
 `--steps N`, or `--tokens N` (a token budget; steps = tokens / (batch x context)). Optimiser: `--lr` (preset's),
@@ -188,6 +191,6 @@ unauthenticated.
 
 ## 10. What is not here yet
 
-Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, `tokenize`/`prepare` and token files, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
+Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, `prepare`, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).

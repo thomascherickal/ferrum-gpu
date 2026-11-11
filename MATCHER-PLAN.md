@@ -76,7 +76,9 @@ Done: new crate `ferrum_tok` (copied from ferrum-cpu `0bb0f92`, depends only on 
 - Tests: round trip on adversarial UTF-8; merges identical to a fixture trained by ferrum-cpu on a fixed corpus; llama.cpp-style prompts tokenize to the fixture's ids.
 - **Gate:** tokenizer output equals the fixtures byte for byte; our GGUF with BPE metadata carries a fixture-checked token list.
 
-### M2: corpus tools and data pipeline
+### M2: corpus tools and data pipeline (tokenize and token files done 2026-11-11; `prepare` not done)
+
+Done: `tokenize` (file or directory), token-file writer and streaming reader (`ferrum_model::token_file`, byte-identical to ferrum-cpu's file on the fixture), SHA-256 in std, `TokenSource` so the training loop reads windows from disk, `train` on a token file (equal to training from the text, byte for byte). Not done: `prepare` (cleaning, NFKC, Gutenberg strip, dedup, split, manifest; it needs ~800 lines ported from `dataset.rs`, `prepare/` and a JSON/NFKC decision), `scripts/fetch.sh`, a DVC pipeline.
 
 - `ferrum-gpu prepare` (clean, optional NFKC and lowercase, Gutenberg strip, dedup, split, hash manifest) and `tokenize` (token file, 2 bytes per token, streamed windows from disk).
 - `train` accepts a token file and streams windows without loading the corpus.

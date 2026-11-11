@@ -66,3 +66,11 @@ been verified with a real file.** The repository contains no stored `.gguf` fixt
 with this project's own writer, and the tensor names, metadata keys and layout rules were checked against
 ferrum-cpu's *source* conventions (commit 56a9d3a), not against a file ferrum-cpu wrote. Adding a stored
 fixture produced by ferrum-cpu is an open item (see `docs/plans/PHASE-3.md`, task 3.1).
+
+## Token files and tokenizer files
+
+Both are GGUF files and match ferrum-cpu's layouts (tested byte for byte against files it wrote):
+
+- **Tokenizer file** (`general.architecture = "ferrum-tokenizer"`): the llama.cpp vocabulary arrays `tokenizer.ggml.{model,tokens,merges,token_type}` plus `tokenizer.ferrum.state`, the lossless merge list. Written by `train --tokenizer F`.
+- **Token file** (`ferrum-tokens`): one `tokens` tensor of ids (I16 when the vocabulary is at most 32768, else I32) and `ferrum.tokens.{version,vocab_size,token_count,document_count,eos_id,tokenizer_sha256}`. Written by `tokenize`. Read window by window with a seek per window.
+- **Model files** carry the tokenizer arrays (plus `tokenizer.ggml.pre`, bos/eos ids) and the `ferrum.*` keys ferrum-cpu needs; they do not carry `tokenizer.ferrum.state`, so a tokenizer read from a model is rebuilt from the arrays.
