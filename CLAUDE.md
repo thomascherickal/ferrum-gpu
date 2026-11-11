@@ -82,3 +82,11 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     sensible default, or for a hard blocker (needs credentials, sudo, or an action outside
     this repository). The existing limits still apply: never invent numbers, never touch
     ferrum-cpu, never force-push, and never push or merge to `main` unless the user asks.
+15. **Automatic merge, cleanup and push (user decision 2026-11-11).** When a branch's work is
+    committed and the full suite is green (fmt, clippy `-D warnings`, tests in all four
+    configurations, coverage floor, `cargo deny`), merge it into `main` without asking (fast-forward
+    or a plain merge commit, never a rebase of published history), delete the branches that are then
+    fully merged or stale (local, remote and worktree), and push `main`. Push only after every
+    check has passed on the merged result. Still forbidden: force-push, deleting a branch with
+    unmerged commits, and merging or pushing with any failing check. This overrides the "never
+    push or merge to `main`" limit in rule 10.
