@@ -132,27 +132,34 @@ them; the vocabulary is otherwise not checked against your data's tokenizer, bec
 ## 7. The server
 
 ```bash
-ferrum-gpu-server --model m.gguf --port 8787 [--device cpu|gpu|auto] [--gpu-adapter NAME] [--gpu-mem-mb N]
+ferrum-gpu-server --model m.gguf [--host 127.0.0.1] [--port 8080] [--token T] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--gpu-mem-mb N]
 ```
 
-It prints the URL and listens on `127.0.0.1` only. Requests whose `Host` is not that address, or that carry a
-cross-site `Origin`, get 403. Calls are served one at a time per model. There is no authentication: do not
-expose it by tunnelling the port without adding your own.
+It serves GPT-2 files (with their BPE tokenizer) and Llama-style byte-level files, prints the URL, and serves
+calls one at a time per model. The routes, request shapes and limits are ferrum-cpu's `ferrum-serve`, so clients
+written for it work.
+
+- **Who can connect.** The default is loopback only: requests whose `Host` is not that address, or that carry a
+  cross-site `Origin`, get 403. A non-loopback `--host` is refused at startup unless you set a token (`--token`,
+  or the `FERRUM_TOKEN` environment variable) or pass `--allow-unauthenticated`. With a token, every route except
+  `GET /health` needs `Authorization: Bearer <token>`.
+- **Limits** (`--max-batch` 64 requests, `--max-chars` 65536, `--max-body` 8 MiB, `--max-tokens` 4096) are checked
+  before any model work; 32 POSTs may be in flight, more get 503.
 
 | Route | Request | Response |
 |---|---|---|
 | `GET /health` | | `{"status":"ok"}` |
-| `GET /v1/info` | | `{"device","kind","params","vocab","ctx"}` |
-| `POST /v1/generate` | `{"prompt": str, "max_new": 1..1024 (64), "temperature": 0..10 (0), "top_k": int (0), "seed": int (1)}` | `{"text", "tokens"}` |
-| `POST /v1/loglikelihood` | `{"context": str, "continuation": str}` (both non-empty) | `{"loglikelihood", "is_greedy", "tokens"}` |
+| `GET /v1/info` | | `{"device","kind","arch","params","vocab","ctx"}` |
+| `POST /v1/generate` | `{"requests":[{"prompt", "max_tokens" (64), "stop": [str], "temperature" (0), "top_k" (0), "top_p" (1), "seed" (0), "repetition_penalty" (server default 1)}]}` | `{"results":[{"text","n_tokens"}]}` |
+| `POST /v1/loglikelihood` | `{"requests":[{"context","continuation"}]}` | `{"results":[{"logprob","n_tokens","greedy"}]}` |
+| `POST /v1/loglikelihood_rolling` | `{"texts":[str]}` | `{"results":[{"logprob","n_tokens"}]}` |
 
-`loglikelihood` is the sum of the log-probabilities of the continuation's tokens given the context, and
-`is_greedy` says whether every one of them was the model's top choice (the shape evaluation harnesses expect).
-Prompts and contexts are limited to 4096 bytes and bodies to 1 MiB. Errors are `{"error": "..."}` with a 4xx
-status. Scoring runs on the CPU.
+`logprob` is the sum of the log-probabilities of the scored tokens; `greedy` says whether each was the model's
+top choice. Unknown fields and out-of-range values are 400 with `{"error": "..."}`; a model error is 422. At most 16
+stop strings of 1024 bytes. `top_p` and `repetition_penalty` need a GPT-2 file. Scoring runs on the CPU.
 
 ```bash
-curl -s -d '{"prompt":"the c","max_new":16}' http://127.0.0.1:8787/v1/generate
+curl -s -H 'Authorization: Bearer s3cret' -d '{"requests":[{"prompt":"the c","max_tokens":16}]}' http://127.0.0.1:8080/v1/generate
 ```
 
 ## 8. The GUI
@@ -175,10 +182,11 @@ unauthenticated.
 | `the text has N bytes but needs more than the context of M` | `--data` is too short for `--context`; give more text or a smaller context. |
 | `rope scaling type 'yarn' is not supported` (or similar) | The GGUF uses a feature that would be silently wrong if ignored; see [GGUF.md](GGUF.md). |
 | A GPU run crashes the driver with several runs in parallel | Concurrent device opens can fault some drivers. Run one GPU job at a time (the tests use `--test-threads 1`). |
-| `cannot listen on port N` | The port is taken; use `--port 0` for any free port. |
+| `cannot listen on HOST:PORT` | The port is taken; use `--port 0` for any free port. |
+| `refusing to listen on ...: it is not a loopback address` | Exposing the server needs a token: `--token T` (or `FERRUM_TOKEN`), or `--allow-unauthenticated` if you accept the risk. |
 
 ## 10. What is not here yet
 
-Serving GPT-2 files with `ferrum-gpu-server` (it loads Llama-style files), tied heads, dropout and character-level models for GPT-2 training, `tokenize`/`prepare` and token files, K-quant and other block formats, GPU-side scoring (it runs on the
+Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, `tokenize`/`prepare` and token files, K-quant and other block formats, GPU-side scoring (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).

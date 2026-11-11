@@ -1,12 +1,57 @@
-//! Start the server on loopback around any [`Decoder`].
+//! Start the server around any [`Decoder`]: bind, optional bearer token, in-flight cap.
 
+use crate::auth;
 use crate::decoder::Decoder;
-use crate::routes::{route, MAX_BODY};
-use ferrum_gpu_gui::http::{serve, Handler};
-use std::net::{SocketAddr, TcpListener};
-use std::sync::atomic::{AtomicBool, Ordering};
+use crate::limits::{Limits, MAX_INFLIGHT};
+use crate::routes::route;
+use ferrum_gpu_gui::http::{serve_with, Handler, Response};
+use std::net::{IpAddr, SocketAddr, TcpListener};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread::JoinHandle;
+
+/// Where and how to listen.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Config {
+    /// Address to bind (`127.0.0.1` unless you mean to expose the server).
+    pub host: String,
+    /// Port (`0` = any free port).
+    pub port: u16,
+    /// Bearer token every request but `GET /health` must carry.
+    pub token: Option<String>,
+    /// Request limits.
+    pub limits: Limits,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            host: "127.0.0.1".into(),
+            port: 0,
+            token: None,
+            limits: Limits::default(),
+        }
+    }
+}
+
+/// Is `host` a loopback address?
+pub fn is_loopback(host: &str) -> bool {
+    host == "localhost" || host.parse::<IpAddr>().is_ok_and(|a| a.is_loopback())
+}
+
+/// Refuse to listen beyond loopback without a token, unless `allow_unauthenticated`.
+pub fn check_exposure(
+    host: &str,
+    token: Option<&str>,
+    allow_unauthenticated: bool,
+) -> Result<(), String> {
+    if is_loopback(host) || token.is_some() || allow_unauthenticated {
+        return Ok(());
+    }
+    Err(format!(
+        "refusing to listen on {host}: it is not a loopback address and no token is set; pass --token (or set FERRUM_TOKEN), or --allow-unauthenticated if you really mean it"
+    ))
+}
 
 /// A running server.
 pub struct Running {
@@ -26,15 +71,49 @@ impl Running {
     }
 }
 
-/// Listen on `127.0.0.1:port` (`0` = any free port).
-pub fn start(d: Arc<dyn Decoder>, port: u16) -> Result<Running, String> {
-    let listener = TcpListener::bind(("127.0.0.1", port))
-        .map_err(|e| format!("cannot listen on port {port}: {e}"))?;
+/// Holds one in-flight slot until dropped.
+struct Slot<'a>(&'a AtomicUsize);
+
+impl<'a> Slot<'a> {
+    fn take(n: &'a AtomicUsize) -> Option<Slot<'a>> {
+        if n.fetch_add(1, Ordering::SeqCst) < MAX_INFLIGHT {
+            Some(Slot(n))
+        } else {
+            n.fetch_sub(1, Ordering::SeqCst);
+            None
+        }
+    }
+}
+
+impl Drop for Slot<'_> {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+/// Listen as `cfg` says.
+pub fn start(d: Arc<dyn Decoder>, cfg: &Config) -> Result<Running, String> {
+    let listener = TcpListener::bind((cfg.host.as_str(), cfg.port))
+        .map_err(|e| format!("cannot listen on {}:{}: {e}", cfg.host, cfg.port))?;
     let addr = listener.local_addr().map_err(|e| e.to_string())?;
     let stop = Arc::new(AtomicBool::new(false));
-    let handler: Handler = Arc::new(move |req| route(d.as_ref(), req));
-    let s = stop.clone();
-    let thread = std::thread::spawn(move || serve(listener, handler, s, MAX_BODY));
+    let (token, limits, inflight) = (cfg.token.clone(), cfg.limits.clone(), AtomicUsize::new(0));
+    let handler: Handler = Arc::new(move |req| {
+        if let Some(denied) = token.as_deref().and_then(|t| auth::check(req, t)) {
+            return denied;
+        }
+        let _slot = if req.method == "POST" {
+            match Slot::take(&inflight) {
+                Some(s) => Some(s),
+                None => return Response::error(503, "too many requests in flight"),
+            }
+        } else {
+            None
+        };
+        route(d.as_ref(), &limits, req)
+    });
+    let (s, max_body, guard) = (stop.clone(), cfg.limits.max_body, is_loopback(&cfg.host));
+    let thread = std::thread::spawn(move || serve_with(listener, handler, s, max_body, guard));
     Ok(Running {
         addr,
         stop,
@@ -43,59 +122,4 @@ pub fn start(d: Arc<dyn Decoder>, port: u16) -> Result<Running, String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::decoder::StubDecoder;
-    use std::io::{Read, Write};
-    use std::net::TcpStream;
-
-    fn http(addr: SocketAddr, method: &str, path: &str, body: &str) -> String {
-        let mut s = TcpStream::connect(addr).unwrap();
-        write!(
-            s,
-            "{method} {path} HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-            addr.port(),
-            body.len()
-        )
-        .unwrap();
-        let mut out = String::new();
-        s.read_to_string(&mut out).unwrap();
-        out
-    }
-
-    #[test]
-    fn serves_over_real_sockets_and_refuses_foreign_hosts() {
-        let r = start(Arc::new(StubDecoder), 0).unwrap();
-        assert!(
-            http(r.addr, "GET", "/health", "").contains("200")
-                && http(r.addr, "GET", "/health", "").contains("ok")
-        );
-        let g = http(
-            r.addr,
-            "POST",
-            "/v1/generate",
-            r#"{"prompt":"x","max_new":2}"#,
-        );
-        assert!(g.contains("!!"), "{g}");
-        let mut s = TcpStream::connect(r.addr).unwrap();
-        write!(
-            s,
-            "GET /health HTTP/1.1\r\nHost: evil.example\r\nConnection: close\r\n\r\n"
-        )
-        .unwrap();
-        let mut out = String::new();
-        s.read_to_string(&mut out).unwrap();
-        assert!(out.contains("403"), "{out}");
-        r.stop();
-    }
-
-    #[test]
-    fn a_taken_port_is_an_error() {
-        let a = start(Arc::new(StubDecoder), 0).unwrap();
-        let e = start(Arc::new(StubDecoder), a.addr.port())
-            .err()
-            .expect("port taken");
-        assert!(e.contains("cannot listen"));
-        a.stop();
-    }
-}
+mod tests;

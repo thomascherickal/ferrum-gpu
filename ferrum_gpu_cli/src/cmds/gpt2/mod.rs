@@ -5,7 +5,7 @@
 //! Sizes, defaults and flag spellings follow ferrum-cpu (docs/PARITY.md); the `llama` path is the
 //! one used for imported Llama/Qwen files and `--arch llama`.
 
-mod gen;
+pub mod gen;
 mod hooks;
 mod score;
 mod train;

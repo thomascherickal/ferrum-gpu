@@ -22,6 +22,11 @@ pub fn decode_buffers(m: &Llama) -> BufferPlan {
     decode_plan(&m.cfg, None)
 }
 
+/// Buffers a GPT-2 decoder needs: weights, KV cache and scratch.
+pub fn gpt2_decode_buffers(m: &ferrum_ref::gpt2::Gpt2) -> BufferPlan {
+    ferrum_wgpu::gpt2::plan(&m.cfg)
+}
+
 /// The memory budget for `--gpu-mem-mb`; `None` means unknown, and then only the adapter's
 /// binding limit is enforced.
 // ponytail: only the override is used; VRAM from nvidia-smi/sysfs (`budget::resolve`) can be
@@ -69,6 +74,23 @@ mod tests {
     use super::*;
     use ferrum_gpu_gui::engine::fresh_model;
     use ferrum_wgpu::select::Kind;
+
+    #[test]
+    fn gpt2_decode_plan_lists_weights_and_cache() {
+        let m = ferrum_ref::gpt2::Gpt2::init(
+            ferrum_ref::gpt2::Config {
+                vocab: 20,
+                ctx: 8,
+                dim: 8,
+                heads: 2,
+                layers: 1,
+                hidden: 16,
+            },
+            1,
+        );
+        let p = gpt2_decode_buffers(&m);
+        assert!(p.total() > 0 && !p.rows().is_empty());
+    }
 
     fn adapter(max_binding: u64) -> AdapterSummary {
         AdapterSummary {

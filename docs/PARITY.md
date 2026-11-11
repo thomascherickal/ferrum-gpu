@@ -11,7 +11,7 @@ Status words: **have** (works here), **partial**, **gap**, **different** (delibe
 1. **(Closed in M4, 2026-11-11.) `train` made a different architecture.** ferrum-cpu `train` writes a `gpt2` GGUF (learned positions, LayerNorm, GELU, byte-level BPE) that also runs in llama.cpp. `ferrum-gpu train` builds a Llama-style model (RMSNorm, RoPE, GQA, SwiGLU; heads shown as `4/2`) and writes a `llama` GGUF. The engine has a GPT-2 trainer (`ferrum_wgpu::training::gpt2`) but the CLI does not expose it. Parity needs `train --arch gpt2|llama` (M4), with `gpt2` the default to match ferrum-cpu.
 2. **Presets differ.** See the table below. They are different models under the same names.
 3. **Quantization is a bigger gap than listed.** ferrum-cpu reads 11 block formats; we read 3 plus F32/F16.
-4. **The server has one more route** than the plan said (`/v1/loglikelihood_rolling`) and a fixed in-flight cap of 32.
+4. **(Closed in M7.) The server has one more route** than the plan said (`/v1/loglikelihood_rolling`) and a fixed in-flight cap of 32.
 
 ## Presets
 
@@ -76,12 +76,12 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | Feature | ferrum-cpu | ferrum-gpu | Status | Phase |
 |---|---|---|---|---|
 | `GET /health`, `GET /v1/info`, `POST /v1/generate`, `POST /v1/loglikelihood` | yes | yes | have | |
-| `POST /v1/loglikelihood_rolling` | yes | no | gap | M7 |
-| Flags `--model --host --port` | yes | `--model --port` (loopback only) | partial | M7 |
-| `--max-batch --max-chars --max-body --max-tokens --repetition-penalty` | yes | fixed limits (prompt 4096, new 1024, body 1 MiB) | partial | M7 |
+| `POST /v1/loglikelihood_rolling` | yes | **have (M7)**, with ferrum-cpu's window rule | have | |
+| Flags `--model --host --port` | yes | **have (M7)** (default port 8080) | have | |
+| `--max-batch --max-chars --max-body --max-tokens --repetition-penalty` | yes | **have (M7)**, same defaults (64, 65536, 8 MiB, 4096, 1.0) | have | |
 | `--quant` | yes | not applicable (load as stored) | different | M7 |
-| Bearer token (`--token`, `FERRUM_TOKEN`), non-loopback needs a token, `--allow-unauthenticated`, `--force` | yes | none (loopback, Host/Origin guard) | gap | M7 |
-| In-flight cap (32 concurrent POSTs), stop-sequence limits | yes | none | gap | M7 |
+| Bearer token (`--token`, `FERRUM_TOKEN`), non-loopback needs a token, `--allow-unauthenticated`, `--force` | yes | **have (M7)**; `--force` accepted and ignored | have | |
+| In-flight cap (32 concurrent POSTs), stop-sequence limits | yes | **have (M7)** (503 over the cap; 16 stops of 1024 bytes) | have | |
 | Imported-model routes | yes | one decoder trait; imported Llama/Qwen served | have | |
 | Framework | axum + tokio | std only | different, on purpose (keeps dependencies at zero) | |
 
@@ -89,7 +89,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 
 | Feature | ferrum-cpu | ferrum-gpu | Status |
 |---|---|---|---|
-| LightEval module (Python) | yes | none | gap (M7) |
+| LightEval module (Python) | yes | none; the server's routes are ferrum-cpu's, so the module's HTTP client should work unchanged (untested) | gap (M7) |
 | DVC pipeline (`dvc.yaml`, `params.yaml`) | yes | none | gap (M2, optional) |
 | `scripts/fetch.sh` pinned download | yes | none | gap (M2) |
 | Browser | `slm_wasm` CPU in WASM | WebGPU in the tab | different (Phase 5b) |

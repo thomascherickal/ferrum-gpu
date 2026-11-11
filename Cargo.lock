@@ -187,10 +187,12 @@ dependencies = [
 name = "ferrum_gpu_server"
 version = "0.1.0"
 dependencies = [
+ "ferrum_gguf",
  "ferrum_gpu_cli",
  "ferrum_gpu_gui",
  "ferrum_model",
  "ferrum_ref",
+ "ferrum_tok",
  "ferrum_wgpu",
 ]
 

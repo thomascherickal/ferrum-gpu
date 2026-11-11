@@ -34,10 +34,12 @@ target/release/ferrum-gpu train    --preset tiny --data corpus.txt --out m.gguf 
 target/release/ferrum-gpu eval     --model m.gguf --data corpus.txt
 target/release/ferrum-gpu generate --model m.gguf --prompt "the c" --max-new 24
 
-# a Llama-style byte-level model (served by ferrum-gpu-server until the server learns GPT-2 files), or the GUI
-target/release/ferrum-gpu train --arch llama --preset tiny --data corpus.txt --out l.gguf --steps 150 --batch 4 --context 32 --lr 0.01
-target/release/ferrum-gpu-server --model l.gguf --port 8787
+# serve it (ferrum-serve compatible routes; --token to protect it), or open the GUI
+target/release/ferrum-gpu-server --model m.gguf --port 8787
 target/release/ferrum_gpu_gui
+
+# a Llama-style byte-level model is still available
+target/release/ferrum-gpu train --arch llama --preset tiny --data corpus.txt --out l.gguf --steps 150 --batch 4 --context 32 --lr 0.01
 ```
 
 `--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/USER-GUIDE.md) for

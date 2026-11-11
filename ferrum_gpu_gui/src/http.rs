@@ -106,6 +106,7 @@ pub fn reason(status: u16) -> &'static str {
         200 => "OK",
         204 => "No Content",
         400 => "Bad Request",
+        401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
         405 => "Method Not Allowed",
@@ -113,9 +114,11 @@ pub fn reason(status: u16) -> &'static str {
         409 => "Conflict",
         411 => "Length Required",
         413 => "Payload Too Large",
+        422 => "Unprocessable Entity",
         431 => "Request Header Fields Too Large",
         500 => "Internal Server Error",
         501 => "Not Implemented",
+        503 => "Service Unavailable",
         _ => "Unknown",
     }
 }
@@ -295,13 +298,25 @@ pub type Handler = Arc<dyn Fn(&Request) -> Response + Send + Sync>;
 /// Serve `listener` until `stop` is set: one thread per connection, loopback guard applied
 /// before `handler` runs. Returns when the stop flag is seen (the flag is polled between accepts).
 pub fn serve(listener: TcpListener, handler: Handler, stop: Arc<AtomicBool>, max_body: usize) {
+    serve_with(listener, handler, stop, max_body, true);
+}
+
+/// Like [`serve`]; with `loopback_guard` false the Host/Origin check is skipped, for a server
+/// that listens beyond loopback and authenticates every request itself.
+pub fn serve_with(
+    listener: TcpListener,
+    handler: Handler,
+    stop: Arc<AtomicBool>,
+    max_body: usize,
+    loopback_guard: bool,
+) {
     let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
     listener.set_nonblocking(true).ok();
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
             Ok((stream, _)) => {
                 let h = handler.clone();
-                std::thread::spawn(move || handle(stream, &*h, port, max_body));
+                std::thread::spawn(move || handle(stream, &*h, (port, loopback_guard), max_body));
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 std::thread::sleep(Duration::from_millis(10))
@@ -314,14 +329,17 @@ pub fn serve(listener: TcpListener, handler: Handler, stop: Arc<AtomicBool>, max
 fn handle(
     mut stream: TcpStream,
     handler: &(dyn Fn(&Request) -> Response + Send + Sync),
-    port: u16,
+    (port, loopback_guard): (u16, bool),
     max_body: usize,
 ) {
     stream.set_nonblocking(false).ok();
     stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
     stream.set_write_timeout(Some(Duration::from_secs(30))).ok();
     let resp = match read_request(&mut stream, max_body) {
-        Ok(req) => guard(&req, port).unwrap_or_else(|| handler(&req)),
+        Ok(req) => loopback_guard
+            .then(|| guard(&req, port))
+            .flatten()
+            .unwrap_or_else(|| handler(&req)),
         Err(e) => Response::error(e.status, &e.message),
     };
     let _ = write_response(&mut stream, &resp);
@@ -463,6 +481,9 @@ mod tests {
             (431, "Request Header Fields Too Large"),
             (500, "Internal Server Error"),
             (501, "Not Implemented"),
+            (401, "Unauthorized"),
+            (422, "Unprocessable Entity"),
+            (503, "Service Unavailable"),
             (999, "Unknown"),
         ] {
             assert_eq!(reason(code), text);

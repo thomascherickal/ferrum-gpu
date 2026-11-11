@@ -111,7 +111,9 @@ Done: `train --arch gpt2` (default) with BPE, ferrum-cpu's presets and size flag
 - `export-ollama` (Modelfile, and the `ollama create` call behind a flag) and `export-lmstudio`.
 - **Gate:** generated Modelfile and metadata equal the fixtures; the manual check that llama.cpp loads our GGUF is recorded in the phase doc with command and date.
 
-### M7: server and evaluation parity
+### M7: server and evaluation parity (server done 2026-11-11)
+
+Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 files with BPE, bearer token and exposure rule, in-flight cap, stop strings, top-p and repetition penalty. Left: request cancel on disconnect, `--max-batch` semantics beyond the request count, the Python evaluation adapter (the existing LightEval module has not been tried against this server).
 
 - Bearer-token auth (`FERRUM_TOKEN`), non-loopback bind only with a token, `--allow-unauthenticated` as an explicit opt-out; `--max-batch`, `--max-chars`, `--max-body`, `--max-tokens`; request cancel; rolling log-likelihood route; imported-model routes.
 - A small Python evaluation adapter in `eval/` that talks to our server over HTTP (no code shared with ferrum-cpu's LightEval module; written fresh against the same route shapes).

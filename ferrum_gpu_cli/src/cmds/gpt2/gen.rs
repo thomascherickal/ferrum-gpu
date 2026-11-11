@@ -65,11 +65,17 @@ pub fn shape_of(path: &str) -> Result<String, String> {
 }
 
 /// Sampling and stopping options.
+/// Sampling and stopping options of one generation.
 pub struct Opts {
+    /// Most tokens to add.
     pub max_new: usize,
+    /// Temperature, top-k, top-p, repetition penalty.
     pub params: Params,
+    /// Sampler seed.
     pub seed: u64,
+    /// Stop strings: the text ends before the first one found.
     pub stops: Vec<String>,
+    /// Emit text as it is produced.
     pub stream: bool,
 }
 
@@ -92,15 +98,16 @@ fn opts(a: &Args) -> Result<Opts, String> {
     })
 }
 
-/// Feed `prompt`, sample until `max_new`, a stop string, or a full context. Returns the new text.
-fn run(
+/// Feed `prompt`, sample until `max_new`, a stop string, or a full context. Returns the new text
+/// and the number of tokens sampled.
+pub fn run(
     feed: &mut dyn FnMut(usize) -> Result<Vec<f32>, String>,
     tok: &ByteBpeTokenizer,
     ctx: usize,
     prompt: &[usize],
     o: &Opts,
     emit: &mut dyn FnMut(&str),
-) -> Result<String, String> {
+) -> Result<(String, usize), String> {
     if prompt.is_empty() {
         return Err("the prompt is empty".into());
     }
@@ -149,7 +156,7 @@ fn run(
     if o.stream && text.len() > shown {
         emit(&text[shown..]);
     }
-    Ok(text)
+    Ok((text, new.len()))
 }
 
 /// A short greedy sample for `--sample`.
@@ -170,10 +177,11 @@ pub fn sample_text(
     let p = tok.encode(prompt);
     Ok(format!(
         "{prompt}{}",
-        run(&mut *feed, tok, m.cfg.ctx, &p, &o, &mut |_| {})?
+        run(&mut *feed, tok, m.cfg.ctx, &p, &o, &mut |_| {})?.0
     ))
 }
 
+/// `generate` / `run-gguf` for a GPT-2 file.
 pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), String> {
     let path = a.need("--model")?;
     let l = load(path)?;
@@ -200,7 +208,7 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
         write!(out, "{shown}").map_err(|e| e.to_string())?;
     }
     let mut werr = None;
-    let text = run(&mut *feed, &l.tok, l.model.cfg.ctx, &prompt, &o, &mut |s| {
+    let (text, _) = run(&mut *feed, &l.tok, l.model.cfg.ctx, &prompt, &o, &mut |s| {
         if let Err(e) = write!(out, "{s}") {
             werr.get_or_insert(e.to_string());
         }
@@ -215,6 +223,7 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
     }
 }
 
+/// `eval` for a GPT-2 file: mean loss and perplexity of `--data`.
 pub fn eval(a: &Args, out: &mut dyn Write) -> Result<(), String> {
     let l = load(a.need("--model")?)?;
     let text = std::fs::read_to_string(a.need("--data")?).map_err(|e| format!("--data: {e}"))?;

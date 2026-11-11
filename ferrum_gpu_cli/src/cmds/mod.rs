@@ -4,7 +4,7 @@
 use crate::device::{decide, Workload};
 use crate::flags::{val, Args, Flag};
 
-mod gpt2;
+pub mod gpt2;
 use crate::preflight;
 use ferrum_gguf::Gguf;
 use ferrum_gpu_gui::app::{App, DeviceChoice};

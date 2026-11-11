@@ -61,26 +61,36 @@ With `--gpu-mem-mb 1024` the same command trains (`preflight: GPU buffers 1.8 Mi
 
 ## The server
 
-`ferrum-gpu-server --model m.gguf [--port N] [--device ...] [--gpu-mem-mb N]` listens on `127.0.0.1` only (requests with a foreign `Host` or `Origin` get 403) and serialises model calls. Routes: `GET /health`, `GET /v1/info`, `POST /v1/generate` (`prompt`, optional `max_new` 1..=1024, `temperature`, `top_k`, `seed`), `POST /v1/loglikelihood` (`context`, `continuation`: sum of the continuation tokens' log-probabilities, whether each was the argmax). Prompts are limited to 4096 bytes. Scoring runs on the CPU oracle.
+Changed in M7 (2026-11-11): the routes, request shapes and limits now follow ferrum-cpu's `ferrum-serve`, GPT-2 files are served with their BPE tokenizer, and a bearer token is supported. The earlier single-object shapes (`{"prompt":..,"max_new":..}`) are gone.
+
+`ferrum-gpu-server --model m.gguf [--host 127.0.0.1] [--port 8080] [--token T] [--allow-unauthenticated] [--max-batch 64] [--max-chars 65536] [--max-body 8388608] [--max-tokens 4096] [--repetition-penalty 1.0] [--device ...] [--gpu-mem-mb N]`.
+
+- **Exposure.** On a loopback address (the default) requests with a foreign `Host` or `Origin` get 403. A non-loopback `--host` is refused at startup unless a token is set (`--token` or the `FERRUM_TOKEN` environment variable) or `--allow-unauthenticated` is given. With a token every route except `GET /health` needs `Authorization: Bearer <token>` (401 otherwise); on a non-loopback host the Host check is skipped because the token protects the server.
+- **Routes.** `GET /health`; `GET /v1/info`; `POST /v1/generate` `{"requests":[{"prompt","max_tokens","stop":[..],"temperature","top_k","top_p","seed","repetition_penalty"}]}` gives `{"results":[{"text","n_tokens"}]}`; `POST /v1/loglikelihood` `{"requests":[{"context","continuation"}]}` gives `{"results":[{"logprob","n_tokens","greedy"}]}`; `POST /v1/loglikelihood_rolling` `{"texts":[..]}` gives `{"results":[{"logprob","n_tokens"}]}`. Unknown fields are 400; model errors are 422; more than 32 POSTs in flight get 503. Scoring follows ferrum-cpu's rules (trailing context whitespace moves to the continuation; an empty context or a rolling text is scored after the end-of-text token; long texts use half-window sliding) and runs on the CPU oracle. `top_p` and `repetition_penalty` need a GPT-2 file; `chat` is refused (no chat template).
+- Not implemented from ferrum-cpu: request cancel on client disconnect, imported-model `chat`.
 
 ```
-$ ferrum-gpu-server --model m.gguf --device cpu --port 8787
+$ ferrum-gpu-server --model m.gguf --device cpu --port 8787 --token s3cret
 device: CPU (8 threads) (cpu)
 ferrum-gpu server: http://127.0.0.1:8787/
 
-$ curl -s http://127.0.0.1:8787/health
-{"status":"ok"}
-$ curl -s http://127.0.0.1:8787/v1/info
-{"device":"CPU (8 threads)","kind":"cpu","params":34976,"vocab":256,"ctx":64}
-$ curl -s -d '{"prompt":"the c","max_new":16}' http://127.0.0.1:8787/v1/generate
-{"text":"at sat on the ma","tokens":16}
-$ curl -s -d '{"context":"the cat sat on the","continuation":" mat"}' http://127.0.0.1:8787/v1/loglikelihood
-{"loglikelihood":-0.002561522662290372,"is_greedy":true,"tokens":4}
+$ curl -s -i http://127.0.0.1:8787/v1/info | head -1
+HTTP/1.1 401 Unauthorized
+$ curl -s -H 'Authorization: Bearer s3cret' http://127.0.0.1:8787/v1/info
+{"device":"CPU (8 threads)","kind":"cpu","arch":"gpt2","params":138624,"vocab":269,"ctx":64}
+$ curl -s -H 'Authorization: Bearer s3cret' -d '{"requests":[{"prompt":"the c","max_tokens":12,"stop":["mat"]}]}' http://127.0.0.1:8787/v1/generate
+{"results":[{"text":" the the the the the the the the the the the the","n_tokens":12}]}
+$ curl -s -H 'Authorization: Bearer s3cret' -d '{"requests":[{"context":"the cat sat on the","continuation":" mat"}]}' http://127.0.0.1:8787/v1/loglikelihood
+{"results":[{"logprob":-1.9499623775482178,"n_tokens":1,"greedy":false}]}
+$ curl -s -H 'Authorization: Bearer s3cret' -d '{"texts":["the cat sat on the mat. the cat sat on the mat."]}' http://127.0.0.1:8787/v1/loglikelihood_rolling
+{"results":[{"logprob":-40.768139600753784,"n_tokens":14}]}
 ```
+
+(That model is the 30-step GPT-2 model from the section above; it is barely trained, hence the weak numbers. The 401 reason phrase printed here as `Unknown` before this commit and was fixed in it.)
 
 ## Tests
 
-`cargo test -p ferrum_gpu_cli -p ferrum_gpu_server -- --test-threads 1`: unit tests (flag parser, every command on the CPU backend, the `auto` rule over fake adapter tables, the pre-flight with a fake GPU backend, every route with a stub decoder, real sockets) plus end-to-end tests that run the real binaries: train, eval, generate, fine-tune and refusals on the CPU; a GPU train and a pre-flight refusal that **skip with a printed reason** when no hardware adapter is reported; the server binary answering all four routes.
+`cargo test -p ferrum_gpu_cli -p ferrum_gpu_server -- --test-threads 1`: unit tests (flag parser, every command on the CPU backend, the `auto` rule over fake adapter tables, the pre-flight with a fake GPU backend, every route with a stub decoder, real sockets) plus end-to-end tests that run the real binaries: train, eval, generate, fine-tune and refusals on the CPU; a GPU train and a pre-flight refusal that **skip with a printed reason** when no hardware adapter is reported; the server binary answering all five routes for a Llama-style and a GPT-2 file, the token gate through `--token` and `FERRUM_TOKEN`, and the refusal to expose a server without a token.
 
 ## Not done
 
