@@ -87,3 +87,11 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     anything). Models above 1.5B parameters found on this machine are deleted when found. Check
     the parameter count (model card, file name or GGUF header) before downloading; if it cannot
     be established, do not download.
+14. **One coordinator and at most one helper agent (user decision 2026-11-11, strict).** The main
+    session is the coordinator. At most one other agent (a subagent, fork or workflow worker) may
+    run at any time: never two helpers in parallel, and no helper is started while one is still
+    running. The coordinator says in one line, before starting a helper, what it will do, and keeps
+    the user informed while it runs: what the helper is doing right now, in short status lines at
+    every step, and what it finished or found when it returns. Nothing runs silently; if the
+    helper has produced no visible progress for a while, the coordinator says what it is waiting
+    for.
