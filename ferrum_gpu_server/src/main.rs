@@ -38,6 +38,16 @@ fn run(args: &[String]) -> Result<(), String> {
     if let Some(n) = &app.fallback_note {
         println!("note: {n}");
     }
+    let mem = a
+        .get("--gpu-mem-mb")
+        .map(|_| a.num("--gpu-mem-mb", 0u64))
+        .transpose()?;
+    ferrum_gpu_cli::cmds::gate(
+        &mut std::io::stdout(),
+        &app,
+        &ferrum_gpu_cli::preflight::decode_buffers(&model),
+        mem,
+    )?;
     let server = start(
         Arc::new(ModelDecoder::new(app.backend.clone(), model)),
         a.num("--port", 0u16)?,

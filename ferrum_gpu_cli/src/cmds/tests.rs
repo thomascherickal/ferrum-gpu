@@ -113,3 +113,80 @@ fn mean_loss_of_untrained_model_is_is_finite_and_sane() {
     );
     assert!(mean_loss(&m, b"x").unwrap_err().contains("at least 2"));
 }
+
+mod gate_tests {
+    use super::*;
+    use ferrum_gpu_gui::engine::{Backend, CpuBackend, GenOpts, Progress, TrainSpec};
+    use ferrum_wgpu::select::{AdapterSummary, Kind};
+
+    /// Pretends to be a GPU named "Fake GPU"; never runs anything.
+    struct FakeGpu;
+    impl Backend for FakeGpu {
+        fn kind(&self) -> &'static str {
+            "gpu"
+        }
+        fn name(&self) -> String {
+            "Fake GPU".into()
+        }
+        fn train(
+            &self,
+            _: &Llama,
+            _: &TrainSpec,
+            _: &Arc<Mutex<Progress>>,
+        ) -> Result<Llama, String> {
+            unreachable!()
+        }
+        fn generate(&self, _: &Llama, _: &[usize], _: &GenOpts) -> Result<Vec<usize>, String> {
+            unreachable!()
+        }
+    }
+
+    fn listed() -> Vec<AdapterSummary> {
+        vec![AdapterSummary {
+            name: "Fake GPU".into(),
+            backend: "Vulkan".into(),
+            kind: Kind::Discrete,
+            max_buffer: 1 << 32,
+            max_binding: 1 << 30,
+            max_workgroup_invocations: 256,
+        }]
+    }
+
+    fn app(b: Arc<dyn Backend>, adapters: Vec<AdapterSummary>) -> App {
+        App::with_backend(b, DeviceChoice::Gpu, None, adapters)
+    }
+
+    #[test]
+    fn a_gpu_run_that_fits_prints_the_estimate_and_one_that_does_not_is_refused() {
+        let m = fresh_model("tiny", 1).unwrap();
+        let plan = preflight::train_plan(&m, 2, 16);
+        let gpu = app(Arc::new(FakeGpu), listed());
+        let mut out = Vec::new();
+        gate(&mut out, &gpu, &plan, Some(4096)).unwrap();
+        assert!(String::from_utf8(out)
+            .unwrap()
+            .contains("preflight: GPU buffers"));
+        let e = gate(&mut Vec::new(), &gpu, &plan, Some(0)).unwrap_err();
+        assert!(e.contains("refusing to start on Fake GPU"), "{e}");
+    }
+
+    #[test]
+    fn cpu_backends_and_unlisted_adapters_pass_silently() {
+        let m = fresh_model("tiny", 1).unwrap();
+        let plan = preflight::train_plan(&m, 2, 16);
+        let cpu = app(Arc::new(CpuBackend::new(1)), listed());
+        let mut out = Vec::new();
+        gate(&mut out, &cpu, &plan, Some(0)).unwrap();
+        gate(&mut out, &app(Arc::new(FakeGpu), vec![]), &plan, Some(0)).unwrap();
+        assert!(out.is_empty());
+    }
+
+    #[test]
+    fn mem_flag_parses_or_names_itself_in_the_error() {
+        let ok = Args::parse(&DEVICE, &a("--gpu-mem-mb 512")).unwrap();
+        assert_eq!(mem_mb(&ok).unwrap(), Some(512));
+        assert_eq!(mem_mb(&Args::parse(&DEVICE, &[]).unwrap()).unwrap(), None);
+        let bad = Args::parse(&DEVICE, &a("--gpu-mem-mb lots")).unwrap();
+        assert!(mem_mb(&bad).unwrap_err().contains("--gpu-mem-mb"));
+    }
+}

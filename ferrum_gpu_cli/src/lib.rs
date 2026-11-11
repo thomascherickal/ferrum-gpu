@@ -6,3 +6,4 @@
 pub mod cmds;
 pub mod device;
 pub mod flags;
+pub mod preflight;

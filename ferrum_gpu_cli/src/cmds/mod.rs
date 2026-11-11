@@ -3,6 +3,7 @@
 
 use crate::device::{decide, Workload};
 use crate::flags::{val, Args, Flag};
+use crate::preflight;
 use ferrum_gguf::Gguf;
 use ferrum_gpu_gui::app::{App, DeviceChoice};
 use ferrum_gpu_gui::engine::{fresh_model, preset, GenOpts, Progress, TrainSpec};
@@ -24,9 +25,14 @@ finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
 eval          --model F.gguf --data FILE\n\
-device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --threads N";
+device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
 
-const DEVICE: [Flag; 3] = [val("--device"), val("--gpu-adapter"), val("--threads")];
+const DEVICE: [Flag; 4] = [
+    val("--device"),
+    val("--gpu-adapter"),
+    val("--threads"),
+    val("--gpu-mem-mb"),
+];
 const TRAIN: [Flag; 7] = [
     val("--data"),
     val("--out"),
@@ -100,6 +106,31 @@ fn app(a: &Args, work: Workload) -> Result<App, String> {
         app.fallback_note = d.note;
     }
     Ok(app)
+}
+
+/// Pre-flight: when the backend is a GPU, refuse a run whose buffers do not fit (see
+/// [`preflight`]) before any of it is uploaded, else print the estimate. A CPU backend, or an
+/// adapter missing from the list (limits unknown), passes.
+pub fn gate(
+    out: &mut dyn Write,
+    app: &App,
+    plan: &ferrum_wgpu::budget::BufferPlan,
+    mem_mb: Option<u64>,
+) -> Result<(), String> {
+    let name = app.backend.name();
+    let adapter = app.adapters.iter().find(|a| a.name == name);
+    let Some(adapter) = adapter.filter(|_| app.backend.kind() == "gpu") else {
+        return Ok(());
+    };
+    let budget = preflight::budget(mem_mb);
+    preflight::check(plan, adapter, budget)?;
+    say(out, preflight::report(plan, budget))
+}
+
+fn mem_mb(a: &Args) -> Result<Option<u64>, String> {
+    a.get("--gpu-mem-mb")
+        .map(|_| a.num("--gpu-mem-mb", 0u64))
+        .transpose()
 }
 
 fn say(out: &mut dyn Write, s: String) -> Result<(), String> {
@@ -177,6 +208,12 @@ fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {
     let app = app(a, Workload::Train)?;
     device_line(out, &app)?;
     say(out, shape(&model))?;
+    gate(
+        out,
+        &app,
+        &preflight::train_plan(&model, spec.batch, spec.context),
+        mem_mb(a)?,
+    )?;
     let progress = Arc::new(Mutex::new(Progress::default()));
     let trained = app.backend.train(&model, &spec, &progress)?;
     let losses = progress
@@ -210,6 +247,7 @@ fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), String> 
         device_line(out, &app)?;
         say(out, shape(&model))?;
     }
+    gate(out, &app, &preflight::decode_buffers(&model), mem_mb(a)?)?;
     let new = app.backend.generate(&model, &encode(prompt), &opts)?;
     say(out, format!("{prompt}{}", decode(&new)?))
 }
