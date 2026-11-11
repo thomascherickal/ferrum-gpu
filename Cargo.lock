@@ -162,6 +162,17 @@ name = "ferrum_gguf"
 version = "0.1.0"
 
 [[package]]
+name = "ferrum_gpu_cli"
+version = "0.1.0"
+dependencies = [
+ "ferrum_gguf",
+ "ferrum_gpu_gui",
+ "ferrum_model",
+ "ferrum_ref",
+ "ferrum_wgpu",
+]
+
+[[package]]
 name = "ferrum_gpu_gui"
 version = "0.1.0"
 dependencies = [

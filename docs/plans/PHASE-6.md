@@ -1,6 +1,6 @@
 # Phase 6: own CLI and server
 
-- [ ] 6.1 `gpu_cli` (`train`, `generate`, `eval`, `run-gguf`, `finetune-gguf`, `info`) with a flag-table parser rejecting unknown flags; `--device cpu|gpu|auto`, `--gpu-adapter`, `--gpu-mem-mb`.
+- [x] 6.1 `ferrum_gpu_cli` (binary `ferrum-gpu`): `train`, `generate`, `eval`, `run-gguf`, `finetune-gguf`, `info`; flag-table parser rejecting unknown flags; `--device cpu|gpu|auto`, `--gpu-adapter`, `--threads`. **`--gpu-mem-mb` is deferred to 6.4** (it needs the pre-flight estimate). `eval` runs on the CPU oracle; the tokenizer is the byte tokenizer (BPE is not in the 6.x list).
 - [ ] 6.2 `gpu_server` (`/health`, `/v1/info`, `/v1/generate`, `/v1/loglikelihood`) with the decoder behind a trait; tests use a stub decoder.
 - [ ] 6.3 `auto` rule from the Phase 3/4 crossover measurements, fallback to CPU with one printed line; tested over fake adapter tables.
 - [ ] 6.4 Pre-flight memory estimate and refusal.
