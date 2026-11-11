@@ -167,6 +167,13 @@ fn snapshot_and_restore_resume_a_run_exactly() {
         "a resumed run is bit-identical on one adapter"
     );
     assert_eq!(a.snapshot().unwrap(), b.snapshot().unwrap());
+    // restoring onto a device that has been lost reports the failure
+    let Some(g2) = open_for_test() else { return };
+    let mut dead = GpuLlamaTrainer::new(&g2, &m, None).unwrap();
+    g2.destroy();
+    crate::device::wait_for_loss(&g2);
+    let e = dead.restore(&snap).unwrap_err();
+    assert!(e.to_string().contains("lost"), "{e}");
     // a snapshot of a different shape is refused
     let other = Llama::random(cfg(RopeType::Norm), 4, false, false);
     let bad = GpuLlamaTrainer::new(&g, &other, None)

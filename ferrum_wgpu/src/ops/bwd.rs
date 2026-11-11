@@ -20,10 +20,6 @@ fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     }
 }
 
-fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
-    crate::runtime::groups_1d(n)
-}
-
 /// `C[m,n] = op(A) * op(B)` where `a_t` means A is stored `[k, m]` and `b_t` means B is stored `[n, k]`.
 pub fn matmul_ex(
     gpu: &Gpu,
@@ -58,12 +54,7 @@ pub fn colsum(
     need("colsum x", x, rows * cols)?;
     need("colsum out", out, cols)?;
     let p = gpu.pipeline("colsum", include_str!("../shaders/bwd/colsum.wgsl"))?;
-    gpu.dispatch(
-        &p,
-        &[x, out],
-        &[rows as u32, cols as u32],
-        one_d(gpu, cols)?,
-    )
+    gpu.dispatch_1d(&p, &[x, out], &[rows as u32, cols as u32], cols)
 }
 
 /// Gradient of `y = x w + b` (`x` `[m,k]`, `w` `[k,n]`): fills `dx [m,k]`, `dw [k,n]`, `db [n]`.
@@ -83,12 +74,7 @@ pub fn gelu_bwd(gpu: &Gpu, dact: &GpuBuf, f1: &GpuBuf, df: &GpuBuf) -> Result<()
     need("gelu_bwd f1", f1, dact.len())?;
     need("gelu_bwd df", df, dact.len())?;
     let p = gpu.pipeline("gelu_bwd", include_str!("../shaders/bwd/gelu_bwd.wgsl"))?;
-    gpu.dispatch(
-        &p,
-        &[dact, f1, df],
-        &[dact.len() as u32],
-        one_d(gpu, dact.len())?,
-    )
+    gpu.dispatch_1d(&p, &[dact, f1, df], &[dact.len() as u32], dact.len())
 }
 
 /// LayerNorm backward. `stats` is scratch of `2 * rows` (per-row mean and inverse std).
@@ -108,12 +94,12 @@ pub fn layernorm_bwd(
     need("layernorm_bwd stats", stats, 2 * rows)?;
     let u = [rows as u32, cols as u32];
     let p1 = gpu.pipeline("ln_bwd_dx", include_str!("../shaders/bwd/ln_bwd_dx.wgsl"))?;
-    gpu.dispatch(&p1, &[x, gain, dy, dx, stats], &u, one_d(gpu, rows)?)?;
+    gpu.dispatch_1d(&p1, &[x, gain, dy, dx, stats], &u, rows)?;
     let p2 = gpu.pipeline(
         "ln_bwd_params",
         include_str!("../shaders/bwd/ln_bwd_params.wgsl"),
     )?;
-    gpu.dispatch(&p2, &[x, dy, stats, dgain, dshift], &u, one_d(gpu, cols)?)
+    gpu.dispatch_1d(&p2, &[x, dy, stats, dgain, dshift], &u, cols)
 }
 
 /// Causal attention backward from the stored probabilities. `dot` (`batch*heads*t`) and `ds`
@@ -148,32 +134,32 @@ pub fn attention_bwd(
         "attn_bwd_dp",
         include_str!("../shaders/bwd/attn_bwd_dp.wgsl"),
     )?;
-    gpu.dispatch(&p, &[dout, v, ds], &u, one_d(gpu, cells)?)?;
+    gpu.dispatch_1d(&p, &[dout, v, ds], &u, cells)?;
     let p = gpu.pipeline(
         "attn_bwd_dot",
         include_str!("../shaders/bwd/attn_bwd_dot.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, ds, dot], &u, one_d(gpu, rows)?)?;
+    gpu.dispatch_1d(&p, &[probs, ds, dot], &u, rows)?;
     let p = gpu.pipeline(
         "attn_bwd_ds",
         include_str!("../shaders/bwd/attn_bwd_ds.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, dot, ds], &u, one_d(gpu, cells)?)?;
+    gpu.dispatch_1d(&p, &[probs, dot, ds], &u, cells)?;
     let p = gpu.pipeline(
         "attn_bwd_dv",
         include_str!("../shaders/bwd/attn_bwd_dv.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, dout, dv], &u, one_d(gpu, outs)?)?;
+    gpu.dispatch_1d(&p, &[probs, dout, dv], &u, outs)?;
     let p = gpu.pipeline(
         "attn_bwd_dq",
         include_str!("../shaders/bwd/attn_bwd_dq.wgsl"),
     )?;
-    gpu.dispatch(&p, &[ds, k, dq], &u, one_d(gpu, outs)?)?;
+    gpu.dispatch_1d(&p, &[ds, k, dq], &u, outs)?;
     let p = gpu.pipeline(
         "attn_bwd_dk",
         include_str!("../shaders/bwd/attn_bwd_dk.wgsl"),
     )?;
-    gpu.dispatch(&p, &[ds, q, dk], &u, one_d(gpu, outs)?)
+    gpu.dispatch_1d(&p, &[ds, q, dk], &u, outs)
 }
 
 /// The CSR index the token-embedding gradient needs: `start[v]..start[v+1]` indexes `order`,
@@ -227,21 +213,21 @@ pub fn embed_bwd(
         "embed_bwd_tok",
         include_str!("../shaders/bwd/embed_bwd_tok.wgsl"),
     )?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[dx, &gs, &go, dtok],
         &[vocab as u32, c as u32],
-        one_d(gpu, vocab * c)?,
+        vocab * c,
     )?;
     let p = gpu.pipeline(
         "embed_bwd_pos",
         include_str!("../shaders/bwd/embed_bwd_pos.wgsl"),
     )?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[dx, dpos],
         &[rows as u32, c as u32, t as u32, ctx as u32],
-        one_d(gpu, ctx * c)?,
+        ctx * c,
     )
 }
 

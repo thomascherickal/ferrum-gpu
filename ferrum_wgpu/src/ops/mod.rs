@@ -29,10 +29,6 @@ pub(crate) fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> 
     }
 }
 
-pub(crate) fn one_d(_gpu: &Gpu, n: usize) -> Result<(u32, u32), GpuError> {
-    crate::runtime::groups_1d(n)
-}
-
 impl Gpu {
     /// Upload integer indices that must all be `< bound` (a GPU gather would silently clamp).
     pub fn upload_indices(&self, ids: &[usize], bound: usize) -> Result<GpuBuf, GpuError> {
@@ -52,7 +48,7 @@ pub fn add(gpu: &Gpu, a: &GpuBuf, b: &GpuBuf, c: &GpuBuf) -> Result<(), GpuError
     need("add b", b, n)?;
     need("add c", c, n)?;
     let p = gpu.pipeline("add", include_str!("../shaders/fwd/add.wgsl"))?;
-    gpu.dispatch(&p, &[a, b, c], &[n as u32], one_d(gpu, n)?)
+    gpu.dispatch_1d(&p, &[a, b, c], &[n as u32], n)
 }
 
 /// `y[i] = x[i] + bias[i % bias.len()]`.
@@ -66,11 +62,11 @@ pub fn add_bias(gpu: &Gpu, x: &GpuBuf, bias: &GpuBuf, y: &GpuBuf) -> Result<(), 
         )));
     }
     let p = gpu.pipeline("bias_add", include_str!("../shaders/fwd/bias_add.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[x, bias, y],
         &[x.len() as u32, bias.len() as u32],
-        one_d(gpu, x.len())?,
+        x.len(),
     )
 }
 
@@ -78,7 +74,7 @@ pub fn add_bias(gpu: &Gpu, x: &GpuBuf, bias: &GpuBuf, y: &GpuBuf) -> Result<(), 
 pub fn gelu(gpu: &Gpu, x: &GpuBuf, y: &GpuBuf) -> Result<(), GpuError> {
     need("gelu y", y, x.len())?;
     let p = gpu.pipeline("gelu", include_str!("../shaders/fwd/gelu.wgsl"))?;
-    gpu.dispatch(&p, &[x, y], &[x.len() as u32], one_d(gpu, x.len())?)
+    gpu.dispatch_1d(&p, &[x, y], &[x.len() as u32], x.len())
 }
 
 /// Row-wise LayerNorm of `x` (`rows x cols`) into `y`.
@@ -95,12 +91,7 @@ pub fn layernorm(
     need("layernorm gain", gain, cols)?;
     need("layernorm shift", shift, cols)?;
     let p = gpu.pipeline("layernorm", include_str!("../shaders/fwd/layernorm.wgsl"))?;
-    gpu.dispatch(
-        &p,
-        &[x, gain, shift, y],
-        &[rows as u32, cols as u32],
-        one_d(gpu, rows)?,
-    )
+    gpu.dispatch_1d(&p, &[x, gain, shift, y], &[rows as u32, cols as u32], rows)
 }
 
 /// Causal multi-head attention forward: fills `probs` (`batch*heads*t x t`) and `out` (`batch*t x heads*hd`).
@@ -121,14 +112,14 @@ pub fn attention(
         "attn_scores",
         include_str!("../shaders/fwd/attn_scores.wgsl"),
     )?;
-    gpu.dispatch(&p0, &[q, k, probs], &u, one_d(gpu, batch * heads * t * t)?)?;
+    gpu.dispatch_1d(&p0, &[q, k, probs], &u, batch * heads * t * t)?;
     let p1 = gpu.pipeline(
         "attn_softmax",
         include_str!("../shaders/fwd/attn_softmax.wgsl"),
     )?;
-    gpu.dispatch(&p1, &[probs], &u, one_d(gpu, batch * heads * t)?)?;
+    gpu.dispatch_1d(&p1, &[probs], &u, batch * heads * t)?;
     let p2 = gpu.pipeline("attn_pv", include_str!("../shaders/fwd/attn_pv.wgsl"))?;
-    gpu.dispatch(&p2, &[probs, v, out], &u, one_d(gpu, batch * t * c)?)
+    gpu.dispatch_1d(&p2, &[probs, v, out], &u, batch * t * c)
 }
 
 /// Softmax cross-entropy: fills `grad` (`rows x vocab`) and the one-element `loss` (mean).
@@ -149,11 +140,11 @@ pub fn cross_entropy(
         return Err(err("cross_entropy: zero rows".into()));
     }
     let p1 = gpu.pipeline("ce_rows", include_str!("../shaders/fwd/ce_rows.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p1,
         &[logits, targets, grad, row_loss],
         &[rows as u32, vocab as u32],
-        one_d(gpu, rows)?,
+        rows,
     )?;
     let p2 = gpu.pipeline("mean_loss", include_str!("../shaders/fwd/mean_loss.wgsl"))?;
     gpu.dispatch(&p2, &[row_loss, loss], &[rows as u32], (1, 1))
@@ -171,11 +162,11 @@ pub fn score(
     need("score targets", targets, rows)?;
     need("score out", out, 2 * rows)?;
     let p = gpu.pipeline("score", include_str!("../shaders/fwd/score.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[logits, targets, out],
         &[rows as u32, vocab as u32],
-        one_d(gpu, rows)?,
+        rows,
     )
 }
 
@@ -207,11 +198,11 @@ pub fn embed_at(
         )));
     }
     let p = gpu.pipeline("embed", include_str!("../shaders/fwd/embed.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[tok, pos, ids, out],
         &[rows as u32, c as u32, t as u32, pos_offset as u32],
-        one_d(gpu, rows * c)?,
+        rows * c,
     )
 }
 
@@ -227,7 +218,7 @@ pub fn gemv(
     need("gemv bias", bias, n)?;
     need("gemv y", y, n)?;
     let p = gpu.pipeline("gemv", include_str!("../shaders/fwd/gemv.wgsl"))?;
-    gpu.dispatch(&p, &[x, w, bias, y], &[k as u32, n as u32], one_d(gpu, n)?)
+    gpu.dispatch_1d(&p, &[x, w, bias, y], &[k as u32, n as u32], n)
 }
 
 /// Single-query attention over a KV cache laid out `[ctx, heads*hd]`: positions `0..len` are
@@ -254,12 +245,12 @@ pub fn attention_decode(
         "attn_dec_probs",
         include_str!("../shaders/fwd/attn_dec_probs.wgsl"),
     )?;
-    gpu.dispatch(&p1, &[q, kc, probs], &u, one_d(gpu, heads)?)?;
+    gpu.dispatch_1d(&p1, &[q, kc, probs], &u, heads)?;
     let p2 = gpu.pipeline(
         "attn_dec_pv",
         include_str!("../shaders/fwd/attn_dec_pv.wgsl"),
     )?;
-    gpu.dispatch(&p2, &[probs, vc, out], &u, one_d(gpu, c)?)
+    gpu.dispatch_1d(&p2, &[probs, vc, out], &u, c)
 }
 
 #[cfg(test)]
@@ -362,10 +353,10 @@ mod tests {
             (5, 1e6),
             (6, 0.0),
         ] {
+            let v = got[1000 + i];
             assert!(
-                (got[1000 + i] - want).abs() <= 1e-6 * want.abs().max(1.0),
-                "saturated value {i}: {}",
-                got[1000 + i]
+                (v - want).abs() <= 1e-6 * want.abs().max(1.0),
+                "saturated value {i}: {v}"
             );
         }
     }
@@ -484,10 +475,10 @@ mod tests {
         let got = g.read(&go).unwrap();
         let want = nn::score(&logits, &targets, vocab);
         for (i, (lp, hit)) in want.iter().enumerate() {
+            let g0 = got[2 * i];
             assert!(
-                (got[2 * i] - lp).abs() < 1e-4 * lp.abs().max(1.0),
-                "row {i}: {} vs {lp}",
-                got[2 * i]
+                (g0 - lp).abs() < 1e-4 * lp.abs().max(1.0),
+                "row {i}: {g0} vs {lp}"
             );
             assert_eq!(got[2 * i + 1] == 1.0, *hit, "row {i} argmax flag");
         }

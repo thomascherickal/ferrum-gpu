@@ -134,6 +134,19 @@ impl Gpu {
         self.buffers_created.load(Ordering::Relaxed)
     }
 
+    /// [`dispatch`](Self::dispatch) for a 1-D kernel over `n` elements (the groups come from
+    /// [`groups_1d`]; an `n` beyond the 1-D limit is an error). Kept as one method so the
+    /// oversize check exists once, not at every call site.
+    pub fn dispatch_1d(
+        &self,
+        pipeline: &wgpu::ComputePipeline,
+        buffers: &[&GpuBuf],
+        uniform: &[u32],
+        n: usize,
+    ) -> Result<(), GpuError> {
+        self.dispatch(pipeline, buffers, uniform, groups_1d(n)?)
+    }
+
     /// Record and submit one dispatch: `buffers` bind at 0..n, then a uniform of `uniform`
     /// u32 values (padded to 16 bytes) at binding n. Does not wait.
     pub fn dispatch(
@@ -544,13 +557,7 @@ mod tests {
         assert_eq!(g.read(&g.upload(&[3.0]).unwrap()).unwrap(), vec![3.0]);
         // Device loss, by contrast, is sticky.
         g.destroy();
-        for _ in 0..200 {
-            let _ = g.device.poll(wgpu::PollType::Poll);
-            if g.check().is_err() {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(5));
-        }
+        crate::device::wait_for_loss(&g);
         assert!(g.check().unwrap_err().to_string().contains("device lost"));
         assert!(
             g.check().unwrap_err().to_string().contains("device lost"),
@@ -590,13 +597,7 @@ mod tests {
         g.check().unwrap();
         g.destroy();
         // The lost callback fires asynchronously; poll until it lands (bounded).
-        for _ in 0..200 {
-            let _ = g.device.poll(wgpu::PollType::Poll);
-            if g.check().is_err() {
-                break;
-            }
-            std::thread::sleep(std::time::Duration::from_millis(5));
-        }
+        crate::device::wait_for_loss(&g);
         assert!(g.check().is_err(), "device loss must be observed");
         let e = g.zeros(4).expect_err("use after loss must fail");
         assert!(e.to_string().contains("lost"), "{e}");
@@ -606,10 +607,29 @@ mod tests {
     fn a_huge_allocation_is_an_error_or_succeeds_but_never_panics() {
         let Some(g) = open_for_test() else { return };
         let n = (g.info().max_binding / 4) as usize;
-        match g.zeros(n) {
-            Ok(b) => assert_eq!(b.len(), n),
-            Err(e) => eprintln!("allocation refused as expected: {e}"),
-        }
+        let r = g.zeros(n);
+        eprintln!("huge allocation: {:?}", r.as_ref().map(|b| b.len()));
+        assert!(r.as_ref().map_or(true, |b| b.len() == n));
         g.check().unwrap();
+    }
+
+    #[test]
+    fn dispatch_1d_refuses_a_size_beyond_the_1d_limit_without_recording() {
+        let Some(g) = open_for_test() else { return };
+        let p = g.pipeline("test-d1d", "struct U { a: u32, b: u32, c: u32, d: u32 }\n@group(0) @binding(0) var<storage, read_write> o: array<f32>;\n@group(0) @binding(1) var<uniform> u: U;\n@compute @workgroup_size(64) fn main(@builtin(global_invocation_id) g: vec3<u32>) { o[0] = 1.0 + f32(u.a); }").unwrap();
+        let out = g.zeros(1).unwrap();
+        let e = g.dispatch_1d(&p, &[&out], &[0], usize::MAX).unwrap_err();
+        assert!(e.to_string().contains("1-D dispatch limit"), "{e}");
+        g.dispatch_1d(&p, &[&out], &[0], 1).unwrap();
+        assert_eq!(g.read(&out).unwrap(), vec![1.0]);
+    }
+
+    #[test]
+    #[should_panic(expected = "never succeeded")]
+    fn sweep_faults_panics_when_the_operation_never_succeeds() {
+        let Some(g) = open_for_test() else {
+            panic!("never succeeded (no adapter: stand-in)")
+        };
+        g.sweep_faults(|| Err(GpuError("injected fault".into())));
     }
 }

@@ -156,7 +156,11 @@ fn gather_rows_picks_rows_and_refuses_ragged_tables() {
         g.read(&out).unwrap(),
         vec![12.0, 13.0, 14.0, 0.0, 1.0, 2.0, 12.0, 13.0, 14.0, 6.0, 7.0, 8.0]
     );
-    assert!(gather_rows(&g, &gt, &ids, &out, (4, 4)).is_err());
+    let out16 = g.zeros(16).unwrap();
+    let e = gather_rows(&g, &gt, &ids, &out16, (4, 4)).unwrap_err();
+    assert!(e.to_string().contains("whole rows"), "{e}");
+    let zero_width = gather_rows(&g, &gt, &ids, &g.zeros(0).unwrap(), (4, 0));
+    assert!(zero_width.unwrap_err().to_string().contains("whole rows"));
     assert!(gather_rows(&g, &gt, &ids, &g.zeros(3).unwrap(), (4, 3)).is_err());
     assert!(
         g.upload_indices(&[5], 5).is_err(),

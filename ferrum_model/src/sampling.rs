@@ -86,14 +86,17 @@ pub fn sample(logits: &[f32], p: &Params, recent: &[usize], rng: &mut Rng) -> us
         let s: f32 = probs.iter().sum();
         probs.iter_mut().for_each(|x| *x /= s);
     }
-    let mut r = rng.next_f32();
-    for (&i, &pr) in idx.iter().zip(&probs) {
-        if r < pr {
-            return i;
-        }
-        r -= pr;
-    }
-    *idx.last().expect("non-empty")
+    let r = rng.next_f32();
+    let mut acc = 0.0;
+    // The last candidate is the fallback when rounding leaves the cumulative sum just under 1.
+    let last = *idx.last().expect("non-empty");
+    idx.iter()
+        .zip(&probs)
+        .find(|(_, &pr)| {
+            acc += pr;
+            r < acc
+        })
+        .map_or(last, |(&i, _)| i)
 }
 
 #[cfg(test)]

@@ -11,7 +11,7 @@
 mod tests;
 
 use crate::device::{Gpu, GpuError};
-use crate::ops::{err, need, one_d};
+use crate::ops::{err, need};
 use crate::tensor::GpuBuf;
 use ferrum_gguf::f16::f16_to_f32;
 use ferrum_gguf::quant::encode;
@@ -174,10 +174,10 @@ pub fn linear_q(
     need("linear_q y", y, rows * w.n)?;
     let kind = u32::from(w.kind == QKind::Q4_0);
     let p = gpu.pipeline("qlinear", include_str!("../shaders/quant/qlinear.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[x, &w.buf, y],
         &[rows as u32, w.k as u32, w.n as u32, kind],
-        one_d(gpu, rows * w.n)?,
+        rows * w.n,
     )
 }

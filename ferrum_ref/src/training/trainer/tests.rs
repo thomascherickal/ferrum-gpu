@@ -543,3 +543,64 @@ fn cpu_engine_restore_checks_the_shape() {
     };
     assert!(e.restore(&snap).unwrap_err().contains("shape"));
 }
+
+#[test]
+fn an_explicit_stride_sets_the_window_starts() {
+    let toks: Vec<usize> = (0..21).collect();
+    let mut m = Mock::default();
+    let c = TrainConfig {
+        context: 4,
+        batch: 100,
+        stride: 2,
+        epochs: 1,
+        ..TrainConfig::default()
+    };
+    train(&mut m, &toks, &c, None, None, &mut NoHooks).unwrap();
+    // one step holding every window at stride 2: starts 0,2,...,16 (a target must remain)
+    assert_eq!(m.calls.len(), 1);
+    assert_eq!(m.calls[0].2, window_starts(21, 4, 2).len());
+    assert!(
+        m.calls[0].2 > window_starts(21, 4, 4).len(),
+        "overlapping windows are more numerous"
+    );
+}
+
+/// An engine whose every step fails.
+struct Failing;
+impl Engine for Failing {
+    fn step(
+        &mut self,
+        _: &[usize],
+        _: &[usize],
+        _: usize,
+        _: &StepConfig,
+    ) -> Result<StepStats, String> {
+        Err("device exploded".into())
+    }
+    fn steps(&self) -> u64 {
+        0
+    }
+    fn snapshot(&self) -> Result<Snapshot, String> {
+        Err("no state".into())
+    }
+    fn restore(&mut self, _: &Snapshot) -> Result<(), String> {
+        Ok(())
+    }
+}
+
+#[test]
+fn an_engine_failure_ends_the_run_with_its_message() {
+    let c = TrainConfig {
+        context: 4,
+        batch: 2,
+        epochs: 1,
+        ..TrainConfig::default()
+    };
+    let e = train(&mut Failing, &corpus(100), &c, None, None, &mut NoHooks).unwrap_err();
+    assert!(e.contains("device exploded"), "{e}");
+    assert_eq!(Failing.steps(), 0);
+    assert!(Failing.snapshot().is_err());
+    assert!(Failing
+        .restore(&Mock::default().snapshot().unwrap())
+        .is_ok());
+}

@@ -1,7 +1,6 @@
 //! Quantisation-aware training kernel: snap a tensor onto its Q8_0 values on the device.
 
 use crate::device::{Gpu, GpuError};
-use crate::ops::one_d;
 use crate::tensor::GpuBuf;
 use ferrum_ref::qat::eligible;
 
@@ -26,7 +25,7 @@ pub fn q8_snap_rows(gpu: &Gpu, src: &GpuBuf, dst: &GpuBuf, ne0: usize) -> Result
     }
     let p = gpu.pipeline("q8_snap", include_str!("../shaders/quant/q8_snap.wgsl"))?;
     let blocks = src.len() / 32;
-    gpu.dispatch(&p, &[src, dst], &[blocks as u32, 0, 0], one_d(gpu, blocks)?)
+    gpu.dispatch_1d(&p, &[src, dst], &[blocks as u32, 0, 0], blocks)
 }
 
 /// Snap an `[rows_in, cols_out]` row-major weight down its columns (GGUF's layout). An
@@ -49,11 +48,11 @@ pub fn q8_snap_cols(
     }
     let p = gpu.pipeline("q8_snap", include_str!("../shaders/quant/q8_snap.wgsl"))?;
     let blocks = rows_in / 32 * cols_out;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[src, dst],
         &[blocks as u32, 1, cols_out as u32],
-        one_d(gpu, blocks)?,
+        blocks,
     )
 }
 

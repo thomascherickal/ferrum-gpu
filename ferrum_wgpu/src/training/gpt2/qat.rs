@@ -134,12 +134,8 @@ mod tests {
         for (i, (a, b)) in w.params().iter().zip(snapped.params()).enumerate() {
             let changed = a != &b;
             let planned = snap_kind(&c, i) != Snap::Keep;
-            assert_eq!(
-                changed,
-                planned,
-                "parameter {i}: kind {:?}",
-                snap_kind(&c, i)
-            );
+            let kind = snap_kind(&c, i);
+            assert_eq!(changed, planned, "parameter {i}: kind {kind:?}");
         }
         assert_eq!(snap_kind(&c, 0), Snap::Rows(32));
         assert_eq!(snap_kind(&c, 2 + 12), Snap::Cols(32, 64), "w1");

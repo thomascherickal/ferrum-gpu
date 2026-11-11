@@ -7,7 +7,7 @@
 mod tests;
 
 use crate::device::{Gpu, GpuError};
-use crate::ops::{err, need, one_d};
+use crate::ops::{err, need};
 use crate::tensor::GpuBuf;
 use ferrum_ref::llama::RopeType;
 
@@ -24,11 +24,11 @@ pub fn rmsnorm(
     need("rmsnorm y", y, rows * cols)?;
     need("rmsnorm gain", gain, cols)?;
     let p = gpu.pipeline("rmsnorm", include_str!("../shaders/llama/rmsnorm.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[x, gain, y],
         &[rows as u32, cols as u32, eps.to_bits()],
-        one_d(gpu, rows)?,
+        rows,
     )
 }
 
@@ -60,7 +60,7 @@ pub fn rope(
     }
     let p = gpu.pipeline("rope", include_str!("../shaders/llama/rope.wgsl"))?;
     let neox = u32::from(ty == RopeType::Neox);
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[x, cos, sin],
         &[
@@ -71,7 +71,7 @@ pub fn rope(
             neox,
             table_offset as u32,
         ],
-        one_d(gpu, rows * heads * half)?,
+        rows * heads * half,
     )
 }
 
@@ -80,12 +80,7 @@ pub fn swiglu(gpu: &Gpu, gate: &GpuBuf, up: &GpuBuf, y: &GpuBuf) -> Result<(), G
     need("swiglu up", up, gate.len())?;
     need("swiglu y", y, gate.len())?;
     let p = gpu.pipeline("swiglu", include_str!("../shaders/llama/swiglu.wgsl"))?;
-    gpu.dispatch(
-        &p,
-        &[gate, up, y],
-        &[gate.len() as u32],
-        one_d(gpu, gate.len())?,
-    )
+    gpu.dispatch_1d(&p, &[gate, up, y], &[gate.len() as u32], gate.len())
 }
 
 /// `out[r] = table[ids[r]]` for `rows` rows of width `c`; `ids` come from [`Gpu::upload_indices`]
@@ -106,12 +101,7 @@ pub fn gather_rows(
         )));
     }
     let p = gpu.pipeline("gather", include_str!("../shaders/llama/gather.wgsl"))?;
-    gpu.dispatch(
-        &p,
-        &[table, ids, out],
-        &[rows as u32, c as u32],
-        one_d(gpu, rows * c)?,
-    )
+    gpu.dispatch_1d(&p, &[table, ids, out], &[rows as u32, c as u32], rows * c)
 }
 
 fn check_gqa(name: &str, heads: usize, kv_heads: usize, hd: usize) -> Result<(), GpuError> {
@@ -150,18 +140,18 @@ pub fn attention_gqa(
         "attn_gqa_scores",
         include_str!("../shaders/llama/attn_gqa_scores.wgsl"),
     )?;
-    gpu.dispatch(&p0, &[q, k, probs], &u, one_d(gpu, batch * heads * t * t)?)?;
+    gpu.dispatch_1d(&p0, &[q, k, probs], &u, batch * heads * t * t)?;
     // The softmax only needs (batch, t, heads); it is the GPT-2 kernel, unchanged.
     let p1 = gpu.pipeline(
         "attn_softmax",
         include_str!("../shaders/fwd/attn_softmax.wgsl"),
     )?;
-    gpu.dispatch(&p1, &[probs], &u[..4], one_d(gpu, batch * heads * t)?)?;
+    gpu.dispatch_1d(&p1, &[probs], &u[..4], batch * heads * t)?;
     let p2 = gpu.pipeline(
         "attn_gqa_pv",
         include_str!("../shaders/llama/attn_gqa_pv.wgsl"),
     )?;
-    gpu.dispatch(&p2, &[probs, v, out], &u, one_d(gpu, batch * t * qd)?)
+    gpu.dispatch_1d(&p2, &[probs, v, out], &u, batch * t * qd)
 }
 
 /// Single-query grouped-query attention over a KV cache laid out `[ctx, kv_heads*hd]`: positions
@@ -195,10 +185,10 @@ pub fn attention_decode_gqa(
         "attn_gqd_probs",
         include_str!("../shaders/llama/attn_gqd_probs.wgsl"),
     )?;
-    gpu.dispatch(&p1, &[q, kc, probs], &u, one_d(gpu, heads)?)?;
+    gpu.dispatch_1d(&p1, &[q, kc, probs], &u, heads)?;
     let p2 = gpu.pipeline(
         "attn_gqd_pv",
         include_str!("../shaders/llama/attn_gqd_pv.wgsl"),
     )?;
-    gpu.dispatch(&p2, &[probs, vc, out], &u, one_d(gpu, qd)?)
+    gpu.dispatch_1d(&p2, &[probs, vc, out], &u, qd)
 }

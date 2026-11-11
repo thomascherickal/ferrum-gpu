@@ -147,6 +147,18 @@ impl Gpu {
     }
 }
 
+/// Poll until the asynchronous device-lost callback has landed (bounded, never panics).
+#[cfg(test)]
+pub(crate) fn wait_for_loss(g: &Gpu) {
+    (0..200).any(|_| {
+        let _ = g.device.poll(wgpu::PollType::Poll);
+        g.check().is_err() || {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            false
+        }
+    });
+}
+
 /// Open a GPU for a test, or print why not and return `None`. `FERRUM_GPU_ADAPTER` names an
 /// adapter (e.g. `llvmpipe`); otherwise a hardware adapter is used when one exists.
 pub fn open_for_test() -> Option<Gpu> {

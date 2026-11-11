@@ -1,7 +1,6 @@
 //! Optimizer kernels: deterministic global gradient norm, clip scale, and the AdamW update.
 
 use crate::device::{Gpu, GpuError};
-use crate::ops::one_d;
 use crate::tensor::GpuBuf;
 use ferrum_ref::optim::Adam;
 
@@ -88,11 +87,11 @@ pub fn accumulate(
 ) -> Result<(), GpuError> {
     need("accumulate g", g, acc.len())?;
     let p = gpu.pipeline("accumulate", include_str!("../shaders/opt/accumulate.wgsl"))?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[acc, g],
         &[acc.len() as u32, weight.to_bits(), u32::from(first)],
-        one_d(gpu, acc.len())?,
+        acc.len(),
     )
 }
 
@@ -129,7 +128,7 @@ pub fn adam_update(
         bc2.to_bits(),
     ];
     let pipe = gpu.pipeline("adam", include_str!("../shaders/opt/adam.wgsl"))?;
-    gpu.dispatch(&pipe, &[p, g, m, v, scale], &u, one_d(gpu, n)?)
+    gpu.dispatch_1d(&pipe, &[p, g, m, v, scale], &u, n)
 }
 
 #[cfg(test)]
@@ -237,16 +236,15 @@ mod tests {
                 let out = g.zeros(2).unwrap();
                 norm_scale(&g, &part, &out, total, max).unwrap();
                 let got = g.read(&out).unwrap();
+                let (scale, norm) = (got[0], got[1]);
                 assert!(
-                    (got[1] - want_norm).abs() < 1e-5 * want_norm.max(1.0),
-                    "norm {} vs {want_norm} for {sizes:?}",
-                    got[1]
+                    (norm - want_norm).abs() < 1e-5 * want_norm.max(1.0),
+                    "norm {norm} vs {want_norm} for {sizes:?}"
                 );
                 let want_scale = clip_scale(want_norm, max);
                 assert!(
-                    (got[0] - want_scale).abs() < 1e-5,
-                    "scale {} vs {want_scale} (max {max})",
-                    got[0]
+                    (scale - want_scale).abs() < 1e-5,
+                    "scale {scale} vs {want_scale} (max {max})"
                 );
             }
         }

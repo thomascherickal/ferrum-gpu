@@ -9,7 +9,7 @@
 mod tests;
 
 use crate::device::{Gpu, GpuError};
-use crate::ops::{err, need, one_d};
+use crate::ops::{err, need};
 use crate::tensor::GpuBuf;
 
 /// RMSNorm backward. `stats` is scratch of `rows` (the per-row inverse RMS).
@@ -31,21 +31,21 @@ pub fn rmsnorm_bwd(
         "rms_bwd_dx",
         include_str!("../shaders/llama/rms_bwd_dx.wgsl"),
     )?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p1,
         &[x, gain, dy, dx, stats],
         &[rows as u32, cols as u32, eps.to_bits()],
-        one_d(gpu, rows)?,
+        rows,
     )?;
     let p2 = gpu.pipeline(
         "rms_bwd_gain",
         include_str!("../shaders/llama/rms_bwd_gain.wgsl"),
     )?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p2,
         &[x, dy, stats, dgain],
         &[rows as u32, cols as u32],
-        one_d(gpu, cols)?,
+        cols,
     )
 }
 
@@ -62,11 +62,11 @@ pub fn swiglu_bwd(
         "swiglu_bwd",
         include_str!("../shaders/llama/swiglu_bwd.wgsl"),
     )?;
-    gpu.dispatch(
+    gpu.dispatch_1d(
         &p,
         &[gate, up, dact, dgate, dup],
         &[gate.len() as u32],
-        one_d(gpu, gate.len())?,
+        gate.len(),
     )
 }
 
@@ -110,30 +110,30 @@ pub fn attention_gqa_bwd(
         "attn_gqa_bwd_dp",
         include_str!("../shaders/llama/attn_gqa_bwd_dp.wgsl"),
     )?;
-    gpu.dispatch(&p, &[dout, v, ds], &u, one_d(gpu, cells)?)?;
+    gpu.dispatch_1d(&p, &[dout, v, ds], &u, cells)?;
     let p = gpu.pipeline(
         "attn_bwd_dot",
         include_str!("../shaders/bwd/attn_bwd_dot.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, ds, dot], &u[..4], one_d(gpu, rows)?)?;
+    gpu.dispatch_1d(&p, &[probs, ds, dot], &u[..4], rows)?;
     let p = gpu.pipeline(
         "attn_bwd_ds",
         include_str!("../shaders/bwd/attn_bwd_ds.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, dot, ds], &u[..4], one_d(gpu, cells)?)?;
+    gpu.dispatch_1d(&p, &[probs, dot, ds], &u[..4], cells)?;
     let p = gpu.pipeline(
         "attn_gqa_bwd_dv",
         include_str!("../shaders/llama/attn_gqa_bwd_dv.wgsl"),
     )?;
-    gpu.dispatch(&p, &[probs, dout, dv], &u, one_d(gpu, batch * t * kvd)?)?;
+    gpu.dispatch_1d(&p, &[probs, dout, dv], &u, batch * t * kvd)?;
     let p = gpu.pipeline(
         "attn_gqa_bwd_dq",
         include_str!("../shaders/llama/attn_gqa_bwd_dq.wgsl"),
     )?;
-    gpu.dispatch(&p, &[ds, k, dq], &u, one_d(gpu, batch * t * qd)?)?;
+    gpu.dispatch_1d(&p, &[ds, k, dq], &u, batch * t * qd)?;
     let p = gpu.pipeline(
         "attn_gqa_bwd_dk",
         include_str!("../shaders/llama/attn_gqa_bwd_dk.wgsl"),
     )?;
-    gpu.dispatch(&p, &[ds, q, dk], &u, one_d(gpu, batch * t * kvd)?)
+    gpu.dispatch_1d(&p, &[ds, q, dk], &u, batch * t * kvd)
 }

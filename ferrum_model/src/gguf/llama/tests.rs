@@ -211,6 +211,12 @@ fn hostile_metadata_is_refused_before_it_can_size_an_allocation() {
     .contains("missing"));
     assert!(refused(&m, &u("llama.block_count", 1_000_000), &[]).contains("exceeds"));
     assert!(refused(&m, &u("llama.attention.head_count", 0), &[]).contains("positive"));
+    // no head_count and no key_length to fall back on
+    let no_len = |kv: &mut Meta| {
+        kv.retain(|(k, _)| !k.ends_with("attention.key_length"));
+        set("llama.attention.head_count", Value::U32(0))(kv);
+    };
+    assert!(refused(&m, &no_len, &[]).contains("positive"));
     assert!(refused(&m, &u("llama.attention.head_count_kv", 3), &[]).contains("multiple"));
     assert!(refused(&m, &u("llama.rope.dimension_count", 5), &[]).contains("rope_dim"));
     assert!(refused(&m, &u("llama.rope.dimension_count", 16), &[]).contains("rope_dim"));
