@@ -1,9 +1,47 @@
-# HANDOFF (updated 2026-11-10 after Phase 4 completed)
+# HANDOFF (updated 2026-11-11 after Phase 5 tasks 5.0 to 5.3)
 
-> Not yet consumed. A fresh agent: read this first, then add a line here saying when you
+> Consumed 2026-11-11 by a Sonnet 5.5 session (read, then continued with Phase 5). Phase 5 progress
+> is in the section "Phase 5 status" below; the older text describes Phases 0 to 4.
+>
+> (Original note:) Not yet consumed. A fresh agent: read this first, then add a line here saying when you
 > consumed it, and read `CLAUDE.md` (rules 1 to 12 are binding, especially: independence from
 > ferrum-cpu, tests for everything, stay autonomous and take the Recommended option, and the
 > rule-12 handoff mechanism that produced this file).
+
+## Phase 5 status (branch `worktree-phase5-llama`, worktree `.claude/worktrees/phase5-llama`, NOT pushed, NOT merged)
+
+Commits on top of `main` (ddfd1ce): 5.0 `12278d1`, 5.1 `13a0760`, 5.2 `a4cdfd3`, 5.3 `c592877`.
+
+- **5.0 done**: `ferrum_ref::llama` (RMSNorm, RoPE NORM/NEOX with host cos/sin tables and
+  linear + `rope_freqs` scaling, GQA `attend_row`, SwiGLU, full + KV-cached forward, optional q/k/v
+  biases, tied head, `Llama::random`) and `ferrum_model::llama_gguf` (`from_gguf`/`to_gguf`, llama =
+  NORM, qwen2 = NEOX, Q8_0/Q4_0, hostile-metadata refusals, scaling policy: none/linear/freq tensor,
+  yarn/longrope/attn_factor refused). 29 tests.
+- **5.1 done**: `ferrum_wgpu::ops_llama` kernels `rmsnorm`, `rope` (table offset), `swiglu`,
+  `gather_rows`, `attention_gqa`, `attention_decode_gqa`; parity vs oracle on MX330/Xe/llvmpipe
+  (worst 2.4e-7), fault sweeps pin command counts.
+- **5.2 done**: `ferrum_wgpu::ops_quant` (`QKind`, `pack`, `quantise_matrix`, `upload_qweight`,
+  `upload_quantised`, `linear_q`, shader `qlinear.wgsl`). Device layout: block-major records
+  (`b*n+col`), f32 scale + quants; dequantised values bit-identical to `ferrum_gguf::quant::decode`
+  (identity read-back test). encode(decode(x)) is value-idempotent (bytes can differ for blocks
+  whose f16 scale underflows). `ferrum_gguf` is now a normal dependency of `ferrum_wgpu`.
+- **5.3 done**: `ferrum_wgpu::llama::GpuLlama` (`new(gpu, &Llama, Option<QKind>, Option<Budget>)`,
+  `feed`, `forward_all`, `score`, `reset`, `plan`, `dequantised` = the oracle for a quantised run).
+  Parity at every position of a full context for 4 variants (llama, qwen+bias+tied, MQA+partial
+  rotary, dim 24 with ineligible widths), quantised parity vs `dequantised()`, GGUF round trip.
+  Worst error 4.8e-6 against FORWARD 1e-5 (~2x margin; quantised and bias variants are the worst).
+  Command counts: decode 40 (f32, 2 layers), `forward_all` 37 for 3 tokens.
+  `Llama::random` scales q/k init by `1/sqrt(dim)` (a saturated softmax made parity measure
+  conditioning).
+- **Not done**: 5.4 (llama fine-tuning: backward kernels RMSNorm/RoPE/GQA/SwiGLU vs finite
+  differences on the CPU oracle first, then `GpuLlamaTrainer` implementing
+  `ferrum_ref::trainer::Engine`; needs a CPU backward in `ferrum_ref` as the oracle, see
+  `ferrum_ref/src/grad.rs` + `trainer.rs` for the GPT-2 versions), 5.5 (size table, real runs per
+  row), the Phase 5 gate write-up (speed comparison for decode + training like
+  `docs/train-speed.md`), `docs/COVERAGE.md` re-measure (`FLOOR=99 scripts/coverage.sh`, alone),
+  the four-configuration full-suite run before merging, and the final `cargo deny check`.
+- Verified so far: workspace clippy `-D warnings` clean; new tests pass on MX330, no-GPU, llvmpipe and
+  Intel Xe. The FULL workspace suite in all four configurations has NOT been re-run since 5.0.
 
 ## Goal
 
