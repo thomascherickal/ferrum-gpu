@@ -1,12 +1,12 @@
 //! In-browser decode speed on every WebGPU adapter Chrome offers. Slow (minutes), so it only runs
-//! on request: `cargo test -p gpu_gui --test browser_bench -- --ignored --nocapture`.
+//! on request: `cargo test -p ferrum_gpu_gui --test browser_bench -- --ignored --nocapture`.
 
 mod common;
 
-use gpu_gui::app::{App, DeviceChoice};
-use gpu_gui::engine::CpuBackend;
-use gpu_gui::json::Json;
-use gpu_gui::server::start;
+use ferrum_gpu_gui::app::{App, DeviceChoice};
+use ferrum_gpu_gui::engine::CpuBackend;
+use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_gui::server::start;
 use std::sync::Arc;
 use std::time::Duration;
 

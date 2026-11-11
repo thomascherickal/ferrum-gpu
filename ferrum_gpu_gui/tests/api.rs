@@ -1,9 +1,9 @@
 //! The GUI's API end to end over real TCP: the same flow on the CPU and the GPU backend.
 
-use gpu_gui::app::{App, DeviceChoice};
-use gpu_gui::engine::{CpuBackend, GpuBackend};
-use gpu_gui::json::Json;
-use gpu_gui::server::{start, Running};
+use ferrum_gpu_gui::app::{App, DeviceChoice};
+use ferrum_gpu_gui::engine::{CpuBackend, GpuBackend};
+use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_gui::server::{start, Running};
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::Arc;
@@ -322,7 +322,7 @@ fn a_run_can_be_stopped_and_keeps_its_partial_weights() {
     let (srv, app) = serve(cpu_app());
     let p = srv.addr.port();
     post(p, "/api/model", r#"{"preset":"tiny"}"#);
-    let before = gpu_gui::app::lock(&app.model).clone().unwrap();
+    let before = ferrum_gpu_gui::app::lock(&app.model).clone().unwrap();
     let body = format!(
         r#"{{"text":"{}","steps":100000,"batch":8,"context":32}}"#,
         "ab".repeat(200)
@@ -345,7 +345,7 @@ fn a_run_can_be_stopped_and_keeps_its_partial_weights() {
     assert_eq!(field(&s, "state").as_str(), Some("stopped"));
     assert!(field(&s, "step").as_usize().unwrap() < 100_000);
     assert_ne!(
-        gpu_gui::app::lock(&app.model).clone().unwrap(),
+        ferrum_gpu_gui::app::lock(&app.model).clone().unwrap(),
         before,
         "the partial weights were kept"
     );
@@ -357,15 +357,15 @@ fn a_failed_run_is_reported_and_the_model_is_untouched() {
     // a model whose head is tied cannot be trained: the run fails, with the reason
     let (srv, app) = serve(cpu_app());
     let p = srv.addr.port();
-    let mut tied = gpu_gui::engine::fresh_model("tiny", 1).unwrap();
+    let mut tied = ferrum_gpu_gui::engine::fresh_model("tiny", 1).unwrap();
     tied = ferrum_ref::llama::Llama { tied: true, ..tied };
-    *gpu_gui::app::lock(&app.model) = Some(tied.clone());
+    *ferrum_gpu_gui::app::lock(&app.model) = Some(tied.clone());
     let body = format!(r#"{{"text":"{}","steps":3}}"#, "ab".repeat(100));
     assert_eq!(post(p, "/api/train", &body).status, 200);
     let s = wait_until_done(p);
     assert_eq!(field(&s, "state").as_str(), Some("error"));
     assert!(field(&s, "error").as_str().unwrap().contains("tied"), "{s}");
-    assert_eq!(gpu_gui::app::lock(&app.model).clone().unwrap(), tied);
+    assert_eq!(ferrum_gpu_gui::app::lock(&app.model).clone().unwrap(), tied);
     srv.stop();
 }
 
@@ -426,7 +426,7 @@ fn a_model_with_another_vocabulary_loads_but_refuses_text() {
     use ferrum_model::gguf::gpt2::Quant;
     let (srv, _app) = serve(cpu_app());
     let p = srv.addr.port();
-    let mut cfg = gpu_gui::engine::preset("tiny").unwrap();
+    let mut cfg = ferrum_gpu_gui::engine::preset("tiny").unwrap();
     cfg.vocab = 300;
     let m = ferrum_ref::llama::Llama::random(cfg, 2, false, false);
     let bytes = ferrum_model::gguf::llama::to_gguf(&m, Quant::F32);

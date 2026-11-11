@@ -25,7 +25,7 @@ For quantised files the oracle is the model *decoded from the same bytes*, so th
 
 ## Speed (ms per token, single-stream decode)
 
-Chrome (headless, `--use-gl=angle --use-angle=vulkan`) on the same laptop as the native benchmarks, `cargo test -p gpu_gui --test browser_bench -- --ignored`, the three shapes of `docs/llama-speed.md` with random weights, mean of 48 tokens after a 4-token prompt (includes one submit and one readback per token, like the native numbers). One run per adapter; numbers move about 20% run to run.
+Chrome (headless, `--use-gl=angle --use-angle=vulkan`) on the same laptop as the native benchmarks, `cargo test -p ferrum_gpu_gui --test browser_bench -- --ignored`, the three shapes of `docs/llama-speed.md` with random weights, mean of 48 tokens after a 4-token prompt (includes one submit and one readback per token, like the native numbers). One run per adapter; numbers move about 20% run to run.
 
 | adapter (in the browser) | shape | f32 | Q8_0 | Q4_0 |
 |---|---|---|---|---|

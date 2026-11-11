@@ -162,6 +162,16 @@ name = "ferrum_gguf"
 version = "0.1.0"
 
 [[package]]
+name = "ferrum_gpu_gui"
+version = "0.1.0"
+dependencies = [
+ "ferrum_gguf",
+ "ferrum_model",
+ "ferrum_ref",
+ "ferrum_wgpu",
+]
+
+[[package]]
 name = "ferrum_model"
 version = "0.1.0"
 dependencies = [
@@ -262,16 +272,6 @@ dependencies = [
  "presser",
  "thiserror",
  "windows",
-]
-
-[[package]]
-name = "gpu_gui"
-version = "0.1.0"
-dependencies = [
- "ferrum_gguf",
- "ferrum_model",
- "ferrum_ref",
- "ferrum_wgpu",
 ]
 
 [[package]]

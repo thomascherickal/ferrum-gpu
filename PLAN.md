@@ -28,7 +28,7 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 | Precision | f32 on device; Q8_0/Q4_0 dequantised in-kernel for inference. No f16 requirement. |
 | Determinism | Bit-identical across repeat runs on the same adapter/driver/wgpu version. CPU-vs-GPU by tolerance. |
 | Default device | `cpu` until Phase 7's matrix is green, then `auto`. |
-| Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), `gpu_gui` (GUI server and in-browser runtime), later `gpu_cli`, `gpu_server`, `tests`. |
+| Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), `ferrum_gpu_gui` (GUI server and in-browser runtime), later `gpu_cli`, `gpu_server`, `tests`. |
 
 ## Baselines
 

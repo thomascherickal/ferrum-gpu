@@ -3,9 +3,9 @@
 A local web GUI: pick a device, create a small Llama-style model, train it on text you paste, watch the loss fall, generate text, and move the model in and out as GGUF. It also runs the model **in your browser tab on WebGPU** (Phase 5b, [browser-webgpu.md](browser-webgpu.md)).
 
 ```
-cargo run --release -p gpu_gui                      # picks a free port, device auto
-cargo run --release -p gpu_gui -- --device gpu --gpu-adapter MX330 --port 7860
-cargo run --release -p gpu_gui -- --device cpu      # the CPU oracle
+cargo run --release -p ferrum_gpu_gui                      # picks a free port, device auto
+cargo run --release -p ferrum_gpu_gui -- --device gpu --gpu-adapter MX330 --port 7860
+cargo run --release -p ferrum_gpu_gui -- --device cpu      # the CPU oracle
 ```
 
 It prints `ferrum-gpu GUI: http://127.0.0.1:PORT/`; open that URL. Flags: `--port N` (0 = any free port), `--device cpu|gpu|auto` (auto uses a GPU if one opens, otherwise the CPU and says so), `--gpu-adapter NAME` (case-insensitive fragment), `--threads N` (CPU matmul threads). Unknown flags are errors.

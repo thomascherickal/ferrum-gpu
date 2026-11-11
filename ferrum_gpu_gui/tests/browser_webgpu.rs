@@ -3,10 +3,10 @@
 
 mod common;
 
-use gpu_gui::app::{App, DeviceChoice};
-use gpu_gui::engine::CpuBackend;
-use gpu_gui::json::Json;
-use gpu_gui::server::start;
+use ferrum_gpu_gui::app::{App, DeviceChoice};
+use ferrum_gpu_gui::engine::CpuBackend;
+use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_gui::server::start;
 use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;

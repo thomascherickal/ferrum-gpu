@@ -1,5 +1,5 @@
 [package]
-name = "gpu_gui"
+name = "ferrum_gpu_gui"
 description = "Local web GUI for ferrum-gpu: device, train, generate, GGUF in and out, in-browser WebGPU."
 version.workspace = true
 edition.workspace = true
@@ -13,5 +13,5 @@ ferrum_ref = { path = "../ferrum_ref" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
 
 [[bin]]
-name = "gpu_gui"
+name = "ferrum_gpu_gui"
 path = "src/main.rs"

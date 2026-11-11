@@ -1,7 +1,7 @@
-//! `gpu_gui`: serve the ferrum-gpu GUI on loopback and wait.
+//! `ferrum_gpu_gui`: serve the ferrum-gpu GUI on loopback and wait.
 
-use gpu_gui::app::App;
-use gpu_gui::server::{parse_args, start, USAGE};
+use ferrum_gpu_gui::app::App;
+use ferrum_gpu_gui::server::{parse_args, start, USAGE};
 use std::sync::Arc;
 
 fn main() {

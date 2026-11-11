@@ -6,7 +6,7 @@ A local graphical front end for the engine, so a person can see the device, trai
 
 | Question | Decision | Why |
 |---|---|---|
-| Toolkit | A **local web GUI**: a std-only HTTP server in a new crate `gpu_gui` serving one HTML page and a JSON API on `127.0.0.1`. | No new dependencies (a native toolkit such as egui adds ~150 crates, needs a display to test, and must pass `cargo deny`); the page is also the host for Phase 5b's in-browser WebGPU. |
+| Toolkit | A **local web GUI**: a std-only HTTP server in a new crate `ferrum_gpu_gui` serving one HTML page and a JSON API on `127.0.0.1`. | No new dependencies (a native toolkit such as egui adds ~150 crates, needs a display to test, and must pass `cargo deny`); the page is also the host for Phase 5b's in-browser WebGPU. |
 | Tokens | A **byte-level tokenizer** (vocab 256). | The real BPE tokenizer is Phase 6. Models trained in the GUI use bytes, so text in and out works end to end today. A GGUF with a different vocabulary loads but the GUI says it can only show token ids. |
 | Model | Llama-style (`ferrum_ref::llama`), configurable size presets. | It is the Phase 5 stack; GPT-2 is reachable from the CLI phases later. |
 | Devices | `cpu` (the oracle), `gpu`, `auto`. With no adapter the GUI still works on the CPU path. | The suite must pass with no GPU; `--device` semantics arrive here ahead of Phase 6. |
@@ -15,7 +15,7 @@ A local graphical front end for the engine, so a person can see the device, trai
 
 ## Tasks
 
-- [x] 5a.1 `gpu_gui` crate: std-only HTTP/1.1 server (request line, headers, `Content-Length` bodies, size limits, timeouts), a small JSON reader/writer, routing; each with unit tests and hostile-input tests (oversized headers, bad lengths, truncated bodies, path traversal on static routes).
+- [x] 5a.1 `ferrum_gpu_gui` crate: std-only HTTP/1.1 server (request line, headers, `Content-Length` bodies, size limits, timeouts), a small JSON reader/writer, routing; each with unit tests and hostile-input tests (oversized headers, bad lengths, truncated bodies, path traversal on static routes).
 - [x] 5a.2 Engine session behind a trait (`Backend`): `info`, `new_model`, `train`, `generate`, `score`, `export`, `import`; a CPU implementation (oracle) and a GPU implementation; tests run both and compare.
 - [x] 5a.3 API: `GET /api/info`, `POST /api/model` (preset, seed), `POST /api/train` (text, steps, lr; runs in a background thread), `GET /api/train/status` (loss history), `POST /api/train/stop`, `POST /api/generate`, `GET /api/model.gguf`, `PUT /api/model.gguf`. Errors are JSON with a message, never a panic.
 - [x] 5a.4 The page: Device, Train (live loss chart), Generate, Model tabs; accessible labels, no external requests, works at phone width.

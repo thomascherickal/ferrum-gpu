@@ -25,7 +25,7 @@ pub struct Options {
 
 /// The usage text.
 pub const USAGE: &str =
-    "usage: gpu_gui [--port N] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--threads N]\n\
+    "usage: ferrum_gpu_gui [--port N] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--threads N]\n\
     Serves the GUI on http://127.0.0.1:PORT/ (loopback only). Default: a free port, --device auto.";
 
 /// Parse `args` (without the program name). Unknown flags and missing values are errors.
