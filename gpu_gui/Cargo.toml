@@ -1,0 +1,17 @@
+[package]
+name = "gpu_gui"
+description = "Local web GUI for ferrum-gpu: device, train, generate, GGUF in and out, in-browser WebGPU."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ferrum_gguf = { path = "../ferrum_gguf" }
+ferrum_model = { path = "../ferrum_model" }
+ferrum_ref = { path = "../ferrum_ref" }
+ferrum_wgpu = { path = "../ferrum_wgpu" }
+
+[[bin]]
+name = "gpu_gui"
+path = "src/main.rs"

@@ -265,6 +265,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "gpu_gui"
+version = "0.1.0"
+dependencies = [
+ "ferrum_gguf",
+ "ferrum_model",
+ "ferrum_ref",
+ "ferrum_wgpu",
+]
+
+[[package]]
 name = "half"
 version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
