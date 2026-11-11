@@ -8,7 +8,8 @@ ferrum-gpu reads and writes GGUF **v3**. The container code is in `ferrum_gguf`;
 - **Parser:** `Gguf::parse(bytes)` is safe against hostile input: every read is bounds-checked, sizes use
   checked arithmetic, and nothing is allocated from a header number before it is shown to fit in the file.
   Malformed files are `GgufError` values, never panics.
-- **Element types:** F32, F16, Q8_0 and Q4_0 (blocks of 32). Any other ggml tensor type is refused with `unsupported ggml tensor type N`.
+- **Element types read:** F32, F16, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, Q8_1 (blocks of 32) and the k-quants Q2_K, Q3_K, Q4_K, Q5_K, Q6_K (super-blocks of 256). The block types other than Q8_0/Q4_0 are **read only**: they are dequantized to f32 on load (formulas from ggml, cross-checked against ferrum-cpu's dequantizers; unit-tested on hand-computed blocks, not yet against a real downloaded file, because none is kept in this repository) and can be re-written with `export-gguf`. Integer types I16 and I32 are accepted as raw bytes for token files. Any other ggml tensor type (for example Q8_K, IQ formats, BF16) is refused with `unsupported ggml tensor type N`.
+- **Element types written:** F32, Q8_0, Q4_0.
 - **Writer:** `GgufBuilder` builds files for exports, fixtures and checkpoints. Default alignment is 32.
 - **Codecs:** `quant::{decode, encode}` and `f16`. Encoding rounds half away from zero and stores the block
   scale as an f16, so `encode(decode(x))` is value-idempotent (the bytes can differ for blocks whose f16

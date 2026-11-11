@@ -324,6 +324,32 @@ mod tests {
     }
 
     #[test]
+    fn read_only_quantised_tensors_load_as_f32() {
+        use crate::f16::f32_to_f16;
+        use crate::{GGML_Q4_1, GGML_Q6_K};
+        // one Q4_1 block (d = 0.5, m = 1, nibbles 3) and one Q6_K block (constant 8.0)
+        let mut q41 = [f32_to_f16(0.5).to_le_bytes(), f32_to_f16(1.0).to_le_bytes()].concat();
+        q41.extend([0x33u8; 16]);
+        let mut q6 = vec![0x88u8; 128];
+        q6.extend([0xAAu8; 64]);
+        q6.extend(std::iter::repeat_n(2u8, 16));
+        q6.extend(f32_to_f16(0.5).to_le_bytes());
+        let mut b = GgufBuilder::new();
+        b.meta("general.architecture", Value::Str("llama".into()));
+        b.tensor_raw("a", &[32], GGML_Q4_1, q41);
+        b.tensor_raw("b", &[256], GGML_Q6_K, q6);
+        let g = Gguf::parse(b.into_bytes()).unwrap();
+        assert!(g
+            .tensor_f32("a")
+            .unwrap()
+            .iter()
+            .all(|&v| (v - 2.5).abs() < 1e-3));
+        let six = g.tensor_f32("b").unwrap();
+        assert_eq!(six.len(), 256);
+        assert!(six.iter().all(|&v| (v - 8.0).abs() < 1e-3));
+    }
+
+    #[test]
     fn raw_bytes_are_the_stored_encoding() {
         let g = Gguf::parse(sample()).unwrap();
         let raw = g.tensor_bytes("b").unwrap();

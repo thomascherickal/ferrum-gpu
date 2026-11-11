@@ -1,5 +1,6 @@
 //! Tensor element encodings: sizes, decode to f32 and encode from f32 (F32, F16, Q8_0, Q4_0).
 
+use crate::blocks::{dequant, layout};
 use crate::f16::{f16_to_f32, f32_to_f16};
 use crate::reader::GgufError;
 use crate::{GGML_F16, GGML_F32, GGML_I16, GGML_I32, GGML_Q4_0, GGML_Q8_0, QK};
@@ -27,6 +28,17 @@ pub fn nbytes(ty: u32, n: usize) -> Result<usize, GgufError> {
         GGML_I32 => n.checked_mul(4).ok_or_else(|| err("tensor size overflows")),
         GGML_Q8_0 => blocks(2 + QK),
         GGML_Q4_0 => blocks(2 + QK / 2),
+        other if layout(other).is_some() => {
+            let (bytes, elems) = layout(other).expect("checked");
+            if !n.is_multiple_of(elems) {
+                return Err(err(format!(
+                    "{n} elements is not a multiple of the block size {elems}"
+                )));
+            }
+            (n / elems)
+                .checked_mul(bytes)
+                .ok_or_else(|| err("tensor size overflows"))
+        }
         other => Err(err(format!("unsupported ggml tensor type {other}"))),
     }
 }
@@ -42,6 +54,9 @@ pub fn decode(ty: u32, bytes: &[u8], n: usize) -> Result<Vec<f32>, GgufError> {
         return Err(err(
             "integer tensors have no f32 form; read them with tensor_bytes",
         ));
+    }
+    if let Some(v) = dequant(ty, bytes) {
+        return Ok(v);
     }
     let h = |b: &[u8]| f16_to_f32(u16::from_le_bytes([b[0], b[1]]));
     Ok(match ty {
@@ -71,6 +86,11 @@ pub fn decode(ty: u32, bytes: &[u8], n: usize) -> Result<Vec<f32>, GgufError> {
 
 /// Encode f32 data as type `ty` (round-half-away for Q8_0, like llama.cpp's reference quantiser).
 pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
+    if layout(ty).is_some() {
+        return Err(err(format!(
+            "tensor type {ty} is read-only: it can be loaded but not written"
+        )));
+    }
     let mut out = Vec::with_capacity(nbytes(ty, data.len())?);
     match ty {
         GGML_F32 => data
@@ -109,6 +129,29 @@ pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
 #[cfg(test)]
 mod tests {
     #[test]
+    fn read_only_block_types_have_sizes_and_decode_but_cannot_be_encoded() {
+        use crate::{GGML_Q2_K, GGML_Q4_1, GGML_Q4_K, GGML_Q5_0, GGML_Q5_1, GGML_Q6_K, GGML_Q8_1};
+        for (ty, bytes, elems) in [
+            (GGML_Q4_1, 20, 32),
+            (GGML_Q5_0, 22, 32),
+            (GGML_Q5_1, 24, 32),
+            (GGML_Q8_1, 36, 32),
+            (GGML_Q2_K, 84, 256),
+            (GGML_Q4_K, 144, 256),
+            (GGML_Q6_K, 210, 256),
+        ] {
+            assert_eq!(nbytes(ty, elems * 3).unwrap(), bytes * 3);
+            assert!(nbytes(ty, elems + 1).unwrap_err().0.contains("multiple"));
+            assert_eq!(decode(ty, &vec![0u8; bytes], elems).unwrap().len(), elems);
+            assert!(
+                decode(ty, &vec![0u8; bytes + 1], elems).is_err(),
+                "length is checked"
+            );
+            assert!(encode(ty, &vec![0.0; elems]).is_err());
+        }
+    }
+
+    #[test]
     fn integer_tensor_types_have_sizes_but_no_f32_form() {
         assert_eq!(nbytes(crate::GGML_I16, 5).unwrap(), 10);
         assert_eq!(nbytes(crate::GGML_I32, 5).unwrap(), 20);
@@ -133,7 +176,7 @@ mod tests {
         assert!(nbytes(GGML_Q8_0, 33).is_err());
         assert!(nbytes(GGML_Q4_0, 31).is_err());
         assert!(nbytes(GGML_F32, usize::MAX).is_err());
-        assert!(nbytes(14, 256)
+        assert!(nbytes(15, 256) // Q8_K, not supported
             .unwrap_err()
             .to_string()
             .contains("unsupported"));

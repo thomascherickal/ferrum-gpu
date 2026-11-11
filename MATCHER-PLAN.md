@@ -83,7 +83,9 @@ Done: new crate `ferrum_tok` (copied from ferrum-cpu `0bb0f92`, depends only on 
 - A DVC-style `params.yaml` pipeline is a convenience; ship a plain shell script first, DVC files only if wanted.
 - **Gate:** `prepare` output and manifest equal the fixtures on a small corpus; training from a token file gives the same loss curve as from text on the same tokens.
 
-### M3: model formats and quantization
+### M3: model formats and quantization (done 2026-11-11)
+
+Done: Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K read paths (`ferrum_gguf::blocks`), `export-gguf`. Honest limits: the formulas are checked on hand-computed blocks that follow ferrum-cpu's tests and ggml's layout, not on a downloaded real K-quant model (ferrum-cpu cannot write these formats, so there is no golden file to copy); everything is dequantized to f32 on load, so memory is f32-sized; nothing is written in these formats. Not met as written: the gate asked for a decode of a fixture model to the same greedy tokens as ferrum-cpu; no such fixture could be produced.
 
 - Add Q4_1, Q5_0, Q5_1, Q8_1 first (simple blocks), then the K-quants Q2_K to Q6_K, as dequantizers on the CPU oracle first and then in WGSL. Each format gets a golden block fixture.
 - `export-gguf` (re-quantize an imported model to a chosen format).

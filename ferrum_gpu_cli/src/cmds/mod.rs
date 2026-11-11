@@ -26,6 +26,7 @@ train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
+export-gguf   --model F.gguf --out G.gguf [--quant f32|int8|int4]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
 eval          --model F.gguf --data FILE [--ctx N] [--json F]\n\
 device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
 
@@ -131,6 +132,10 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 generate(&a, out, cmd == "run-gguf")
             }
         }
+        "export-gguf" => export_gguf(
+            &Args::parse(&[val("--model"), val("--out"), val("--quant")], rest)?,
+            out,
+        ),
         "eval" => {
             let a = Args::parse(
                 &table(&[&[val("--model"), val("--data"), val("--ctx"), val("--json")]]),
@@ -310,6 +315,21 @@ fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), String> 
     gate(out, &app, &preflight::decode_buffers(&model), mem_mb(a)?)?;
     let new = app.backend.generate(&model, &encode(prompt), &opts)?;
     say(out, format!("{prompt}{}", decode(&new)?))
+}
+
+/// `export-gguf`: read a model (any supported precision) and write it again as f32, int8 or int4.
+/// A GPT-2 file keeps its tokenizer; a Llama-style file is written byte-level.
+fn export_gguf(a: &Args, out: &mut dyn Write) -> Result<(), String> {
+    let (src, dst) = (a.need("--model")?, a.need("--out")?);
+    let q = gpt2::quant(a, "int8")?;
+    let bytes = if gpt2::is_gpt2(src) {
+        let l = gpt2::load(src)?;
+        ferrum_model::gpt2_gguf::to_gguf_with(&l.model, q, Some(&l.tok))
+    } else {
+        to_gguf(&load(src)?, q)
+    };
+    atomic_write(std::path::Path::new(dst), &bytes).map_err(|e| format!("{dst}: {e}"))?;
+    say(out, format!("wrote {dst} ({} bytes)", bytes.len()))
 }
 
 /// Mean next-token loss of `text` under `m`, over non-overlapping windows of at most the context.

@@ -49,7 +49,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | none | gap | M5 |
 | `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
-| `export-gguf` (`--quant`) | yes | none | gap | M3 |
+| `export-gguf` (`--quant`) | yes | **have (M3)**: f32/int8/int4 out | have | |
 | `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | none | gap | M6 |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
@@ -65,8 +65,8 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | Architectures read | `llama`, `qwen2` (imported), `gpt2` (own) | `gpt2`, `llama`, `qwen2` | have | |
 | F32, F16 | yes | yes | have | |
 | Q8_0, Q4_0 | yes | yes | have | |
-| Q4_1, Q5_0, Q5_1, Q8_1 | yes | no | gap | M3 |
-| Q2_K, Q3_K, Q4_K, Q5_K, Q6_K | yes | no | gap | M3 |
+| Q4_1, Q5_0, Q5_1, Q8_1 | yes | **have (M3, 2026-11-11)**: read, dequantized to f32 on load | have | |
+| Q2_K, Q3_K, Q4_K, Q5_K, Q6_K | yes | **have (M3)**: read, dequantized to f32 on load; no GPU kernel reads them in place and nothing is written in these formats | partial | |
 | BPE tokenizer (`ferrum_tok`: trainer, encoder, GPT-2 pre-tokenizer, specials), GGUF tokenizer file and model metadata (`ferrum_model::tokenizer_gguf`) | yes | **have (M1, 2026-11-11)**: reads and writes ferrum-cpu's tokenizer file and model metadata; encodes the fixture corpus to the same 942 ids; our GPT-2 reader loads a real ferrum-cpu model file | have | |
 | Character-level model (`--vocab 0`) | yes | no | gap | M1 |
 | Refusals | refuses biases on any projection except q/k/v, and any RoPE scaling type other than `linear` or `none` (with factor 1.0) | refuses yarn, longrope, attention factor other than 1, and biases outside attention q/k/v | have (same intent; ours is at least as strict; exact messages not compared) | |
