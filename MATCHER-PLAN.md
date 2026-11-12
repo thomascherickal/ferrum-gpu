@@ -6,7 +6,7 @@
 
 **Still open, in the order I would take them:**
 1. (done) `prepare`, fetch script, DVC files.
-2. M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
+2. (done 2026-11-12, except `--resume`) M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
 3. `--tie` and `--dropout` for GPT-2 training: engine work on the CPU and GPU trainers. (`--vocab 0` done 2026-11-12 as a byte-level model.)
 4. Server: request cancel on client disconnect; trying the existing LightEval module against our routes.
 5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.

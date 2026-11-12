@@ -33,7 +33,7 @@ tokenize      --data FILE|DIR --tokenizer TOK.gguf --out TOKENS.gguf [--doc-sep 
 export-ollama --model F.gguf --name NAME [--bin P] [--modelfile-only OUT]   (GPT-2 files; needs the `ollama` tool)\n  \
 export-lmstudio --model F.gguf [--repo publisher/name] [--bin P]   (GPT-2 files; needs the `lms` tool)\n  \
 export-gguf   --model F.gguf --out G.gguf [--quant f32|int8|int4]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
-eval          --model F.gguf --data FILE [--ctx N] [--json F]\n\
+eval          --model F.gguf --data FILE [--ctx N] [--quant f32|int8|int4] [--json F]   (alias: eval-gguf)\n\
 device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
 
 const DEVICE: [Flag; 4] = [
@@ -177,7 +177,8 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
             &Args::parse(&[val("--model"), val("--out"), val("--quant")], rest)?,
             out,
         ),
-        "eval" => {
+        // eval-gguf is ferrum-cpu's name for scoring an imported model; ours scores any file
+        "eval" | "eval-gguf" => {
             let a = Args::parse(
                 &table(&[&[
                     val("--model"),

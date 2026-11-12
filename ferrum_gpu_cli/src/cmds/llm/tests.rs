@@ -161,6 +161,9 @@ fn eval_scores_with_the_tokenizer_and_validates_ctx_and_quant() {
     let (p, d) = (m.display(), data.display());
     let s = ok(&format!("eval --model {p} --data {d}"));
     assert!(s.contains("perplexity:") && s.contains("bits/byte:"), "{s}");
+    // ferrum-cpu's name for the same command gives the same report
+    let alias = ok(&format!("eval-gguf --model {p} --data {d}"));
+    assert_eq!(alias, s);
     let json = m.with_file_name("e.json");
     ok(&format!(
         "eval --model {p} --data {d} --ctx 4 --quant int8 --json {}",

@@ -45,14 +45,14 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `run` (train then generate in one command) | yes | none | gap | M4 (thin wrapper) |
 | `generate`: `--chars --temp --gen-seed --top-k --top-p --repetition-penalty` | yes | **have (M4)** for GPT-2 files (ferrum-cpu's spellings are aliases of ours) | have | |
 | `generate`: `--stream`, `--stop` (repeatable), `--max-tokens` | yes | **have (M4)** for GPT-2 files | have | |
-| `run-gguf`: `--quant --max --temp --gen-seed --top-k --top-p --rep` | yes | `run-gguf` exists, subset of flags | partial | M5 |
-| `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | none | gap | M5 |
+| `run-gguf`: `--quant --max --temp --gen-seed --top-k --top-p --rep` | yes | **have (M5)**: same sampling flags as `generate`, for GPT-2 files and for imported Llama/Qwen files with their own tokenizer | have | |
+| `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | **have (M5)**: `--stop`, `--ids`, `--raw` and the chat template (ChatML, Llama-3, `[INST]`, Zephyr) for imported files; the reply ends at the end-of-turn token. Not done: `--resume` (overlaying a checkpoint on an imported model); `--force` is accepted and does nothing | partial | |
 | `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
 | `export-gguf` (`--quant`) | yes | **have (M3)**: f32/int8/int4 out | have | |
 | `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands; tested with fake tools only (the real tools are installed but registering writes outside the repo, so it was not run) | partial | |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
-| `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | none (our `eval` runs on any model) | gap | M5 |
+| `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | **have (M5)**: `eval-gguf` is an alias of `eval`, which takes `--ctx --quant --json` and scores GPT-2 and imported files with their own tokenizers. Not done: `--resume` | partial | |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes | splits and hashes equal ferrum-cpu on `fixtures/prepare/`; manifest differs only in paths, args and version | done | M2 |
 | `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | **have (M2)**: `--data FILE\|DIR`; output is byte-identical to ferrum-cpu's on the fixture | have | |
 | `info` | prints model info | prints device and adapters | different | M4 (add model info; keep device lines under `--device`) |
