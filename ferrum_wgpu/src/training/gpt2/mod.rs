@@ -1,8 +1,8 @@
 //! GPT-2 training on the GPU. Weights, gradients, Adam moments and every activation stay
 //! resident; one step is recorded as a single command batch, and only the loss and the
 //! gradient norm come back to the host.
-//! ponytail: no weight tying, dropout or QAT yet, and one batch shape's activations are kept
-//! at a time (reallocated when `(batch, t)` changes). Add them when a run needs them.
+//! ponytail: no dropout yet (tied heads and QAT are in), and one batch shape's activations are
+//! kept at a time (reallocated when `(batch, t)` changes). Add them when a run needs them.
 
 mod acts;
 mod engine;
@@ -11,6 +11,7 @@ mod qat;
 mod record;
 #[cfg(test)]
 mod tests;
+mod tie;
 
 use crate::budget::{Budget, BufferPlan};
 use crate::device::{Gpu, GpuError};
@@ -46,6 +47,8 @@ pub struct GpuTrainer<'g> {
     accum: Option<Vec<GpuBuf>>,
     last_micro: usize,
     qat: bool,
+    /// The head is tied to the embedding (see `tie`).
+    tie: bool,
     fwd: Option<Vec<GpuBuf>>,
     t: u64,
 }
@@ -90,6 +93,7 @@ impl<'g> GpuTrainer<'g> {
             accum: None,
             last_micro: 0,
             qat: false,
+            tie: false,
             fwd: None,
             t: 0,
         })
@@ -149,6 +153,9 @@ impl<'g> GpuTrainer<'g> {
             }
         }
         self.t = steps;
+        if self.tie {
+            self.derive_head_now()?; // a snapshot from an untied run is tied on the way in
+        }
         Ok(())
     }
 
@@ -367,7 +374,14 @@ impl<'g> GpuTrainer<'g> {
                 Some(acc) if chunks > 1 => acc,
                 _ => &self.grads,
             };
-            self.optimize(source, step, cfg)
+            if self.tie {
+                self.record_fold_head_grad(source)?;
+            }
+            self.optimize(source, step, cfg)?;
+            if self.tie {
+                self.record_derive_head(&self.params)?;
+            }
+            Ok(())
         })();
         self.gpu.end_batch(rec.is_ok())?;
         rec?;
@@ -384,11 +398,13 @@ impl<'g> GpuTrainer<'g> {
 
     /// Norm, clip scale and AdamW over the gradients in `source` (the recorded commands only).
     fn optimize(&self, source: &[GpuBuf], step: u64, cfg: &StepConfig) -> Result<(), GpuError> {
-        for (i, g) in source.iter().enumerate() {
+        // a tied head has no gradient of its own (it was folded into the embedding's)
+        let skip = self.tie.then(|| self.head_index());
+        for (i, g) in source.iter().enumerate().filter(|(i, _)| Some(*i) != skip) {
             sumsq_parts(self.gpu, g, &self.part, self.part_offsets[i])?;
         }
         norm_scale(self.gpu, &self.part, &self.scale, self.part.len(), cfg.clip)?;
-        for (i, g) in source.iter().enumerate() {
+        for (i, g) in source.iter().enumerate().filter(|(i, _)| Some(*i) != skip) {
             adam_update(
                 self.gpu,
                 (&self.params[i], g, &self.m[i], &self.v[i]),

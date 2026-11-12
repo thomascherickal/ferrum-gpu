@@ -15,7 +15,7 @@ fn no_flags_means_neither_option() {
 }
 
 #[test]
-fn tie_alone_needs_the_cpu() {
+fn tie_alone_does_not_need_the_cpu() {
     let x = parse(&args("--tie")).unwrap();
     assert_eq!(
         x,
@@ -24,7 +24,7 @@ fn tie_alone_needs_the_cpu() {
             dropout: 0.0
         }
     );
-    assert!(x.needs_cpu());
+    assert!(!x.needs_cpu(), "a tied head trains on either engine");
 }
 
 #[test]

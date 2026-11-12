@@ -1,6 +1,9 @@
 //! The GPU backend: `ferrum_wgpu`'s resident Llama decoder and trainer.
 
-use super::{generate_with, run_training, Backend, Engine, GenOpts, Gpt2Feed, Progress, TrainSpec};
+use super::{
+    generate_with, run_training, Backend, Engine, EngineOptions, GenOpts, Gpt2Feed, Progress,
+    TrainSpec,
+};
 use ferrum_ref::gpt2::Gpt2;
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::gpt2::GpuGpt2;
@@ -41,6 +44,21 @@ impl Backend for GpuBackend {
     fn gpt2_engine<'a>(&'a self, w: &Gpt2, qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
         let mut t = GpuTrainer::new(&self.gpu, w, None).map_err(|e| e.to_string())?;
         t.set_qat(qat).map_err(|e| e.to_string())?;
+        Ok(Box::new(t))
+    }
+
+    fn gpt2_engine_with<'a>(
+        &'a self,
+        w: &Gpt2,
+        qat: bool,
+        o: &EngineOptions,
+    ) -> Result<Box<dyn Engine + 'a>, String> {
+        if o.dropout > 0.0 {
+            return Err("dropout is not available on the GPU engine yet; train on the CPU".into());
+        }
+        let mut t = GpuTrainer::new(&self.gpu, w, None).map_err(|e| e.to_string())?;
+        t.set_qat(qat).map_err(|e| e.to_string())?;
+        t.set_tie(o.tie).map_err(|e| e.to_string())?;
         Ok(Box::new(t))
     }
 

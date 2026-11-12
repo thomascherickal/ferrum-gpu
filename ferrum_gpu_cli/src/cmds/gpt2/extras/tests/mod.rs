@@ -3,6 +3,7 @@
 mod cli;
 mod device;
 mod engine;
+mod gpu;
 mod parse;
 
 use crate::cmds::{table, DEVICE};

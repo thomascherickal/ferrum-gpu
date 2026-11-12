@@ -65,6 +65,9 @@ impl GpuTrainer<'_> {
                 Snap::Keep => self.gpu.copy_f32(src, 0, dst, 0, src.len())?,
             }
         }
+        if self.tie {
+            self.record_derive_head(fwd)?; // the head the forward pass sees is the snapped embedding's
+        }
         Ok(())
     }
 

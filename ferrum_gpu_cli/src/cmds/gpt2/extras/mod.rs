@@ -1,9 +1,10 @@
-//! The training options that need the CPU engine: `--tie` and `--dropout`.
+//! The training options beyond the plain loop: `--tie` and `--dropout`.
 //!
-//! Both are implemented on the CPU trainer only (the GPU engine has no kernel to fold a tied head's
-//! gradient into the embedding, and none to draw a dropout mask). This module decides, in one
-//! place, what that means for a run: parse and validate the options, pick the device (an explicit
-//! `--device gpu` is refused by name, `auto` quietly uses the CPU), and build the matching engine.
+//! `--tie` runs on both engines (the GPU has the transpose kernel and the fold). `--dropout` runs
+//! on the CPU trainer only: the GPU engine has no kernel to draw a dropout mask. This module
+//! decides, in one place, what that means for a run: parse and validate the options, pick the
+//! device (dropout with an explicit `--device gpu` is refused by name, `auto` quietly uses the
+//! CPU), and build the matching engine.
 
 use crate::cmds::{app, app_requested, say};
 use crate::device::Workload;
@@ -24,8 +25,13 @@ pub struct Extras {
 }
 
 impl Extras {
-    /// Does this run need the CPU engine?
+    /// Does this run need the CPU engine? (Only dropout does; a tied head trains on either.)
     pub fn needs_cpu(&self) -> bool {
+        self.dropout > 0.0
+    }
+
+    /// Does the run use an option the plain engine constructor does not take?
+    fn any(&self) -> bool {
         self.tie || self.dropout > 0.0
     }
 
@@ -57,14 +63,13 @@ pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<App, String>
     if !x.needs_cpu() {
         return app(a, Workload::Train);
     }
-    // ponytail: CPU only. Upgrade: a GPU kernel that folds the head gradient and re-derives the
-    // head after the update (tie), and a counter-hash mask kernel (dropout; the mask is already a
-    // pure function of (seed, block, index) so the kernel can reproduce it).
+    // ponytail: dropout is CPU only. Upgrade: a mask kernel on the GPU (the mask is a pure function
+    // of (seed, block, index), but a u64 hash; the kernel needs a 32-bit one on both sides).
     if DeviceChoice::parse(a.get("--device").unwrap_or("auto"))? == DeviceChoice::Gpu {
-        return Err(format!(
-            "{} trains on the CPU engine only for now; use --device cpu (or auto) or drop it",
-            x.names()
-        ));
+        return Err(
+            "--dropout trains on the CPU engine only for now; use --device cpu (or auto) or drop it"
+                .into(),
+        );
     }
     say(out, format!("{}: training on the CPU engine", x.names()))?;
     if x.dropout > MAX_RATE {
@@ -84,7 +89,7 @@ pub fn engine<'a>(
     x: &Extras,
     seed: u64,
 ) -> Result<Box<dyn Engine + 'a>, String> {
-    if x.needs_cpu() {
+    if x.any() {
         app.backend.gpt2_engine_with(
             start,
             qat,
