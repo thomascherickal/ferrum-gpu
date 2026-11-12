@@ -103,3 +103,11 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     every step, and what it finished or found when it returns. Nothing runs silently; if the
     helper has produced no visible progress for a while, the coordinator says what it is waiting
     for.
+16. **Never pass a bare negative number to `kill` (2026-11-12).** A test that ends a process
+    group calls `terminate_group` in `ferrum_gpu_gui/tests/common/mod.rs`, which runs
+    `kill -s TERM -- -<pgid>` and refuses groups 0 and 1. `kill -TERM -<pgid>` without the `--` is
+    forbidden: procps-ng 4.0.4 (Zorin OS 18 / Ubuntu 24.04) reads it as an option cluster and
+    signals minus its first digit, so a Chrome pid starting with 1 became `kill(-1, SIGTERM)` and
+    logged the whole desktop session out (nine times on 2026-11-11 and 2026-11-12; it looked like
+    a GPU crash because long GPU and coverage runs burn through many pids). Signal a single
+    process with `Child::kill` or a positive pid; never `pkill`/`killall` by name.

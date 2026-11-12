@@ -93,14 +93,40 @@ impl Browser {
     }
 }
 
-impl Drop for Browser {
-    fn drop(&mut self) {
-        // Terminate the whole group the browser leads (its pid is the group id).
+/// The `kill` arguments that send SIGTERM to process group `pgid`, or `None` for a group that must
+/// never be signalled: 0 is our own group, and 1 written as a negative pid means "every process
+/// this user owns".
+///
+/// The `--` is the fix for a bug that logged the whole desktop session out. A bare `-<pgid>` is
+/// read as an option cluster by procps-ng 4.0.4, which then signals minus its FIRST DIGIT:
+/// `kill -TERM -1149968` ran `kill(-1, SIGTERM)` whenever Chrome's pid began with 1. After `--`
+/// the number is an operand for every `kill` (POSIX), whatever its digits.
+pub fn group_term_args(pgid: u32) -> Option<[String; 4]> {
+    (pgid > 1).then(|| {
+        [
+            "-s".to_string(),
+            "TERM".to_string(),
+            "--".to_string(),
+            format!("-{pgid}"),
+        ]
+    })
+}
+
+/// SIGTERM every process in the group led by `pgid` (nothing for the groups refused above).
+pub fn terminate_group(pgid: u32) {
+    if let Some(args) = group_term_args(pgid) {
         let _ = Command::new("kill")
-            .args(["-TERM", &format!("-{}", self.child.id())])
+            .args(args)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status();
+    }
+}
+
+impl Drop for Browser {
+    fn drop(&mut self) {
+        // Terminate the whole group the browser leads (its pid is the group id).
+        terminate_group(self.child.id());
         let _ = self.child.kill();
         let _ = self.child.wait();
         let _ = std::fs::remove_dir_all(&self.profile);
@@ -119,4 +145,63 @@ pub fn wait_for(limit: Duration, mut fetch: impl FnMut() -> Option<String>) -> O
         std::thread::sleep(Duration::from_millis(200));
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::process::ExitStatusExt;
+
+    /// Regression: the group id used to be passed as a bare `-<pgid>`, which procps-ng's `kill`
+    /// turned into `kill(-1, SIGTERM)` for any pid starting with 1 (the desktop session died).
+    #[test]
+    fn the_group_id_is_always_an_operand_after_a_double_dash() {
+        // the last four are pids from real session crashes; all begin with the digit 1
+        for pgid in [2u32, 7654321, 19207, 1149968, 1362056, 1908550] {
+            let args = group_term_args(pgid).unwrap();
+            assert_eq!(args, ["-s", "TERM", "--", &format!("-{pgid}")], "{pgid}");
+        }
+        // group 0 (ourselves) and group 1 (as -1: everything we own) are never signalled
+        assert_eq!(group_term_args(0), None);
+        assert_eq!(group_term_args(1), None);
+        terminate_group(0);
+        terminate_group(1);
+    }
+
+    #[test]
+    fn terminating_a_group_ends_that_group_and_nothing_else() {
+        let spawn = |script: &str| {
+            Command::new("sh")
+                .args(["-c", script])
+                .process_group(0)
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .expect("start sh")
+        };
+        let mut victim = spawn("sleep 60 & wait"); // a leader with a helper, like Chrome
+        let mut bystander = spawn("sleep 60 & wait"); // someone else's group
+        std::thread::sleep(Duration::from_millis(100));
+        let pgid = victim.id();
+        terminate_group(pgid);
+        assert_eq!(victim.wait().unwrap().signal(), Some(15), "SIGTERM");
+        let group_alive = || {
+            Command::new("kill")
+                .args(["-s", "0", "--", &format!("-{pgid}")])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .is_ok_and(|s| s.success())
+        };
+        let gone = wait_for(Duration::from_secs(5), || {
+            (!group_alive()).then(String::new)
+        });
+        assert!(gone.is_some(), "the helper in the group was terminated too");
+        assert!(
+            bystander.try_wait().unwrap().is_none(),
+            "a process outside the group is untouched"
+        );
+        terminate_group(bystander.id());
+        assert_eq!(bystander.wait().unwrap().signal(), Some(15));
+    }
 }
