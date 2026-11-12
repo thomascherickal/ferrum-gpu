@@ -115,6 +115,8 @@ fn info(d: &dyn Decoder) -> Response {
             ("params", num(i.params)),
             ("vocab", num(i.vocab)),
             ("ctx", num(i.ctx)),
+            // ferrum-cpu's name for the same number; its LightEval adapter reads this one
+            ("context_len", num(i.ctx)),
         ]),
     )
 }

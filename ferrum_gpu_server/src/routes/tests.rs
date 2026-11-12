@@ -49,6 +49,8 @@ fn health_and_info() {
         ),
         (200, Some("stub"), Some("stub"), Some(16))
     );
+    // ferrum-cpu's LightEval adapter reads `context_len`
+    assert_eq!(j.get("context_len").and_then(Json::as_usize), Some(16));
 }
 
 #[test]

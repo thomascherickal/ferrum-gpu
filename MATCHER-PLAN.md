@@ -8,7 +8,7 @@
 1. (done) `prepare`, fetch script, DVC files.
 2. (done 2026-11-12, except `--resume`) M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
 3. `--tie` and `--dropout` for GPT-2 training: engine work on the CPU and GPU trainers. (`--vocab 0` done 2026-11-12 as a byte-level model.)
-4. Server: (done 2026-11-12) request cancel on client disconnect; still open: trying the existing LightEval module against our routes.
+4. Server: (done 2026-11-12) request cancel on client disconnect; LightEval: ferrum-cpu's adapter (`eval/lighteval/ferrum_model.py`, lighteval 0.13.0) was driven against our server on 2026-11-12 (`max_length`, `loglikelihood`, `loglikelihood_rolling`, `greedy_until` all answered correctly on a tiny CPU-trained model); that found one gap, `/v1/info` lacked `context_len`, now added. The full benchmark tasks (blimp, arc, tinystories_cloze; they download datasets) were not run.
 5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.
 6. First CI run on GitHub, and Apple, AMD and Windows hardware rows (Phase 7).
 
@@ -127,7 +127,7 @@ Done: `export-ollama` and `export-lmstudio` with ferrum-cpu's Modelfile text and
 
 ### M7: server and evaluation parity (server done 2026-11-11)
 
-Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 files with BPE, bearer token and exposure rule, in-flight cap, stop strings, top-p and repetition penalty. Request cancel on disconnect done 2026-11-12 (generation stops within one token). Left: `--max-batch` semantics beyond the request count, the Python evaluation adapter (the existing LightEval module has not been tried against this server).
+Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 files with BPE, bearer token and exposure rule, in-flight cap, stop strings, top-p and repetition penalty. Request cancel on disconnect done 2026-11-12 (generation stops within one token). Left: `--max-batch` semantics beyond the request count. The LightEval adapter was tried against this server 2026-11-12 (see item 4 above); `/v1/info` now also reports `context_len`.
 
 - Bearer-token auth (`FERRUM_TOKEN`), non-loopback bind only with a token, `--allow-unauthenticated` as an explicit opt-out; `--max-batch`, `--max-chars`, `--max-body`, `--max-tokens`; request cancel; rolling log-likelihood route; imported-model routes.
 - A small Python evaluation adapter in `eval/` that talks to our server over HTTP (no code shared with ferrum-cpu's LightEval module; written fresh against the same route shapes).
