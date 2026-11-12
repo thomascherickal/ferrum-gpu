@@ -214,8 +214,11 @@ mod tests {
         let e = expand_inputs(&["/nonexistent-ferrum".into()], &out).unwrap_err();
         assert!(e.contains("does not exist"), "{e}");
         // Not a regular file: refused when named, skipped inside a directory.
-        let e = expand_inputs(&["/dev/zero".into()], &out).unwrap_err();
-        assert!(e.contains("not a regular file"), "{e}");
+        #[cfg(unix)]
+        {
+            let e = expand_inputs(&["/dev/zero".into()], &out).unwrap_err();
+            assert!(e.contains("not a regular file"), "{e}");
+        }
         #[cfg(unix)]
         {
             std::os::unix::fs::symlink(d.join("missing"), d.join("dangling")).unwrap();

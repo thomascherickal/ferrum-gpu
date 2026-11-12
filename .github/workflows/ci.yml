@@ -55,5 +55,8 @@ jobs:
       - name: Adapters
         run: cargo run -q -p ferrum_gpu_cli --locked -- info --device cpu
         continue-on-error: true
-      # --no-fail-fast: see every failing test, not just the first binary's
-      - run: cargo test --workspace --locked --no-fail-fast
+      # --no-fail-fast: see every failing test, not just the first binary's. One test thread:
+      # concurrent GPU device opens hang or crash some drivers (HANDOFF.md). The step timeout turns
+      # a hung test into a failure instead of an hour of runner time.
+      - run: cargo test --workspace --locked --no-fail-fast -- --test-threads 1
+        timeout-minutes: 25

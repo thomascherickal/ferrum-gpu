@@ -1,0 +1,2 @@
+# Golden fixtures are compared byte for byte (hashes, token counts): never convert line endings.
+fixtures/** -text
