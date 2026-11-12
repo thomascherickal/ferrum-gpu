@@ -189,6 +189,24 @@ fn the_token_gate_works_through_the_binary_and_the_environment() {
     std::fs::remove_dir_all(dir).ok();
 }
 
+/// Regression (found by CI): the server printed an `auth:` line after its address line, the test's
+/// reader had already stopped, and `println!` panicked on the broken pipe, killing the server.
+#[test]
+fn the_server_keeps_serving_after_its_stdout_is_closed() {
+    let dir = work("closed_stdout");
+    let model = dir.join("m.gguf");
+    std::fs::write(
+        &model,
+        to_gguf(&fresh_model("tiny", 1).unwrap(), Quant::F32),
+    )
+    .unwrap();
+    let s = spawn(model.to_str().unwrap(), &["--token", "s3cret"], &[]);
+    // `spawn` returned, so the reader is gone; give the server time to print its remaining lines
+    std::thread::sleep(std::time::Duration::from_millis(500));
+    assert!(http(&s.addr, "GET", "/health", "", "").contains("200"));
+    std::fs::remove_dir_all(dir).ok();
+}
+
 #[test]
 fn exposing_the_server_without_a_token_is_refused() {
     let dir = work("expose");

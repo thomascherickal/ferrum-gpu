@@ -1,6 +1,9 @@
 //! Drives the real page in headless Chrome: create a model, train, generate. Skipped (with the
 //! reason printed) when no Chrome is installed, so the suite still passes on a bare machine.
 
+// the harness uses process groups, `kill`, `sh` and `timeout`: not built on Windows
+#![cfg(unix)]
+
 mod common;
 
 use ferrum_gpu_gui::app::{App, DeviceChoice};

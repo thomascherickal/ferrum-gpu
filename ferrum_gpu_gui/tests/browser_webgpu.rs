@@ -1,6 +1,9 @@
 //! Phase 5b: the in-browser WebGPU runtime against the CPU oracle, and the browser-only JS parts.
 //! Both skip, with the reason printed, when Node or Chrome (or WebGPU in Chrome) is missing.
 
+// the harness uses process groups, `kill`, `sh` and `timeout`: not built on Windows
+#![cfg(unix)]
+
 mod common;
 
 use ferrum_gpu_gui::app::{App, DeviceChoice};

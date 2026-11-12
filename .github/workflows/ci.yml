@@ -51,4 +51,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test --workspace --locked
+      # which adapter (if any) the hosted runner offers, so a failure can be read against it
+      - name: Adapters
+        run: cargo run -q -p ferrum_gpu_cli --locked -- info --device cpu
+        continue-on-error: true
+      # --no-fail-fast: see every failing test, not just the first binary's
+      - run: cargo test --workspace --locked --no-fail-fast

@@ -1,4 +1,6 @@
 #![forbid(unsafe_code)]
+// bash scripts with unix file modes: not built on Windows (the independence guard still is)
+#![cfg(unix)]
 //! Tests for `scripts/statusline.sh` and `scripts/handoff_check.sh`, the machinery behind
 //! CLAUDE.md rule 12 (write HANDOFF.md at 98% context). They run the real scripts under bash with
 //! jq, a stub delegate and temp directories; without jq they skip with a printed reason.

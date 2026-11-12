@@ -8,7 +8,17 @@ use ferrum_gpu_gui::app::{App, DeviceChoice};
 use ferrum_gpu_server::decoder::{Decoder, Gpt2Decoder, ModelDecoder};
 use ferrum_gpu_server::limits::Limits;
 use ferrum_gpu_server::serve::{check_exposure, start, Config};
+use std::io::Write;
 use std::sync::Arc;
+
+/// Print a status line. A closed stdout (`ferrum-gpu-server | head -1`, a parent that stopped
+/// reading) must not kill a server that is otherwise fine, which `println!` would (it panics on a
+/// broken pipe).
+macro_rules! say {
+    ($($t:tt)*) => {
+        let _ = writeln!(std::io::stdout(), $($t)*);
+    };
+}
 
 const USAGE: &str = "usage: ferrum-gpu-server --model F.gguf [--host 127.0.0.1] [--port 8080] [--token T | FERRUM_TOKEN] \
 [--allow-unauthenticated] [--max-batch N] [--max-chars N] [--max-body BYTES] [--max-tokens N] \
@@ -16,7 +26,7 @@ const USAGE: &str = "usage: ferrum-gpu-server --model F.gguf [--host 127.0.0.1] 
 
 fn run(args: &[String]) -> Result<(), String> {
     if args.iter().any(|a| a == "-h" || a == "--help") {
-        println!("{USAGE}");
+        say!("{USAGE}");
         return Ok(());
     }
     let a = Args::parse(
@@ -77,9 +87,9 @@ fn run(args: &[String]) -> Result<(), String> {
     if dec.note.is_some() {
         app.fallback_note = dec.note;
     }
-    println!("device: {} ({})", app.backend.name(), app.backend.kind());
+    say!("device: {} ({})", app.backend.name(), app.backend.kind());
     if let Some(n) = &app.fallback_note {
-        println!("note: {n}");
+        say!("note: {n}");
     }
     let mem = a
         .get("--gpu-mem-mb")
@@ -105,9 +115,9 @@ fn run(args: &[String]) -> Result<(), String> {
         Arc::new(ModelDecoder::new(app.backend.clone(), model))
     };
     let server = start(decoder, &cfg)?;
-    println!("ferrum-gpu server: http://{}/", server.addr);
+    say!("ferrum-gpu server: http://{}/", server.addr);
     if cfg.token.is_some() {
-        println!("auth: bearer token required (GET /health is open)");
+        say!("auth: bearer token required (GET /health is open)");
     }
     loop {
         std::thread::park();

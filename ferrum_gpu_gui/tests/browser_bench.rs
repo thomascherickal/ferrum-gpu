@@ -1,6 +1,9 @@
 //! In-browser decode speed on every WebGPU adapter Chrome offers. Slow (minutes), so it only runs
 //! on request: `cargo test -p ferrum_gpu_gui --test browser_bench -- --ignored --nocapture`.
 
+// the harness uses process groups, `kill`, `sh` and `timeout`: not built on Windows
+#![cfg(unix)]
+
 mod common;
 
 use ferrum_gpu_gui::app::{App, DeviceChoice};
