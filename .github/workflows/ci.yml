@@ -58,20 +58,20 @@ jobs:
       # --no-fail-fast: see every failing test, not just the first binary's. One test thread:
       # concurrent GPU device opens hang or crash some drivers (HANDOFF.md). The step timeout turns
       # a hung test into a failure instead of an hour of runner time.
-      - name: Tests (Windows: whatever adapter the runner has)
+      - name: "Tests (Windows, whatever adapter the runner has)"
         if: runner.os == 'Windows'
         run: cargo test --workspace --locked --no-fail-fast -- --test-threads 1
         timeout-minutes: 25
       # macOS: the hosted runner's paravirtual Apple GPU hung a test run for 40+ minutes (the step
       # timeout did not even stop it) and gave GPU/CPU loss curves that disagree, so the build and
       # CPU paths are tested with no adapter, and the GPU is tried separately below.
-      - name: Tests (macOS: no GPU adapter)
+      - name: "Tests (macOS, no GPU adapter)"
         if: runner.os == 'macOS'
         env:
           FERRUM_GPU_ADAPTER: no-such-adapter
         run: cargo test --workspace --locked --no-fail-fast -- --test-threads 1
         timeout-minutes: 25
-      - name: GPU kernel tests (macOS, informational)
+      - name: "GPU kernel tests (macOS, informational)"
         if: runner.os == 'macOS'
         continue-on-error: true
         run: cargo test -p ferrum_wgpu --locked --no-fail-fast -- --test-threads 1
