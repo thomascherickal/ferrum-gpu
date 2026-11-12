@@ -36,15 +36,21 @@ fn tokenizer(
             return Ok(t);
         }
     }
-    if vocab == 0 {
-        return Err(
-            "--vocab 0 (character-level) is not supported yet; use a BPE vocabulary of 257 or more"
-                .into(),
-        );
-    }
-    let t =
-        ByteBpeTokenizer::train_with_docs(text, vocab).map_err(|e| format!("tokenizer: {e}"))?;
-    say(out, format!("tokenizer: trained {} tokens", t.vocab_size()))?;
+    // --vocab 0: character-level, as one token per byte (256 ids, no merges). Pure ASCII text is
+    // exactly character-level; other characters become their UTF-8 bytes. Unlike ferrum-cpu's own
+    // character model (a distinct-character vocabulary in a file only it reads), this one is an
+    // ordinary tokenizer file and an ordinary `gpt2` GGUF, so it exports and loads everywhere.
+    let t = if vocab == 0 {
+        ByteBpeTokenizer::byte_level()
+    } else {
+        ByteBpeTokenizer::train_with_docs(text, vocab).map_err(|e| format!("tokenizer: {e}"))?
+    };
+    let kind = if vocab == 0 {
+        "character-level (bytes)"
+    } else {
+        "trained"
+    };
+    say(out, format!("tokenizer: {kind} {} tokens", t.vocab_size()))?;
     if let Some(p) = a.get("--tokenizer") {
         atomic_write(Path::new(p), &tokenizer_gguf::to_gguf_bytes(&t))
             .map_err(|e| format!("{p}: {e}"))?;

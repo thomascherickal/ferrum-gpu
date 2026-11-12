@@ -75,8 +75,12 @@ last fraction X of the tokens and reports the validation loss after every epoch,
 to stop cleanly after the current step); `--metrics-csv F`; `--verbose` (progress every 10 steps with tokens/s,
 gradient norm and ETA); `--sample` (print a short greedy sample at the end).
 
-Not supported yet and refused by name: `--tie` (tied output head), `--dropout` above 0, `--vocab 0`
-(character-level). `--force` is accepted and does nothing (there is no RAM guard).
+`--vocab 0` trains a character-level model: one token per byte (256 ids, no merges), so plain ASCII
+text is exactly character-level and other characters are their UTF-8 bytes. ferrum-cpu's character
+model keeps a distinct-character vocabulary in a file only it reads; ours is an ordinary tokenizer
+file and `gpt2` GGUF that exports and loads everywhere.
+
+Not supported yet and refused by name: `--tie` (tied output head) and `--dropout` above 0. `--force` is accepted and does nothing (there is no RAM guard).
 
 **`train --arch llama` flags.** `--preset`, `--steps` (100), `--lr` (0.003), `--batch` (4), `--context`
 (min(model ctx, 32)), `--seed` (1), `--quant f32|q8_0|q4_0` (f32). The GPT-2-only flags above are refused with
@@ -193,7 +197,7 @@ unauthenticated.
 
 ## 10. What is not here yet
 
-Server request cancel on disconnect, tied heads, dropout and character-level models for GPT-2 training, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
+Server request cancel on disconnect, tied heads and dropout for GPT-2 training, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).
 

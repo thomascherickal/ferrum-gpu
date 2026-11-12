@@ -7,7 +7,7 @@
 **Still open, in the order I would take them:**
 1. (done) `prepare`, fetch script, DVC files.
 2. M5 for Llama/Qwen files: chat template and `--raw`, `--stop`/`--stream` for `run-gguf`, `--ids`, `eval-gguf` options (`--ctx`, `--quant`), imported-model sampling knobs.
-3. `--tie`, `--dropout` and character-level (`--vocab 0`) for GPT-2 training: engine work on the CPU and GPU trainers.
+3. `--tie` and `--dropout` for GPT-2 training: engine work on the CPU and GPU trainers. (`--vocab 0` done 2026-11-12 as a byte-level model.)
 4. Server: request cancel on client disconnect; trying the existing LightEval module against our routes.
 5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.
 6. First CI run on GitHub, and Apple, AMD and Windows hardware rows (Phase 7).
@@ -103,7 +103,7 @@ Done: Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K read paths (`ferrum_gguf::blocks`)
 
 ### M4: training parity (core done 2026-11-11)
 
-Done: `train --arch gpt2` (default) with BPE, ferrum-cpu's presets and size flags, epochs/steps/tokens budgets, stride, weight decay, cosine and warmup, clip, QAT on by default, `--quant int8/int4/f32`, checkpoint and resume, `--val`/`--patience`, `--max-seconds` and stop file, `--metrics-csv`, `--verbose`, `--sample`, `finetune-gguf` for GPT-2 files, and the GPU runs the same loop (loss curve identical to four decimals on the MX330). Our `train` output loads in ferrum-cpu (manual check, docs/cli.md). Left in M4: `--tie` and `--dropout` (need engine work, refused by name today), `--vocab 0` character-level, token-file input (M2), VRAM discovery for the pre-flight, presets for the Llama path unchanged. Also found: the server only loads Llama-style files; serving GPT-2 files moves to M7.
+Done: `train --arch gpt2` (default) with BPE, ferrum-cpu's presets and size flags, epochs/steps/tokens budgets, stride, weight decay, cosine and warmup, clip, QAT on by default, `--quant int8/int4/f32`, checkpoint and resume, `--val`/`--patience`, `--max-seconds` and stop file, `--metrics-csv`, `--verbose`, `--sample`, `finetune-gguf` for GPT-2 files, and the GPU runs the same loop (loss curve identical to four decimals on the MX330). Our `train` output loads in ferrum-cpu (manual check, docs/cli.md). Left in M4: `--tie` and `--dropout` (need engine work, refused by name today); `--vocab 0` is done (byte-level, 2026-11-12), token-file input (M2), VRAM discovery for the pre-flight, presets for the Llama path unchanged. Also found: the server only loads Llama-style files; serving GPT-2 files moves to M7.
 
 - Expose every engine option the CPU CLI has: epochs and `--tokens` budget, stride with random phase, `--val`/`--patience` (best-epoch keep, early stop), `--max-seconds` and `<model>.stop`, `--metrics-csv`, `--verbose` with tokens/s, grad norm and ETA, `--tie`, `--no-qat`, `--weight_decay`, `--dropout`, `--cosine`, `--warmup`, `--clip`, `--sample`.
 - Presets: check ours against ferrum-cpu's tiny/small/medium and record any difference.

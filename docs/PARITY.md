@@ -68,7 +68,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | Q4_1, Q5_0, Q5_1, Q8_1 | yes | **have (M3, 2026-11-11)**: read, dequantized to f32 on load | have | |
 | Q2_K, Q3_K, Q4_K, Q5_K, Q6_K | yes | **have (M3)**: read, dequantized to f32 on load; no GPU kernel reads them in place and nothing is written in these formats | partial | |
 | BPE tokenizer (`ferrum_tok`: trainer, encoder, GPT-2 pre-tokenizer, specials), GGUF tokenizer file and model metadata (`ferrum_model::tokenizer_gguf`) | yes | **have (M1, 2026-11-11)**: reads and writes ferrum-cpu's tokenizer file and model metadata; encodes the fixture corpus to the same 942 ids; our GPT-2 reader loads a real ferrum-cpu model file | have | |
-| Character-level model (`--vocab 0`) | yes | no | gap | M1 |
+| Character-level model (`--vocab 0`) | distinct-character vocabulary, ferrum-cpu-only file | one token per byte (256 ids), ordinary tokenizer file and `gpt2` GGUF | differs (by design) | M4 |
 | Refusals | refuses biases on any projection except q/k/v, and any RoPE scaling type other than `linear` or `none` (with factor 1.0) | refuses yarn, longrope, attention factor other than 1, and biases outside attention q/k/v | have (same intent; ours is at least as strict; exact messages not compared) | |
 
 ## Server

@@ -70,6 +70,33 @@ fn sizes_follow_ferrum_cpu_defaults_presets_and_explicit_flags() {
 }
 
 #[test]
+fn vocab_zero_trains_a_character_level_model_that_generates_and_reloads() {
+    let d = dir("charlevel");
+    let c = data(&d);
+    let (o, tok) = (d.join("c.gguf"), d.join("c.tok.gguf"));
+    let t = ok(&format!(
+        "train {FAST} --epochs 3 --data {c} --out {} --vocab 0 --tokenizer {}",
+        o.display(),
+        tok.display()
+    ));
+    assert!(t.contains("character-level (bytes) 256 tokens"), "{t}");
+    assert!(t.contains("vocab 256"), "{t}");
+    // the model reloads and generates from the saved tokenizer, one token per character
+    let g = ok(&format!(
+        "generate --device cpu --model {} --prompt ab --max-new 5",
+        o.display()
+    ));
+    assert!(g.starts_with("ab"), "{g}");
+    // a later run reuses the tokenizer file (no --vocab needed)
+    let again = ok(&format!(
+        "train {FAST} --epochs 1 --data {c} --out {} --tokenizer {}",
+        d.join("c2.gguf").display(),
+        tok.display()
+    ));
+    assert!(again.contains("256 tokens"), "{again}");
+}
+
+#[test]
 fn quant_accepts_both_spellings() {
     let t = [crate::flags::val("--quant")];
     let q = |s: &str| quant(&Args::parse(&t, &words(s)).unwrap(), "int8");
@@ -368,7 +395,6 @@ fn unsupported_and_misplaced_options_are_refused_by_name() {
     let t = |extra: &str| err(&format!("train --device cpu --data {c} --out {o} {extra}"));
     assert!(t("--preset tiny --tie").contains("--tie is not supported"));
     assert!(t("--preset tiny --dropout 0.1").contains("--dropout is not supported"));
-    assert!(t("--preset tiny --vocab 0").contains("character-level"));
     assert!(t("--preset tiny --arch bert").contains("unknown '"));
     assert!(t("--preset tiny --arch llama --epochs 3").contains("--epochs needs --arch gpt2"));
     assert!(t("--preset tiny --arch llama --embed 8").contains("--embed needs --arch gpt2"));
