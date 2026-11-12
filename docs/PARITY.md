@@ -94,7 +94,12 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | DVC pipeline (`dvc.yaml`, `params.yaml`) | yes | files exist at the repository root; DVC itself was never run | partial |
 | `scripts/fetch.sh` pinned download | yes | `scripts/fetch.sh` exists (not run against the network) | partial |
 | Browser | `slm_wasm` CPU in WASM | WebGPU in the tab | different (Phase 5b) |
-| GUI | Tauri desktop app | local web GUI | different; feature check in M8 |
+| GUI: tabs | 12 (Datasets, Prepare, Train, Generate, Evaluate, Models, GGUF, Fine-tune, Export, Serve, System, Capable) | 4 (Device, Model, Train, Generate); the CLI does the rest | different, on purpose: the GUI is a window onto training and sampling, not a second front end |
+| GUI: Train options | architecture, epochs/token budget, stride, LR/cosine/warmup, validation share, checkpoints | steps, LR, batch, context, **validation share (2026-11-12)**; warmup and clip are fixed | partial |
+| GUI: Generate options | temperature, top-k, top-p, repetition penalty, stop strings | temperature, top-k, **stop strings (2026-11-12)**; no top-p or repetition penalty (the byte engine has none) | partial |
+| GUI: checkpoints | save/load a model | **have**: Download GGUF (f32, q8_0, q4_0) and Load a GGUF | have |
+| GUI: BPE tokenizer | yes | no: byte-level models only, see docs/gui.md | different, on purpose |
+| GUI: shell | Tauri desktop app | local web page on 127.0.0.1 | different |
 | RAM guard (Linux), `--force` | yes | GPU buffer pre-flight and `--gpu-mem-mb` | different |
 | Determinism | bit-identical across thread counts | bit-identical across repeat runs per adapter | different (stated in ARCHITECTURE.md) |
 | Device choice | CPU only | `--device cpu\|gpu\|auto` | GPU-only feature |

@@ -1,4 +1,5 @@
 // ferrum-gpu GUI: talks to the local server's JSON API. No external requests.
+import { stopStrings, cutAtStop } from '/web/stop.js';
 // In a scripted run any uncaught error is reported to the server so the test can show it.
 if (new URLSearchParams(location.search).get('autotest')) {
   const send = (m) => fetch('/api/selftest/result', { method: 'POST', body: JSON.stringify({ kind: 'error', pass: false, error: String(m) }) });
@@ -111,7 +112,8 @@ async function pollTrain() {
     const s = await api('/api/train/status');
     $('progress').max = s.total || 1; $('progress').value = s.step;
     const last = s.losses.length ? s.losses[s.losses.length - 1].toFixed(3) : '–';
-    $('train-status').textContent = s.state === 'error' ? `error: ${s.error}` : `${s.state} · step ${s.step}/${s.total || '?'} · loss ${last}`;
+    const val = s.val_before == null ? '' : ` · validation ${s.val_before.toFixed(3)}${s.val_after == null ? '' : ' → ' + s.val_after.toFixed(3)}`;
+    $('train-status').textContent = s.state === 'error' ? `error: ${s.error}` : `${s.state} · step ${s.step}/${s.total || '?'} · loss ${last}${val}`;
     $('train-status').className = s.state === 'error' ? 'bad' : s.state === 'done' ? 'good' : 'muted';
     drawChart(s.losses);
     const running = s.state === 'running';
@@ -124,6 +126,7 @@ $('train-start').addEventListener('click', async () => {
     await post('/api/train', {
       text: $('text').value, steps: Number($('steps').value), lr: Number($('lr').value),
       batch: Number($('batch').value), context: Number($('context').value),
+      val: Number($('val').value) / 100,
     });
     if (!poll) poll = setInterval(pollTrain, 400);
     pollTrain();
@@ -137,12 +140,13 @@ async function generate() {
   const req = {
     prompt: $('prompt').value, max_new: Number($('max_new').value),
     temperature: Number($('temperature').value), top_k: Number($('top_k').value), seed: 1,
+    stop: stopStrings($('stop').value),
   };
   try {
     if ($('runner').value === 'browser') {
       if (!window.ferrumBrowser) throw new Error('the in-browser runtime is not loaded');
       const t0 = performance.now();
-      const text = await window.ferrumBrowser.generate(req);
+      const text = cutAtStop(await window.ferrumBrowser.generate(req), req.stop);
       $('output').textContent = req.prompt + text;
       $('gen-msg').textContent = `in this browser (WebGPU) · ${(performance.now() - t0).toFixed(0)} ms`;
     } else {
@@ -189,13 +193,21 @@ async function uiAutotest() {
     await until(() => $('model-msg').textContent.startsWith('Created')); steps.push('model');
     showTab($('tab-train'));
     $('text').value = 'the quick brown fox jumps over the lazy dog. '.repeat(10);
-    $('steps').value = 40; $('batch').value = 4; $('context').value = 24; $('train-start').click();
+    $('steps').value = 40; $('batch').value = 4; $('context').value = 24; $('val').value = 20; $('train-start').click();
     await until(() => /^done/.test($('train-status').textContent)); steps.push('train');
     const s = await api('/api/train/status');
     const improved = s.losses.length === 40 && s.losses[39] < 0.7 * s.losses[0];
+    // the validation share was held out: its loss was measured before and after, and fell
+    const validated = s.val_before != null && s.val_after != null && s.val_after < s.val_before
+      && /validation/.test($('train-status').textContent);
     showTab($('tab-generate')); $('prompt').value = 'the quick brown '; $('max_new').value = 12; $('generate').click();
     await until(() => $('output').textContent.length > 16); steps.push('generate');
     const out = $('output').textContent;
+    // a stop string ends the text before its first match
+    $('stop').value = ' '; $('output').textContent = ''; $('generate').click();
+    await until(() => $('output').textContent.length > 0); steps.push('stop');
+    const stopped = $('output').textContent === 'the quick brown fox';
+    $('stop').value = '';
     // the same prompt through the in-browser WebGPU runner must give the server's greedy text
     let browser = { skipped: true };
     if (navigator.gpu && await navigator.gpu.requestAdapter()) {
@@ -205,7 +217,7 @@ async function uiAutotest() {
       browser.matches = browser.text === out;
     }
     const browserOk = browser.skipped || browser.matches === true;
-    await reportSelfTest({ kind: 'ui', pass: improved && out.startsWith('the quick brown ') && out.includes('fox') && browserOk, steps, first: s.losses[0], last: s.losses[39], output: out, browser, device: $('device-badge').textContent });
+    await reportSelfTest({ kind: 'ui', pass: improved && validated && stopped && out.startsWith('the quick brown ') && out.includes('fox') && browserOk, steps, first: s.losses[0], last: s.losses[39], validated, stopped, output: out, browser, device: $('device-badge').textContent });
   } catch (err) { await reportSelfTest({ kind: 'ui', pass: false, steps, error: String(err) }); }
 }
 if (params.get('autotest') === 'ui') uiAutotest();

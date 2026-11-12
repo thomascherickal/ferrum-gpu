@@ -70,6 +70,7 @@
       <label>Learning rate <input id="lr" type="number" step="any" min="0.000001" max="1" value="0.01"></label>
       <label>Batch <input id="batch" type="number" min="1" max="256" value="8"></label>
       <label>Context <input id="context" type="number" min="1" max="4096" value="32"></label>
+      <label>Validation share (%) <input id="val" type="number" min="0" max="50" step="1" value="0"></label>
     </div>
     <div class="row">
       <button id="train-start" type="button">Start training</button>
@@ -97,6 +98,9 @@
       </label>
       <button id="generate" type="button">Generate</button>
     </div>
+    <label class="block">Stop strings (one per line; \n, \t and \\ are unescaped)
+      <textarea id="stop" rows="2" spellcheck="false" placeholder="generation ends before the first match"></textarea>
+    </label>
     <pre id="output" aria-live="polite"></pre>
     <p id="gen-msg" class="muted" role="status"></p>
   </section>

@@ -1,5 +1,6 @@
 //! Shared application state: the chosen backend, the current model and the training job.
 
+use crate::engine::validation::{mean_loss, split};
 use crate::engine::{preset, Backend, CpuBackend, GpuBackend, Progress, TrainSpec};
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::device::select::AdapterSummary;
@@ -149,6 +150,22 @@ impl App {
     /// Start a training run on a copy of the current model. Errors if there is no model, a run
     /// is already going, or the spec does not fit the model.
     pub fn start_training(self: &Arc<Self>, spec: TrainSpec) -> Result<(), String> {
+        self.start_training_validated(spec, 0.0)
+    }
+
+    /// [`App::start_training`] holding out the last `val_fraction` of the text: the run trains on
+    /// the rest, and its progress reports the loss on the held-out part before and after.
+    pub fn start_training_validated(
+        self: &Arc<Self>,
+        mut spec: TrainSpec,
+        val_fraction: f32,
+    ) -> Result<(), String> {
+        let (train, val) = {
+            let (t, v) = split(&spec.text, val_fraction)?;
+            (t.to_vec(), v.to_vec())
+        };
+        spec.text = train;
+        let context = spec.context;
         let model = lock(&self.model)
             .clone()
             .ok_or("create or load a model first")?;
@@ -164,7 +181,13 @@ impl App {
         };
         let app = self.clone();
         std::thread::spawn(move || {
+            if !val.is_empty() {
+                lock(&progress).val_before = mean_loss(&model, &val, context);
+            }
             let result = app.backend.train(&model, &spec, &progress);
+            if let (false, Ok(w)) = (val.is_empty(), &result) {
+                lock(&progress).val_after = mean_loss(w, &val, context);
+            }
             let stopped = lock(&progress).stop;
             let mut job = lock(&app.job);
             job.state = match result {

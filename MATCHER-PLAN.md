@@ -135,7 +135,7 @@ Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 f
 
 ### M8: GUI and docs parity, final matrix
 
-- Compare the GUI's tabs and options to ferrum-cpu's GUI manual section; add what is missing (BPE, validation split, checkpoints, stop strings).
+- Compare the GUI's tabs and options to ferrum-cpu's GUI manual section; add what is missing (BPE, validation split, checkpoints, stop strings). **Done 2026-11-12**: the comparison is in docs/PARITY.md; added the validation share and stop strings; checkpoints already existed (Download/Load GGUF); BPE is deliberately not in the GUI (docs/gui.md says why); the other tabs are the CLI's job.
 - Update README, USER-GUIDE, GGUF.md, `docs/PARITY.md` to all-green or an honest list of remaining differences.
 - Re-measure coverage with the new crates and record it in `docs/COVERAGE.md`.
 - **Gate:** `docs/PARITY.md` has no "gap" rows except those marked "deliberately different" with a reason.

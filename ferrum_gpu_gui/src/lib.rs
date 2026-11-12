@@ -12,4 +12,5 @@ pub mod http;
 pub mod json;
 pub mod selftest;
 pub mod server;
+pub mod stop;
 pub mod tokenizer;

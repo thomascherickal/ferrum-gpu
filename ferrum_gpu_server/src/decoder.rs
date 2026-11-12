@@ -62,18 +62,8 @@ pub trait Decoder: Send + Sync {
     fn score(&self, ids: &[usize]) -> Result<Vec<(f32, bool)>, String>;
 }
 
-/// Cut `text` before the first of `stops`.
-pub fn cut_at_stop(mut text: String, stops: &[String]) -> String {
-    if let Some(at) = stops
-        .iter()
-        .filter(|s| !s.is_empty())
-        .filter_map(|s| text.find(s.as_str()))
-        .min()
-    {
-        text.truncate(at);
-    }
-    text
-}
+/// Cut `text` before the first of `stops` (shared with the GUI).
+pub use ferrum_gpu_gui::stop::cut_at_stop;
 
 /// Per-token `(log-probability, was argmax)` of `ids[1..]` from `[len, vocab]` logits.
 pub fn logprobs(logits: &[f32], vocab: usize, ids: &[usize]) -> Vec<(f32, bool)> {

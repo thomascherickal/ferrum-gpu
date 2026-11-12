@@ -6,6 +6,7 @@ mod cpu;
 mod gpu;
 #[cfg(test)]
 mod tests;
+pub mod validation;
 
 pub use cpu::CpuBackend;
 pub use gpu::GpuBackend;
@@ -105,6 +106,10 @@ pub struct Progress {
     pub losses: Vec<f32>,
     /// Set by the HTTP thread to end the run early.
     pub stop: bool,
+    /// Loss on the held-out text before training (a run with a validation share only).
+    pub val_before: Option<f32>,
+    /// Loss on the held-out text after training.
+    pub val_after: Option<f32>,
 }
 
 /// `batch` windows of `context` tokens and their next-token targets, starting at random offsets.

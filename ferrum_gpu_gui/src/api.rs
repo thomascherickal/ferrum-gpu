@@ -1,10 +1,10 @@
 //! The JSON API and static routes.
 
 use crate::app::{lock, App, JobState};
-use crate::engine::{fresh_model, preset, GenOpts, TrainSpec};
+use crate::engine::{fresh_model, preset, validation, GenOpts, TrainSpec};
 use crate::http::{Request, Response};
 use crate::json::Json;
-use crate::{assets, tokenizer};
+use crate::{assets, stop, tokenizer};
 use ferrum_gguf::Gguf;
 use ferrum_model::gguf::gpt2::Quant;
 use ferrum_model::gguf::llama::{from_gguf, to_gguf};
@@ -177,8 +177,12 @@ fn train(app: &Arc<App>, req: &Request) -> Response {
             seed: field(&j, "seed", 1.0, 0.0, 9.0e15)? as u64,
         })
     })();
+    let val = match field(&j, "val", 0.0, 0.0, f64::from(validation::MAX_FRACTION)) {
+        Ok(v) => v as f32,
+        Err(r) => return r,
+    };
     match parsed.and_then(|s| {
-        app.start_training(s)
+        app.start_training_validated(s, val)
             .map_err(|e| Response::error(if e.contains("already") { 409 } else { 400 }, &e))
     }) {
         Ok(()) => Response::json(200, &Json::obj([("state", Json::Str("running".into()))])),
@@ -204,8 +208,15 @@ fn train_status(app: &App) -> Response {
                 Json::Arr(p.losses.iter().map(|&l| Json::Num(f64::from(l))).collect()),
             ),
             ("error", error),
+            ("val_before", opt_num(p.val_before)),
+            ("val_after", opt_num(p.val_after)),
         ]),
     )
+}
+
+/// A number, or `null` when absent.
+fn opt_num(v: Option<f32>) -> Json {
+    v.map_or(Json::Null, |x| Json::Num(f64::from(x)))
 }
 
 fn generate(app: &App, req: &Request) -> Response {
@@ -240,6 +251,10 @@ fn generate(app: &App, req: &Request) -> Response {
         Ok(o) => o,
         Err(r) => return r,
     };
+    let stops = match stop::parse(&j) {
+        Ok(s) => s,
+        Err(e) => return Response::error(400, &e),
+    };
     match app
         .backend
         .generate(&model, &tokenizer::encode(prompt), &opts)
@@ -249,7 +264,10 @@ fn generate(app: &App, req: &Request) -> Response {
             &Json::obj([
                 (
                     "text",
-                    Json::Str(tokenizer::decode(&ids).unwrap_or_default()),
+                    Json::Str(stop::cut_at_stop(
+                        tokenizer::decode(&ids).unwrap_or_default(),
+                        &stops,
+                    )),
                 ),
                 ("tokens", Json::Arr(ids.iter().map(|&t| num(t)).collect())),
                 ("device", Json::Str(app.backend.kind().into())),

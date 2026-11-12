@@ -16,12 +16,12 @@ It prints `ferrum-gpu GUI: http://127.0.0.1:PORT/`; open that URL. Flags: `--por
 |---|---|
 | Device | See the active device and every adapter the machine reports (name, backend, kind, largest buffer binding); see whether WebGPU works in this browser. |
 | Model | Create a model (`tiny` 35K, `small` 171K, `medium` 771K parameters; byte vocabulary 256), download it as GGUF (f32, Q8_0 or Q4_0), or load a `llama`/`qwen2` GGUF from disk. |
-| Train | Paste text, choose steps, learning rate, batch and context, start. A live loss chart and progress bar update while it runs; Stop keeps the weights reached so far. |
-| Generate | Type a prompt, choose length, temperature and top-k, and run it on the server's device or on this browser's WebGPU. |
+| Train | Paste text, choose steps, learning rate, batch and context, start. **Validation share (%)** holds out the end of the text: the run trains on the rest and the status line shows the loss on the held-out part before and after (`validation 5.9 → 1.4`). A live loss chart and progress bar update while it runs; Stop keeps the weights reached so far. |
+| Generate | Type a prompt, choose length, temperature and top-k, optionally **stop strings** (one per line; `\n`, `\t` and `\\` are unescaped; the text ends before the first match), and run it on the server's device or on this browser's WebGPU. |
 
-## Tokens: bytes, for now
+## Tokens: bytes, deliberately
 
-The real tokenizer is Phase 6. Until then the GUI uses a **byte-level tokenizer** (one token per UTF-8 byte, vocabulary 256), so models trained here take text in and give text out. A GGUF with another vocabulary loads, shows its size and runs, but text generation is refused with an explanation (it would need that model's tokenizer).
+The CLI and the server have BPE (Phase 6); the GUI does not, and that is a decision, not a gap in progress: its engine trains and samples the byte-level Llama-style models directly, a BPE vocabulary would mean the GPT-2 path with its tokenizer files, and the GUI exists to show a model learning in seconds, which bytes do. Use `ferrum-gpu train --vocab 1024 --tokenizer tok.gguf` for BPE models. The GUI uses a **byte-level tokenizer** (one token per UTF-8 byte, vocabulary 256), so models trained here take text in and give text out. A GGUF with another vocabulary loads, shows its size and runs, but text generation is refused with an explanation (it would need that model's tokenizer).
 
 ## API
 
@@ -31,10 +31,10 @@ All JSON unless noted; errors are `{"error": "..."}` with a status code, never a
 |---|---|
 | `GET /api/info` | device, adapters, presets, current model (with a `version` that changes when it is replaced), limits |
 | `POST /api/model` `{preset, seed}` | create a model |
-| `POST /api/train` `{text, steps, lr, batch, context, seed}` | start a background run (409 if one is running) |
-| `GET /api/train/status` | `{state: idle|running|done|stopped|error, step, total, losses[], error}` |
+| `POST /api/train` `{text, steps, lr, batch, context, seed, val}` | start a background run (409 if one is running); `val` is the held-out share, 0 to 0.5 |
+| `GET /api/train/status` | `{state: idle|running|done|stopped|error, step, total, losses[], error, val_before, val_after}` (the last two are `null` without a validation share) |
 | `POST /api/train/stop` | stop after the current step |
-| `POST /api/generate` `{prompt, max_new, temperature, top_k, seed}` | continue the prompt |
+| `POST /api/generate` `{prompt, max_new, temperature, top_k, seed, stop}` | continue the prompt; `stop` is an array of at most 8 strings of at most 64 bytes, and the returned `text` is cut before the first match (`tokens` is the full output) |
 | `GET /api/model.gguf?quant=f32|q8_0|q4_0` | download the model |
 | `PUT /api/model.gguf` (raw body) | replace the model with an uploaded GGUF (at most 60M parameters) |
 | `GET /shaders/<group>/<name>.wgsl`, `/shaders/prelude.wgsl` | the native WGSL kernels (used by the in-browser runtime) |
