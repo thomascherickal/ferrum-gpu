@@ -67,6 +67,7 @@ pub static SOURCES: &[(&str, &str)] = &[
     ),
     ("fwd/bias_add", include_str!("shaders/fwd/bias_add.wgsl")),
     ("fwd/ce_rows", include_str!("shaders/fwd/ce_rows.wgsl")),
+    ("fwd/dropout", include_str!("shaders/fwd/dropout.wgsl")),
     ("fwd/embed", include_str!("shaders/fwd/embed.wgsl")),
     ("fwd/gelu", include_str!("shaders/fwd/gelu.wgsl")),
     ("fwd/gemv", include_str!("shaders/fwd/gemv.wgsl")),

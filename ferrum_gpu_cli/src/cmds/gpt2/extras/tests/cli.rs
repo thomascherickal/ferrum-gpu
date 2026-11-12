@@ -45,15 +45,11 @@ fn dropout_zero_writes_the_same_file_as_no_flag() {
 }
 
 #[test]
-fn dropout_trains_on_the_cpu_and_changes_the_model() {
+fn dropout_changes_the_model() {
     let (d, data) = scratch("on");
     let (plain, dropped) = (d.join("p.gguf"), d.join("d.gguf"));
     train("", &data, &plain).unwrap();
     let out = train("--dropout 0.2", &data, &dropped).unwrap();
-    assert!(
-        out.contains("--dropout: training on the CPU engine"),
-        "{out}"
-    );
     assert!(out.contains("steps:"), "{out}");
     assert_ne!(
         bytes(&plain),
@@ -78,38 +74,11 @@ fn dropout_composes_with_a_tied_head() {
     let (d, data) = scratch("both");
     let m = d.join("m.gguf");
     let out = train("--dropout 0.2 --tie", &data, &m).unwrap();
-    assert!(
-        out.contains("--tie and --dropout: training on the CPU engine"),
-        "{out}"
-    );
+    assert!(out.contains("steps:"), "{out}");
     let g = ferrum_gguf::Gguf::parse(bytes(&m)).unwrap();
     assert!(
         g.tensor("output.weight").is_none(),
         "the head is stored once"
     );
-    std::fs::remove_dir_all(d).ok();
-}
-
-#[test]
-fn an_explicit_gpu_is_refused_before_any_work() {
-    let (d, data) = scratch("gpu");
-    let m = d.join("m.gguf");
-    let e = {
-        let mut buf = Vec::new();
-        run(
-            &words(&format!(
-                "train --device gpu --dropout 0.1 --data {} --out {}",
-                data.display(),
-                m.display()
-            )),
-            &mut buf,
-        )
-        .unwrap_err()
-    };
-    assert!(
-        e.contains("--dropout") && e.contains("CPU engine only"),
-        "{e}"
-    );
-    assert!(!m.exists());
     std::fs::remove_dir_all(d).ok();
 }

@@ -55,7 +55,7 @@ fn step_seeds_differ_per_step_and_per_run() {
 #[test]
 fn uniform_values_stay_in_the_unit_interval() {
     for i in 0..10_000 {
-        let u = uniform(9, 1, i);
+        let u = uniform(9, 1, 3, i);
         assert!((0.0..1.0).contains(&u), "{u}");
     }
 }

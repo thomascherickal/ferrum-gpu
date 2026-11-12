@@ -85,9 +85,8 @@ file and `gpt2` GGUF that exports and loads everywhere.
 the embedding once). It trains on the CPU and on the GPU engines, and the two agree to about 1e-4.
 
 `--dropout RATE` (0 to under 1; above 0.95 is used as 0.95) applies dropout to the feed-forward hidden units while
-training, as ferrum-cpu does. It trains on the CPU engine only for now (`--device auto` uses the CPU,
-`--device gpu` is refused by name), and it can be combined with `--tie`. A seeded run (`--seed`) is exactly reproducible, and
-`--resume` continues the same masks. `--force` is accepted and does nothing (there is no RAM guard).
+training, as ferrum-cpu does. It trains on the CPU and on the GPU engines (the same units drop on both), and it can be
+combined with `--tie`. A seeded run (`--seed`) is exactly reproducible, and `--resume` continues the same masks. `--force` is accepted and does nothing (there is no RAM guard).
 
 **`train --arch llama` flags.** `--preset`, `--steps` (100), `--lr` (0.003), `--batch` (4), `--context`
 (min(model ctx, 32)), `--seed` (1), `--quant f32|q8_0|q4_0` (f32). The GPT-2-only flags above are refused with
@@ -204,7 +203,7 @@ unauthenticated.
 
 ## 10. What is not here yet
 
-Dropout on the GPU engine, GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
+GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
 Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).
 

@@ -1,10 +1,11 @@
 //! GPT-2 training on the GPU. Weights, gradients, Adam moments and every activation stay
 //! resident; one step is recorded as a single command batch, and only the loss and the
 //! gradient norm come back to the host.
-//! ponytail: no dropout yet (tied heads and QAT are in), and one batch shape's activations are
-//! kept at a time (reallocated when `(batch, t)` changes). Add them when a run needs them.
+//! ponytail: one batch shape's activations are kept at a time (reallocated when `(batch, t)`
+//! changes). Tied heads, QAT and FFN dropout are in; each is its own module.
 
 mod acts;
+mod dropout;
 mod engine;
 mod plan;
 mod qat;
@@ -20,6 +21,7 @@ use crate::ops_opt::{accumulate, adam_update, norm_scale, parts_for, sumsq_parts
 use crate::tensor::GpuBuf;
 use acts::Acts;
 use ferrum_ref::gpt2::{Config, Gpt2};
+use std::cell::Cell;
 
 pub use plan::{accum_plan, activation_plan, static_plan};
 pub use qat::qat_plan;
@@ -49,6 +51,10 @@ pub struct GpuTrainer<'g> {
     qat: bool,
     /// The head is tied to the embedding (see `tie`).
     tie: bool,
+    /// FFN-hidden dropout rate and the run's base seed (see `dropout`).
+    dropout: (f32, u64),
+    /// Global index of the first FFN unit of the batch being recorded (micro-batch offset).
+    drop_offset: Cell<u32>,
     fwd: Option<Vec<GpuBuf>>,
     t: u64,
 }
@@ -94,6 +100,8 @@ impl<'g> GpuTrainer<'g> {
             last_micro: 0,
             qat: false,
             tie: false,
+            dropout: (0.0, 0),
+            drop_offset: Cell::new(0),
             fwd: None,
             t: 0,
         })
@@ -225,6 +233,7 @@ impl<'g> GpuTrainer<'g> {
             self.gpu.upload_indices(ids, self.cfg.vocab)?,
             self.gpu.upload_indices(targets, self.cfg.vocab)?,
         );
+        self.set_dropout_offset(0)?;
         self.gpu.begin_batch()?;
         let rec = (|| -> Result<(), GpuError> {
             if self.qat {
@@ -362,6 +371,7 @@ impl<'g> GpuTrainer<'g> {
                 self.record_snap()?; // once per optimizer step: every micro-batch sees the same weights
             }
             for c in 0..chunks {
+                self.set_dropout_offset(c * rows * self.cfg.hidden)?;
                 self.record(&ids[c * rows..(c + 1) * rows], &gid[c], &gtg[c])?;
                 self.gpu.copy_f32(&acts.loss, 0, &losses, c, 1)?;
                 if let Some(acc) = self.accum.as_ref().filter(|_| chunks > 1) {

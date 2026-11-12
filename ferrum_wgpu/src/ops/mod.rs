@@ -13,6 +13,7 @@ macro_rules! pipe {
 }
 
 pub mod bwd;
+pub mod dropout;
 pub mod llama;
 pub mod llama_bwd;
 pub mod matmul;

@@ -53,12 +53,10 @@ impl Backend for GpuBackend {
         qat: bool,
         o: &EngineOptions,
     ) -> Result<Box<dyn Engine + 'a>, String> {
-        if o.dropout > 0.0 {
-            return Err("dropout is not available on the GPU engine yet; train on the CPU".into());
-        }
         let mut t = GpuTrainer::new(&self.gpu, w, None).map_err(|e| e.to_string())?;
         t.set_qat(qat).map_err(|e| e.to_string())?;
         t.set_tie(o.tie).map_err(|e| e.to_string())?;
+        t.set_dropout(o.dropout, o.seed);
         Ok(Box::new(t))
     }
 

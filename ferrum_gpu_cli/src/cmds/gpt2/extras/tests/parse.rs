@@ -3,34 +3,39 @@ use crate::cmds::gpt2::extras::{parse, Extras};
 
 #[test]
 fn no_flags_means_neither_option() {
-    let x = parse(&args("")).unwrap();
     assert_eq!(
-        x,
+        parse(&args("")).unwrap(),
         Extras {
             tie: false,
             dropout: 0.0
         }
     );
-    assert!(!x.needs_cpu());
 }
 
 #[test]
-fn tie_alone_does_not_need_the_cpu() {
-    let x = parse(&args("--tie")).unwrap();
+fn tie_and_dropout_are_read_independently() {
     assert_eq!(
-        x,
+        parse(&args("--tie")).unwrap(),
         Extras {
             tie: true,
             dropout: 0.0
         }
     );
-    assert!(!x.needs_cpu(), "a tied head trains on either engine");
-}
-
-#[test]
-fn a_positive_dropout_needs_the_cpu_and_zero_does_not() {
-    assert!(parse(&args("--dropout 0.1")).unwrap().needs_cpu());
-    assert!(!parse(&args("--dropout 0")).unwrap().needs_cpu());
+    assert_eq!(
+        parse(&args("--dropout 0.1")).unwrap(),
+        Extras {
+            tie: false,
+            dropout: 0.1
+        }
+    );
+    assert_eq!(
+        parse(&args("--tie --dropout 0.25")).unwrap(),
+        Extras {
+            tie: true,
+            dropout: 0.25
+        }
+    );
+    assert_eq!(parse(&args("--dropout 0")).unwrap().dropout, 0.0);
 }
 
 #[test]

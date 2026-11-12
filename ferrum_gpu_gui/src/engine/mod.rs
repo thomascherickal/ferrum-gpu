@@ -263,7 +263,7 @@ pub trait Backend: Send + Sync {
         _opts: &EngineOptions,
     ) -> Result<Box<dyn Engine + 'a>, String> {
         Err(format!(
-            "tied heads and dropout are not available on {}; train on the CPU",
+            "tied heads and dropout are not available on {}",
             self.name()
         ))
     }

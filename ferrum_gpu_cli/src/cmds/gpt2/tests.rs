@@ -432,11 +432,6 @@ fn unsupported_and_misplaced_options_are_refused_by_name() {
     let d = dir("refuse");
     let (c, o) = (data(&d), d.join("o.gguf").display().to_string());
     let t = |extra: &str| err(&format!("train --device cpu --data {c} --out {o} {extra}"));
-    // --dropout trains on the CPU engine only: an explicit GPU request is refused by name
-    assert!(err(&format!(
-        "train --device gpu --data {c} --out {o} --preset tiny --dropout 0.1"
-    ))
-    .contains("--dropout trains on the CPU engine only"));
     assert!(t("--preset tiny --dropout 1.5").contains("--dropout must be in [0, 1)"));
     assert!(t("--preset tiny --arch bert").contains("unknown '"));
     assert!(t("--preset tiny --arch llama --epochs 3").contains("--epochs needs --arch gpt2"));

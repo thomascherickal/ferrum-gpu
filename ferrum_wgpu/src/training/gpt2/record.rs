@@ -79,6 +79,7 @@ impl GpuTrainer<'_> {
                 (d, h),
             )?;
             ops::gelu(g, &a.f1[l], &a.act[l])?;
+            self.record_dropout(&a.act[l], l)?;
             lin(
                 &a.act[l],
                 &p[pi(l, 14)],
@@ -122,6 +123,7 @@ impl GpuTrainer<'_> {
                 (&a.dact, &gr[pi(l, 14)], &gr[pi(l, 15)]),
                 (r, h, d),
             )?;
+            self.record_dropout(&a.dact, l)?;
             bwd::gelu_bwd(g, &a.dact, &a.f1[l], &a.df1)?;
             bwd::linear_bwd(
                 g,

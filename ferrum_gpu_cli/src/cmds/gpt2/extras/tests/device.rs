@@ -17,39 +17,24 @@ fn a_run_without_extras_keeps_the_ordinary_device_choice() {
 }
 
 #[test]
-fn tie_alone_keeps_the_ordinary_device_choice() {
-    // a tied head trains on the GPU too, so it never forces the CPU or announces a fallback
-    let (kind, out) = run("--device cpu --tie");
-    assert_eq!(kind.unwrap(), "cpu");
-    assert!(out.is_empty(), "{out}");
-    let (_, out) = run("--device auto --tie");
-    assert!(!out.contains("training on the CPU engine"), "{out}");
-}
-
-#[test]
-fn dropout_with_an_explicit_gpu_is_refused_by_name() {
-    let e = run("--device gpu --dropout 0.1").0.unwrap_err();
-    assert!(
-        e.contains("--dropout") && e.contains("CPU engine only"),
-        "{e}"
-    );
-}
-
-#[test]
-fn both_options_are_named_together() {
-    let e = run("--device gpu --tie --dropout 0.1").0.unwrap_err();
-    assert!(
-        e.contains("--dropout") && e.contains("CPU engine only"),
-        "{e}"
-    );
-}
-
-#[test]
-fn auto_falls_back_to_the_cpu_and_says_so() {
-    for flags in ["--dropout 0.2", "--device auto --dropout 0.2"] {
+fn the_extras_never_change_the_device_or_announce_a_fallback() {
+    // both options train on either engine, so they are not a reason to leave the GPU
+    for flags in [
+        "--device cpu --tie",
+        "--device cpu --dropout 0.2",
+        "--device cpu --tie --dropout 0.2",
+    ] {
         let (kind, out) = run(flags);
         assert_eq!(kind.unwrap(), "cpu", "{flags}");
-        assert!(out.contains("training on the CPU engine"), "{flags}: {out}");
+        assert!(out.is_empty(), "{flags}: {out}");
+    }
+    for flags in [
+        "--tie",
+        "--dropout 0.2",
+        "--device auto --tie --dropout 0.2",
+    ] {
+        let (_, out) = run(flags);
+        assert!(!out.contains("CPU engine"), "{flags}: {out}");
     }
 }
 

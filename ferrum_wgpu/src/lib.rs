@@ -19,7 +19,7 @@ pub use device::{budget, runtime, select, tensor};
 pub use device::{Gpu, GpuError};
 pub use models::{gpt2, llama};
 pub use ops::{
-    bwd as ops_bwd, llama as ops_llama, llama_bwd as ops_llama_bwd, matmul, opt as ops_opt,
-    qat as ops_qat, quant as ops_quant,
+    bwd as ops_bwd, dropout as ops_dropout, llama as ops_llama, llama_bwd as ops_llama_bwd, matmul,
+    opt as ops_opt, qat as ops_qat, quant as ops_quant,
 };
 pub use training::{gpt2 as train, llama as llama_train};
