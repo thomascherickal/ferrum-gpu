@@ -142,7 +142,6 @@ pub static SOURCES: &[(&str, &str)] = &[
         include_str!("shaders/opt/accumulate.wgsl"),
     ),
     ("opt/adam", include_str!("shaders/opt/adam.wgsl")),
-    ("opt/transpose", include_str!("shaders/opt/transpose.wgsl")),
     (
         "opt/norm_final",
         include_str!("shaders/opt/norm_final.wgsl"),
@@ -151,6 +150,7 @@ pub static SOURCES: &[(&str, &str)] = &[
         "opt/sumsq_part",
         include_str!("shaders/opt/sumsq_part.wgsl"),
     ),
+    ("opt/transpose", include_str!("shaders/opt/transpose.wgsl")),
     ("quant/q8_snap", include_str!("shaders/quant/q8_snap.wgsl")),
     ("quant/qlinear", include_str!("shaders/quant/qlinear.wgsl")),
 ];
