@@ -50,45 +50,58 @@ fn the_same_seed_reproduces_the_pass_and_another_seed_changes_it() {
     assert_ne!(run(&m, d(5)).0, run(&m, None).0);
 }
 
+/// One parameter to perturb: its name, how to bump it, and its analytic gradient.
+struct Probe {
+    name: &'static str,
+    bump: fn(&mut Gpt2, f32),
+    analytic: f32,
+}
+
+/// The central difference of the loss (same dropout seed, so the same mask) along `probe`.
+fn numeric(m: &Gpt2, d: Option<Dropout>, probe: &Probe, eps: f32) -> f32 {
+    let at = |e: f32| {
+        let mut p = m.clone();
+        (probe.bump)(&mut p, e);
+        run(&p, d).0
+    };
+    (at(eps) - at(-eps)) / (2.0 * eps)
+}
+
 #[test]
 fn the_gradient_is_that_of_the_masked_network() {
     let m = Gpt2::init(cfg(), 4);
     let d = Dropout::new(0.4, 11);
     let (_, g) = run(&m, d);
-    let eps = 5e-3f32;
     // a first-block and a last-block FFN weight, and an embedding row that is read
-    let probes: [(&str, Box<dyn Fn(&mut Gpt2, f32)>, f32); 4] = [
-        (
-            "blocks[0].w1[5]",
-            Box::new(|m, e| m.blocks[0].w1[5] += e),
-            g.blocks[0].w1[5],
-        ),
-        (
-            "blocks[0].w2[9]",
-            Box::new(|m, e| m.blocks[0].w2[9] += e),
-            g.blocks[0].w2[9],
-        ),
-        (
-            "blocks[1].w1[40]",
-            Box::new(|m, e| m.blocks[1].w1[40] += e),
-            g.blocks[1].w1[40],
-        ),
-        (
-            "tok[3*8+2]",
-            Box::new(|m, e| m.tok[3 * 8 + 2] += e),
-            g.tok[3 * 8 + 2],
-        ),
+    let probes = [
+        Probe {
+            name: "blocks[0].w1[5]",
+            bump: |m, e| m.blocks[0].w1[5] += e,
+            analytic: g.blocks[0].w1[5],
+        },
+        Probe {
+            name: "blocks[0].w2[9]",
+            bump: |m, e| m.blocks[0].w2[9] += e,
+            analytic: g.blocks[0].w2[9],
+        },
+        Probe {
+            name: "blocks[1].w1[40]",
+            bump: |m, e| m.blocks[1].w1[40] += e,
+            analytic: g.blocks[1].w1[40],
+        },
+        Probe {
+            name: "tok[3*8+2]",
+            bump: |m, e| m.tok[3 * 8 + 2] += e,
+            analytic: g.tok[3 * 8 + 2],
+        },
     ];
-    for (name, bump, analytic) in &probes {
-        let at = |e: f32| {
-            let mut p = m.clone();
-            bump(&mut p, e);
-            run(&p, d).0 // the same seed: the same mask on both sides
-        };
-        let numeric = (at(eps) - at(-eps)) / (2.0 * eps);
+    for p in &probes {
+        let n = numeric(&m, d, p, 5e-3);
         assert!(
-            (numeric - analytic).abs() <= 3e-3 + 0.05 * analytic.abs(),
-            "{name}: numeric {numeric} vs analytic {analytic}"
+            (n - p.analytic).abs() <= 3e-3 + 0.05 * p.analytic.abs(),
+            "{}: numeric {n} vs analytic {}",
+            p.name,
+            p.analytic
         );
     }
 }
