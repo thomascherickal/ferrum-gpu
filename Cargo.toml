@@ -7,3 +7,8 @@ version      = "0.1.0"
 edition      = "2021"
 license      = "MIT"
 rust-version = "1.87"
+
+# Tests run unoptimised; the CPU oracle/trainer loops dominated test time (one e2e test took 16s).
+# Optimise only that crate: debug info and assertions stay, other crates keep fast rebuilds.
+[profile.dev.package.ferrum_ref]
+opt-level = 3

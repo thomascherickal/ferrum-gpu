@@ -65,7 +65,8 @@ pub fn expand_inputs(inputs: &[String], outdir: &Path) -> Result<Vec<PathBuf>, S
     Ok(out)
 }
 
-const CHUNK: usize = 1 << 20;
+// ponytail: tiny chunk in unit tests so the boundary cases run on 64-byte buffers, not 1 MiB.
+const CHUNK: usize = if cfg!(test) { 64 } else { 1 << 20 };
 
 /// Stream `path` as raw documents split on `sep` (byte-exact; an empty separator yields the whole
 /// file). Calls `f(bytes, offset)`, hashes every byte into `hasher` and counts them in `total`.
