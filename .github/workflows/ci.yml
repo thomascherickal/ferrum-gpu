@@ -64,15 +64,11 @@ jobs:
         timeout-minutes: 25
       # macOS: the hosted runner's paravirtual Apple GPU hung a test run for 40+ minutes (the step
       # timeout did not even stop it) and gave GPU/CPU loss curves that disagree, so the build and
-      # CPU paths are tested with no adapter, and the GPU is tried separately below.
+      # CPU paths are tested with no adapter. (A separate GPU step was tried and removed: it ran
+      # past its timeout-minutes and had to be cancelled by hand. See docs/DEVICES.md.)
       - name: "Tests (macOS, no GPU adapter)"
         if: runner.os == 'macOS'
         env:
           FERRUM_GPU_ADAPTER: no-such-adapter
         run: cargo test --workspace --locked --no-fail-fast -- --test-threads 1
         timeout-minutes: 25
-      - name: "GPU kernel tests (macOS, informational)"
-        if: runner.os == 'macOS'
-        continue-on-error: true
-        run: cargo test -p ferrum_wgpu --locked --no-fail-fast -- --test-threads 1
-        timeout-minutes: 10
