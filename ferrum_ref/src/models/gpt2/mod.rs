@@ -116,6 +116,25 @@ pub struct Gpt2 {
 }
 
 impl Gpt2 {
+    /// Tie the output head to the token embedding: `head = tokᵀ`. A model whose head equals the
+    /// transposed embedding is stored without an `output.weight` tensor (see `gpt2_gguf`).
+    pub fn tie_head(&mut self) {
+        self.head = crate::grad::transpose(&self.tok, self.cfg.vocab, self.cfg.dim);
+    }
+
+    /// Fold the head's gradient into the embedding's, for training a tied model: the shared
+    /// matrix `W` is used as `tok = W` and `head = Wᵀ`, so `dL/dW = d_tok + d_headᵀ`. The head's
+    /// own gradient is cleared (it is re-derived from `tok` after the update).
+    pub fn fold_head_grad(&mut self) {
+        let (v, d) = (self.cfg.vocab, self.cfg.dim);
+        for t in 0..v {
+            for k in 0..d {
+                self.tok[t * d + k] += self.head[k * v + t];
+            }
+        }
+        self.head.iter_mut().for_each(|x| *x = 0.0);
+    }
+
     /// Deterministic random weights for tests and benchmarks (small, well-conditioned).
     pub fn random(cfg: Config, seed: u64) -> Gpt2 {
         cfg.validate().expect("valid config");

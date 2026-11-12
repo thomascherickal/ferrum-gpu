@@ -24,7 +24,7 @@ use std::sync::{Arc, Mutex};
 pub const USAGE: &str = "usage: ferrum-gpu <command> [flags]\n\
 commands:\n  \
 info          [--model F.gguf]\n  \
-train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
+train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie (CPU engine) --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
@@ -203,7 +203,15 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
 
 /// Build the app (device) from the shared device flags.
 fn app(a: &Args, work: Workload) -> Result<App, String> {
-    let requested = DeviceChoice::parse(a.get("--device").unwrap_or("auto"))?;
+    app_requested(
+        a,
+        work,
+        DeviceChoice::parse(a.get("--device").unwrap_or("auto"))?,
+    )
+}
+
+/// [`app`] with the device choice decided by the caller instead of read from `--device`.
+fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<App, String> {
     let threads = a.num(
         "--threads",
         std::thread::available_parallelism().map_or(1, |n| n.get()),

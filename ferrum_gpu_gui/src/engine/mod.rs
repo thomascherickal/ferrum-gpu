@@ -239,6 +239,18 @@ pub trait Backend: Send + Sync {
         ))
     }
 
+    /// Like [`Backend::gpt2_engine`], with the output head tied to the token embedding.
+    fn gpt2_tied_engine<'a>(
+        &'a self,
+        _w: &Gpt2,
+        _qat: bool,
+    ) -> Result<Box<dyn Engine + 'a>, String> {
+        Err(format!(
+            "tied output heads are not available on {}; train on the CPU",
+            self.name()
+        ))
+    }
+
     /// A GPT-2 decoder with a fresh KV cache.
     fn gpt2_decoder<'a>(&'a self, _w: &Gpt2) -> Result<Gpt2Feed<'a>, String> {
         Err(format!(

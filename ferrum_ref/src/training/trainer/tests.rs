@@ -402,6 +402,103 @@ fn the_cpu_engine_learns_a_periodic_corpus() {
     assert!(last < first * 0.25, "learns the pattern: {first} -> {last}");
 }
 
+fn tied(mut w: Gpt2) -> Gpt2 {
+    w.tie_head();
+    w
+}
+
+#[test]
+fn the_folded_gradient_of_a_tied_model_matches_finite_differences() {
+    use crate::grad::{loss_and_grads, transpose};
+    let c = cfg();
+    let toks = corpus(17);
+    let (ids, targets) = (&toks[..16], &toks[1..17]);
+    let base = tied(Gpt2::init(c, 5));
+    assert_eq!(base.head, transpose(&base.tok, c.vocab, c.dim));
+    let (_, mut g) = loss_and_grads(&base, ids, targets, 2, 1).unwrap();
+    g.fold_head_grad();
+    assert!(
+        g.head.iter().all(|&x| x == 0.0),
+        "the head's own gradient is cleared"
+    );
+    let loss_at = |tok: &[f32]| {
+        let mut m = base.clone();
+        m.tok = tok.to_vec();
+        m.tie_head();
+        loss_and_grads(&m, ids, targets, 2, 1).unwrap().0
+    };
+    let eps = 5e-3f32;
+    // entries of tokens that occur as input (embedding path) and as targets (head path)
+    for &(t, k) in &[(3usize, 0usize), (7, 3), (1, 5), (9, 2), (4, 7), (0, 1)] {
+        let i = t * c.dim + k;
+        let (mut hi, mut lo) = (base.tok.clone(), base.tok.clone());
+        hi[i] += eps;
+        lo[i] -= eps;
+        let numeric = (loss_at(&hi) - loss_at(&lo)) / (2.0 * eps);
+        let analytic = g.tok[i];
+        assert!(
+            (numeric - analytic).abs() <= 3e-3 + 0.05 * analytic.abs(),
+            "tok[{t}][{k}]: numeric {numeric} vs folded {analytic}"
+        );
+    }
+}
+
+#[test]
+fn a_tied_trainer_keeps_the_head_exactly_the_embedding_transposed_and_still_learns() {
+    use crate::grad::transpose;
+    let toks = corpus(400);
+    let c = cfg();
+    let tc = TrainConfig {
+        context: 8,
+        batch: 8,
+        epochs: 30,
+        lr: 0.02,
+        clip: 1.0,
+        weight_decay: 0.01,
+        ..TrainConfig::default()
+    };
+    for qat in [false, true] {
+        let mut e = CpuTrainer::new(Gpt2::init(c, 3), 1)
+            .with_tie(true)
+            .with_qat(qat);
+        let r = train(&mut e, &toks, &tc, None, None, &mut NoHooks).unwrap();
+        let w = e.weights();
+        assert_eq!(
+            w.head,
+            transpose(&w.tok, c.vocab, c.dim),
+            "qat={qat}: still tied"
+        );
+        let (first, last) = (r.losses[0], *r.losses.last().unwrap());
+        assert!(
+            last < first * 0.35,
+            "qat={qat}: learns the pattern: {first} -> {last}"
+        );
+    }
+    // an untied run on the same data does not keep that relation
+    let mut u = CpuTrainer::new(Gpt2::init(c, 3), 1);
+    train(&mut u, &toks, &tc, None, None, &mut NoHooks).unwrap();
+    assert_ne!(
+        u.weights().head,
+        transpose(&u.weights().tok, c.vocab, c.dim)
+    );
+}
+
+#[test]
+fn restoring_an_untied_snapshot_into_a_tied_trainer_ties_it() {
+    use crate::grad::transpose;
+    let c = cfg();
+    let untied = CpuTrainer::new(Gpt2::init(c, 9), 1);
+    let snap = untied.snapshot().unwrap();
+    let mut t = CpuTrainer::new(Gpt2::init(c, 1), 1).with_tie(true);
+    t.restore(&snap).unwrap();
+    let w = t.weights();
+    assert_eq!(
+        w.tok, snap.weights.tok,
+        "the embedding comes from the snapshot"
+    );
+    assert_eq!(w.head, transpose(&w.tok, c.vocab, c.dim));
+}
+
 #[test]
 fn resuming_from_a_snapshot_equals_an_uninterrupted_run() {
     let toks = corpus(300);

@@ -97,6 +97,45 @@ fn vocab_zero_trains_a_character_level_model_that_generates_and_reloads() {
 }
 
 #[test]
+fn tie_trains_a_shared_embedding_and_head_that_the_file_stores_once() {
+    let d = dir("tie");
+    let c = data(&d);
+    let (plain, tied) = (d.join("plain.gguf"), d.join("tied.gguf"));
+    ok(&format!(
+        "train {FAST} --epochs 3 --data {c} --out {} --vocab 300",
+        plain.display()
+    ));
+    let t = ok(&format!(
+        "train {FAST} --epochs 3 --data {c} --out {} --vocab 300 --tie",
+        tied.display()
+    ));
+    assert!(t.contains("--tie: training on the CPU engine"), "{t}");
+    let has_head = |p: &std::path::Path| {
+        ferrum_gguf::Gguf::parse(std::fs::read(p).unwrap())
+            .unwrap()
+            .tensor("output.weight")
+            .is_some()
+    };
+    assert!(has_head(&plain), "an ordinary model stores its own head");
+    assert!(!has_head(&tied), "a tied model stores the embedding only");
+    assert!(
+        std::fs::metadata(&tied).unwrap().len() < std::fs::metadata(&plain).unwrap().len(),
+        "so the file is smaller"
+    );
+    // it loads and generates like any other file
+    let g = ok(&format!(
+        "generate --device cpu --model {} --prompt the --max-new 6",
+        tied.display()
+    ));
+    assert!(g.starts_with("the"), "{g}");
+    // device auto falls back to the CPU engine for --tie rather than failing
+    ok(&format!(
+        "train --context 16 --embed 16 --heads 2 --blocks 1 --hidden 32 --batch 4 --epochs 1 --data {c} --out {} --vocab 300 --tie",
+        d.join("auto.gguf").display()
+    ));
+}
+
+#[test]
 fn quant_accepts_both_spellings() {
     let t = [crate::flags::val("--quant")];
     let q = |s: &str| quant(&Args::parse(&t, &words(s)).unwrap(), "int8");
@@ -393,7 +432,11 @@ fn unsupported_and_misplaced_options_are_refused_by_name() {
     let d = dir("refuse");
     let (c, o) = (data(&d), d.join("o.gguf").display().to_string());
     let t = |extra: &str| err(&format!("train --device cpu --data {c} --out {o} {extra}"));
-    assert!(t("--preset tiny --tie").contains("--tie is not supported"));
+    // --tie trains on the CPU engine only: an explicit GPU request is refused by name
+    assert!(err(&format!(
+        "train --device gpu --data {c} --out {o} --preset tiny --tie"
+    ))
+    .contains("--tie trains on the CPU engine only"));
     assert!(t("--preset tiny --dropout 0.1").contains("--dropout is not supported"));
     assert!(t("--preset tiny --arch bert").contains("unknown '"));
     assert!(t("--preset tiny --arch llama --epochs 3").contains("--epochs needs --arch gpt2"));

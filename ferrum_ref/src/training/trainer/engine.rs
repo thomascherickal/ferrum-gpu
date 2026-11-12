@@ -62,6 +62,7 @@ pub struct CpuTrainer {
     state: AdamState,
     threads: usize,
     qat: bool,
+    tie: bool,
 }
 
 impl CpuTrainer {
@@ -73,7 +74,18 @@ impl CpuTrainer {
             state,
             threads,
             qat: false,
+            tie: false,
         }
+    }
+
+    /// Train with the output head tied to the token embedding (`head = tokᵀ`, one shared matrix).
+    /// The head is tied at once, and stays tied after every step.
+    pub fn with_tie(mut self, on: bool) -> Self {
+        self.tie = on;
+        if on {
+            self.w.tie_head();
+        }
+        self
     }
 
     /// Turn quantisation-aware training on or off (off by default).
@@ -99,12 +111,19 @@ impl Engine for CpuTrainer {
         // QAT: gradients are taken at the Q8_0-snapped weights, but Adam updates the masters.
         let snapped;
         let model = if self.qat {
-            snapped = self.w.fake_quantize();
+            let mut s = self.w.fake_quantize();
+            if self.tie {
+                s.tie_head(); // the head is the snapped embedding, as the exported file will have it
+            }
+            snapped = s;
             &snapped
         } else {
             &self.w
         };
-        let (loss, g) = loss_and_grads(model, ids, targets, batch, self.threads)?;
+        let (loss, mut g) = loss_and_grads(model, ids, targets, batch, self.threads)?;
+        if self.tie {
+            g.fold_head_grad();
+        }
         let norm = global_norm(&g);
         adam_step(
             &mut self.w,
@@ -113,6 +132,9 @@ impl Engine for CpuTrainer {
             &cfg.adam,
             clip_scale(norm, cfg.clip),
         );
+        if self.tie {
+            self.w.tie_head(); // Adam only moved the embedding (the head's gradient was zero)
+        }
         Ok(StepStats {
             loss,
             grad_norm: norm,
@@ -137,6 +159,9 @@ impl Engine for CpuTrainer {
             return Err("restore: the model shape differs from the trainer's".into());
         }
         self.w = s.weights.clone();
+        if self.tie {
+            self.w.tie_head(); // a snapshot from an untied run is tied on the way in
+        }
         self.state = AdamState {
             m: s.m.clone(),
             v: s.v.clone(),

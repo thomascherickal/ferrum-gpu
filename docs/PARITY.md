@@ -33,7 +33,8 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `train`: `--epochs`, `--tokens` budget, `--stride` | yes | **have (M4)**, plus our `--steps` | have | |
 | `train`: `--lr --batch --seed --threads` | yes | yes | have | |
 | `train`: `--weight_decay --cosine --warmup --clip --no-qat` | yes | **have (M4)** | have | |
-| `train`: `--tie`, `--dropout` | yes | refused by name: the GPU and CPU trainers have no tied head or dropout | gap | engine work, later |
+| `train`: `--tie` | yes | **have (CPU engine only)**: one shared matrix (`head = tokᵀ`), gradients folded before AdamW, QAT snaps the embedding and derives the head from it; the file stores the embedding once. `--device gpu` with `--tie` is refused by name, `auto` uses the CPU | partial | GPU kernels, later |
+| `train`: `--dropout` | yes | refused by name: neither trainer has dropout | gap | engine work, later |
 | `train`: `--quant int8\|int4\|f32` | yes | **have (M4)**: both spellings accepted | have | |
 | `train`: `--tokenizer` (BPE file, trained and saved if missing) | yes | tokenizer exists (M1); the CLI/engine still train on bytes | partial | M4 |
 | `train`: `--checkpoint --checkpoint-every --resume` | yes | **have (M4)**; our checkpoint is a different GGUF kind, not interchangeable with ferrum-cpu's `.fckp` | different | |

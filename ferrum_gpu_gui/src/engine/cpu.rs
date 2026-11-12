@@ -35,6 +35,14 @@ impl Backend for CpuBackend {
         ))
     }
 
+    fn gpt2_tied_engine<'a>(&'a self, w: &Gpt2, qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
+        Ok(Box::new(
+            CpuTrainer::new(w.clone(), self.threads)
+                .with_tie(true)
+                .with_qat(qat),
+        ))
+    }
+
     fn gpt2_decoder<'a>(&'a self, w: &Gpt2) -> Result<Gpt2Feed<'a>, String> {
         let (m, mut cache) = (w.clone(), Gpt2Cache::new(w.cfg.layers));
         Ok(Box::new(move |t| m.feed(&mut cache, t)))
