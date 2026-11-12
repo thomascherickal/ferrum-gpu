@@ -142,6 +142,7 @@ pub static SOURCES: &[(&str, &str)] = &[
         include_str!("shaders/opt/accumulate.wgsl"),
     ),
     ("opt/adam", include_str!("shaders/opt/adam.wgsl")),
+    ("opt/transpose", include_str!("shaders/opt/transpose.wgsl")),
     (
         "opt/norm_final",
         include_str!("shaders/opt/norm_final.wgsl"),

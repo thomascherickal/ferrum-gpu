@@ -95,6 +95,27 @@ pub fn accumulate(
     )
 }
 
+/// `dst[r][c] = (add ? dst[r][c] : 0) + src[c][r]`: `dst` is `[rows, cols]` and `src` is its
+/// transpose `[cols, rows]`. Ties a head to an embedding (`add = false`) and folds the head's
+/// gradient into the embedding's (`add = true`).
+pub fn transpose_into(
+    gpu: &Gpu,
+    src: &GpuBuf,
+    dst: &GpuBuf,
+    (rows, cols): (usize, usize),
+    add: bool,
+) -> Result<(), GpuError> {
+    need("transpose dst", dst, rows * cols)?;
+    need("transpose src", src, rows * cols)?;
+    let p = pipe!(gpu, "opt/transpose")?;
+    gpu.dispatch_1d(
+        &p,
+        &[dst, src],
+        &[rows as u32, cols as u32, u32::from(add), 0],
+        rows * cols,
+    )
+}
+
 /// One AdamW update of a tensor. `decay` selects whether weight decay applies; `t` is the
 /// 1-based step (bias corrections are computed here, on the host). `scale` is `[clip scale, ..]`.
 pub fn adam_update(
