@@ -26,17 +26,21 @@ pub fn chrome() -> Option<String> {
     .map(String::from)
 }
 
-/// `program` run under coreutils `timeout`: SIGTERM after `secs`, SIGKILL 5 s later, to the whole
-/// process group `timeout` leads. This outlives a test process that was itself killed (so no
-/// browser is left running) and ends a hung `node`. Plain `program` when `timeout` is missing.
-pub fn with_deadline(program: &str, secs: u64) -> Command {
-    let have_timeout = Command::new("timeout")
+/// Is GNU coreutils `timeout` installed? (Linux: yes; macOS: only with Homebrew coreutils.)
+pub fn has_timeout() -> bool {
+    Command::new("timeout")
         .arg("--version")
         .stdout(Stdio::null())
         .stderr(Stdio::null())
         .status()
-        .is_ok_and(|s| s.success());
-    if have_timeout {
+        .is_ok_and(|s| s.success())
+}
+
+/// `program` run under coreutils `timeout`: SIGTERM after `secs`, SIGKILL 5 s later, to the whole
+/// process group `timeout` leads. This outlives a test process that was itself killed (so no
+/// browser is left running) and ends a hung `node`. Plain `program` when `timeout` is missing.
+pub fn with_deadline(program: &str, secs: u64) -> Command {
+    if has_timeout() {
         let mut c = Command::new("timeout");
         c.args(["-k", "5", &secs.to_string(), program]);
         c
@@ -318,6 +322,12 @@ mod tests {
     /// Hazard: a process whose parent died used to run on forever. `timeout` is the watchdog.
     #[test]
     fn with_deadline_ends_a_hung_program_and_its_helpers() {
+        if !has_timeout() {
+            eprintln!(
+                "SKIP: no coreutils `timeout` here (macOS has none unless coreutils is installed)"
+            );
+            return;
+        }
         let mut c = with_deadline("sh", 1);
         let mut child = c
             .args(["-c", "sleep 60 & wait"])
