@@ -123,11 +123,13 @@ pub fn run(
     let mut rng = Rng::new(o.seed);
     let mut logits = Vec::new();
     for &t in prompt {
+        ferrum_gpu_gui::cancel::check()?;
         logits = feed(t)?;
     }
     let (mut history, mut new, mut shown) = (prompt.to_vec(), Vec::new(), 0usize);
     let mut text = String::new();
     while new.len() < o.max_new && history.len() < ctx {
+        ferrum_gpu_gui::cancel::check()?;
         let next = sample(&logits, &o.params, &history, &mut rng);
         if o.stop_ids.contains(&next) {
             break;

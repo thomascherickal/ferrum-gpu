@@ -292,3 +292,29 @@ fn the_gpu_backend_matches_the_cpu_backend() {
     assert!(gpu.train(&wc, &s, &shared()).is_err());
     assert!(GpuBackend::open(Some("no-such-adapter")).is_err());
 }
+
+#[test]
+fn generate_with_stops_at_once_when_the_request_is_cancelled() {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    let opts = GenOpts {
+        max_new: 50,
+        temperature: 0.0,
+        top_k: 0,
+        seed: 1,
+    };
+    let flag = std::sync::Arc::new(AtomicBool::new(false));
+    let _scope = crate::cancel::install(flag.clone());
+    let mut fed = 0usize;
+    let mut feed = |t: usize| -> Result<Vec<f32>, String> {
+        fed += 1;
+        if fed == 3 {
+            flag.store(true, Ordering::Relaxed); // the client leaves while decoding
+        }
+        let mut l = vec![0.0; 8];
+        l[(t + 1) % 8] = 5.0;
+        Ok(l)
+    };
+    let e = generate_with(&mut feed, 100, &[1, 2], &opts).unwrap_err();
+    assert_eq!(e, crate::cancel::MESSAGE);
+    assert!(fed <= 4, "stopped within a token of the flag: fed {fed}");
+}

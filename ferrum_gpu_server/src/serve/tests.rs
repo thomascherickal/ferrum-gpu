@@ -140,3 +140,74 @@ fn a_non_loopback_server_with_a_token_skips_the_host_check() {
     assert!(out.contains("200"), "{out}");
     r.stop();
 }
+
+/// A decoder that "generates" one token every 5 ms until cancelled (or 20 s), and records how it
+/// ended, so a test can see that a disconnect frees it.
+struct SlowDecoder {
+    tokens: std::sync::atomic::AtomicUsize,
+    cancelled: AtomicBool,
+}
+
+impl Decoder for SlowDecoder {
+    fn info(&self) -> crate::decoder::Info {
+        StubDecoder.info()
+    }
+    fn encode(&self, text: &str) -> Result<Vec<usize>, String> {
+        StubDecoder.encode(text)
+    }
+    fn bos(&self) -> usize {
+        0
+    }
+    fn complete(
+        &self,
+        _prompt: &str,
+        _r: &crate::decoder::GenReq,
+    ) -> Result<(String, usize), String> {
+        for _ in 0..4000 {
+            if let Err(e) = ferrum_gpu_gui::cancel::check() {
+                self.cancelled.store(true, Ordering::SeqCst);
+                return Err(e);
+            }
+            self.tokens.fetch_add(1, Ordering::SeqCst);
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        Ok(("x".into(), 1))
+    }
+    fn score(&self, ids: &[usize]) -> Result<Vec<(f32, bool)>, String> {
+        StubDecoder.score(ids)
+    }
+}
+
+#[test]
+fn a_client_that_leaves_stops_the_generation_and_frees_its_slot() {
+    let d = Arc::new(SlowDecoder {
+        tokens: 0.into(),
+        cancelled: AtomicBool::new(false),
+    });
+    let r = start(d.clone(), &Config::default()).unwrap();
+    let body = r#"{"requests":[{"prompt":"x","max_tokens":2}]}"#;
+    let mut s = TcpStream::connect(r.addr).unwrap();
+    write!(
+        s,
+        "POST /v1/generate HTTP/1.1\r\nHost: 127.0.0.1:{}\r\nContent-Length: {}\r\n\r\n{body}",
+        r.addr.port(),
+        body.len()
+    )
+    .unwrap();
+    while d.tokens.load(Ordering::SeqCst) < 5 {
+        std::thread::sleep(std::time::Duration::from_millis(5)); // it is generating
+    }
+    drop(s); // the client goes away
+    let t0 = std::time::Instant::now();
+    while !d.cancelled.load(Ordering::SeqCst) {
+        assert!(
+            t0.elapsed() < std::time::Duration::from_secs(5),
+            "still generating {} tokens after the client left",
+            d.tokens.load(Ordering::SeqCst)
+        );
+        std::thread::sleep(std::time::Duration::from_millis(10));
+    }
+    let n = d.tokens.load(Ordering::SeqCst);
+    assert!(n < 1000, "stopped long before the 4000-token budget: {n}");
+    r.stop();
+}

@@ -67,7 +67,8 @@ Changed in M7 (2026-11-11): the routes, request shapes and limits now follow fer
 
 - **Exposure.** On a loopback address (the default) requests with a foreign `Host` or `Origin` get 403. A non-loopback `--host` is refused at startup unless a token is set (`--token` or the `FERRUM_TOKEN` environment variable) or `--allow-unauthenticated` is given. With a token every route except `GET /health` needs `Authorization: Bearer <token>` (401 otherwise); on a non-loopback host the Host check is skipped because the token protects the server.
 - **Routes.** `GET /health`; `GET /v1/info`; `POST /v1/generate` `{"requests":[{"prompt","max_tokens","stop":[..],"temperature","top_k","top_p","seed","repetition_penalty"}]}` gives `{"results":[{"text","n_tokens"}]}`; `POST /v1/loglikelihood` `{"requests":[{"context","continuation"}]}` gives `{"results":[{"logprob","n_tokens","greedy"}]}`; `POST /v1/loglikelihood_rolling` `{"texts":[..]}` gives `{"results":[{"logprob","n_tokens"}]}`. Unknown fields are 400; model errors are 422; more than 32 POSTs in flight get 503. Scoring follows ferrum-cpu's rules (trailing context whitespace moves to the continuation; an empty context or a rolling text is scored after the end-of-text token; long texts use half-window sliding) and runs on the CPU oracle. `top_p` and `repetition_penalty` need a GPT-2 file; `chat` is refused (no chat template).
-- Not implemented from ferrum-cpu: request cancel on client disconnect, imported-model `chat`.
+- Request cancel: when a client closes its connection while a POST is running, generation stops within one token (the server polls the connection every 25 ms) and the in-flight slot is freed. A client that half-closes its write side after sending (`shutdown(SHUT_WR)`) counts as gone; browsers, curl, requests and fetch do not do that.
+- Not implemented from ferrum-cpu: imported-model `chat`.
 
 ```
 $ ferrum-gpu-server --model m.gguf --device cpu --port 8787 --token s3cret

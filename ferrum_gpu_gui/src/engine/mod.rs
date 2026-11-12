@@ -209,11 +209,13 @@ pub fn generate_with(
     let mut rng = Rng::new(opts.seed);
     let mut logits = Vec::new();
     for &t in prompt {
+        crate::cancel::check()?;
         logits = feed(t)?;
     }
     let mut history = prompt.to_vec();
     let mut out = Vec::new();
     while out.len() < opts.max_new && history.len() < ctx {
+        crate::cancel::check()?;
         let next = sample(&logits, &params, &history, &mut rng);
         out.push(next);
         history.push(next);

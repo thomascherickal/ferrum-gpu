@@ -339,11 +339,64 @@ fn handle(
         Ok(req) => loopback_guard
             .then(|| guard(&req, port))
             .flatten()
-            .unwrap_or_else(|| handler(&req)),
+            .unwrap_or_else(|| handle_watched(&stream, &req, handler)),
         Err(e) => Response::error(e.status, &e.message),
     };
     let _ = write_response(&mut stream, &resp);
 }
+
+/// Run `handler` for `req`; for a POST (the requests that compute), raise this thread's cancel
+/// flag ([`crate::cancel`]) as soon as the client closes its end of `stream`.
+fn handle_watched(
+    stream: &TcpStream,
+    req: &Request,
+    handler: &(dyn Fn(&Request) -> Response + Send + Sync),
+) -> Response {
+    let (flag, done) = (
+        Arc::new(AtomicBool::new(false)),
+        Arc::new(AtomicBool::new(false)),
+    );
+    let watcher = (req.method == "POST")
+        .then(|| stream.try_clone().ok())
+        .flatten()
+        .map(|s| {
+            let (f, d) = (flag.clone(), done.clone());
+            std::thread::spawn(move || watch_for_close(&s, &f, &d))
+        });
+    let _scope = crate::cancel::install(flag);
+    let resp = handler(req);
+    done.store(true, Ordering::Relaxed);
+    if let Some(w) = watcher {
+        let _ = w.join();
+    }
+    resp
+}
+
+/// Raise `flag` when the peer closes or resets `stream`; return when `done` is set. The request
+/// has been read completely, so the socket's read timeout (shared with the handler's copy) is
+/// free to use as the poll interval.
+// ponytail: a client that half-closes its write side after sending (shutdown(SHUT_WR)) reads as
+// gone; browsers, curl, requests and fetch do not. Poll interval = cancel latency.
+fn watch_for_close(stream: &TcpStream, flag: &AtomicBool, done: &AtomicBool) {
+    stream.set_read_timeout(Some(WATCH_INTERVAL)).ok();
+    let mut one = [0u8; 1];
+    while !done.load(Ordering::Relaxed) {
+        match stream.peek(&mut one) {
+            Ok(0) => return flag.store(true, Ordering::Relaxed),
+            // pipelined bytes are waiting: not a close, and peek would return at once forever
+            Ok(_) => std::thread::sleep(WATCH_INTERVAL),
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
+                ) => {}
+            Err(_) => return flag.store(true, Ordering::Relaxed),
+        }
+    }
+}
+
+/// How often a running request checks whether its client is still there.
+const WATCH_INTERVAL: Duration = Duration::from_millis(25);
 
 #[cfg(test)]
 mod tests {
@@ -558,6 +611,71 @@ mod tests {
         assert!(denied.starts_with("HTTP/1.1 403"), "{denied}");
         let malformed = ask("nonsense\r\n\r\n".into());
         assert!(malformed.starts_with("HTTP/1.1 400"), "{malformed}");
+        stop.store(true, Ordering::Relaxed);
+        t.join().unwrap();
+    }
+
+    /// Serve `work`, which runs on the request thread; returns the port and a stop switch.
+    fn serve_work(
+        work: impl Fn(&Request) -> Response + Send + Sync + 'static,
+    ) -> (u16, Arc<AtomicBool>, std::thread::JoinHandle<()>) {
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let port = listener.local_addr().unwrap().port();
+        let stop = Arc::new(AtomicBool::new(false));
+        let (s, h): (_, Handler) = (stop.clone(), Arc::new(work));
+        let t = std::thread::spawn(move || serve_with(listener, h, s, 1024, false));
+        (port, stop, t)
+    }
+
+    #[test]
+    fn a_client_that_disconnects_mid_request_cancels_the_work() {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let tx = std::sync::Mutex::new(tx);
+        let (port, stop, t) = serve_work(move |_| {
+            // stands in for a token loop: runs until cancelled, at most 10 s
+            let t0 = std::time::Instant::now();
+            while crate::cancel::check().is_ok() && t0.elapsed() < Duration::from_secs(10) {
+                std::thread::sleep(Duration::from_millis(5));
+            }
+            tx.lock().unwrap().send(t0.elapsed()).unwrap();
+            Response::new(200, "text/plain", "late")
+        });
+        let mut c = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        c.write_all(b"POST /work HTTP/1.1\r\nHost: x\r\nContent-Length: 0\r\n\r\n")
+            .unwrap();
+        std::thread::sleep(Duration::from_millis(150)); // the work is running
+        drop(c); // the client goes away
+        let took = rx.recv_timeout(Duration::from_secs(5)).expect("cancelled");
+        assert!(took < Duration::from_secs(3), "stopped promptly: {took:?}");
+        stop.store(true, Ordering::Relaxed);
+        t.join().unwrap();
+    }
+
+    #[test]
+    fn a_client_that_stays_is_never_cancelled_and_gets_its_answer() {
+        let (port, stop, t) = serve_work(|_| {
+            // slow enough for several watcher polls
+            std::thread::sleep(Duration::from_millis(200));
+            match crate::cancel::check() {
+                Ok(()) => Response::new(200, "text/plain", "done"),
+                Err(e) => Response::new(500, "text/plain", e),
+            }
+        });
+        let mut c = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        c.write_all(b"POST /work HTTP/1.1\r\nHost: x\r\nContent-Length: 0\r\n\r\n")
+            .unwrap();
+        let mut out = String::new();
+        c.read_to_string(&mut out).unwrap();
+        assert!(
+            out.starts_with("HTTP/1.1 200") && out.ends_with("done"),
+            "{out}"
+        );
+        // a GET is not watched at all: the flag is never installed
+        let mut g = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        g.write_all(b"GET /w HTTP/1.1\r\nHost: x\r\n\r\n").unwrap();
+        let mut out = String::new();
+        g.read_to_string(&mut out).unwrap();
+        assert!(out.ends_with("done"), "{out}");
         stop.store(true, Ordering::Relaxed);
         t.join().unwrap();
     }
