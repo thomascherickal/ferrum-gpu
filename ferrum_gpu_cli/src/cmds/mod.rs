@@ -4,6 +4,7 @@
 use crate::device::{decide, Workload};
 use crate::flags::{switch, val, Args, Flag};
 
+pub mod combined;
 pub mod gpt2;
 pub mod llm;
 pub mod runtimes;
@@ -26,6 +27,7 @@ commands:\n  \
 info          [--model F.gguf]\n  \
 train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie (CPU engine) --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
+run           --data FILE --model F.gguf --prompt TEXT [train and generate flags]   (trains F.gguf on FILE if it does not exist, then generates; a model that exists is loaded as is)\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
 run-gguf      same flags as generate; also prints the model's shape first\n  \
 prepare       --input FILE|DIR (repeatable) --out DIR [--nfkc] [--lowercase] [--strip-gutenberg] [--dedup] [--min-chars N] [--max-chars N] [--val-frac X] [--test-frac X] [--seed N] [--doc-sep S] [--lossy]   (writes train.txt val.txt test.txt manifest.json)\n  \
@@ -72,6 +74,12 @@ static ONE_AT_A_TIME: std::sync::Mutex<()> = std::sync::Mutex::new(());
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     #[cfg(test)]
     let _turn = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
+    dispatch(args, out)
+}
+
+/// The command switch without the test-only lock, so one command (`run`) can invoke others: the
+/// lock is not reentrant, and taking it twice on one thread deadlocks.
+fn dispatch(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     let (cmd, rest) = args.split_first().ok_or(USAGE)?;
     let w = |e: std::io::Error| e.to_string();
     match cmd.as_str() {
@@ -102,6 +110,7 @@ pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
                 o => Err(format!("--arch: unknown '{o}' (gpt2, llama)")),
             }
         }
+        "run" => combined::run_combined(rest, out),
         "finetune-gguf" => {
             let a = Args::parse(
                 &table(&[

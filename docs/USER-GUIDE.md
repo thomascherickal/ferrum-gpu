@@ -54,6 +54,7 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 | `finetune-gguf` | Continue training a GGUF model (GPT-2 files keep their tokenizer) | `--model`, `--data`, `--out` | the training flags |
 | `generate` | Continue a prompt with sampled text | `--model F.gguf`, `--prompt TEXT` | `--max-new` (64), `--temperature` (0 = greedy), `--top-k` (0), `--seed` (1); GPT-2 files also `--top-p`, `--repetition-penalty`, `--stop S` (repeatable), `--stream`, `--ids "1 2 3"` |
 | `run-gguf` | Same as `generate`, and first prints the device and the model's shape | as `generate` | as `generate` |
+| `run` | Trains `--model` on `--data` if that file does not exist (a model that exists is loaded, not retrained), then generates from `--prompt` | `--data`, `--model`, `--prompt` | any `train` flag and any `generate` flag; each goes to the half it belongs to, and `--device`, `--threads` and `--seed` go to both. The model file is `--model`, not `--out` |
 | `tokenize` | Encode a text file or directory into a token file for `train` | `--data`, `--tokenizer`, `--out` | `--doc-sep S` |
 | `export-ollama` | Register a GPT-2 model with Ollama (`ollama create`) or only write the Modelfile | `--model`, `--name` (not with `--modelfile-only`) | `--bin P`, `--modelfile-only OUT` |
 | `export-lmstudio` | Import a GPT-2 model into LM Studio (`lms import`, then wait for `lms ls --json`) | `--model` | `--repo publisher/name` (ferrum/<file stem>), `--bin P` |

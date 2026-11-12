@@ -48,7 +48,10 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
 11. **Modular code, tests for everything, coverage toward 100% (user decision 2026-11-10).**
     Keep each file to one concern with a small public surface (split a file that mixes
     concerns or grows past roughly 500 lines of non-test code; move big test modules into a
-    sibling `tests.rs`). Every function and branch gets a unit test, with stubs or fakes for
+    sibling `tests.rs`, and give a command with several concerns its own directory: `mod.rs` for the
+    command, one file per concern (flag tables, argument splitting, ...), and `tests/` or a `tests.rs`
+    beside each file, one test file per concern, with shared helpers in the tests' `mod.rs`; user
+    decision 2026-11-12: make every new file and test highly modular). Every function and branch gets a unit test, with stubs or fakes for
     anything external (GPU, `nvidia-smi`, the filesystem). Measure line coverage with
     `cargo llvm-cov` when it is available, record the numbers in `docs/COVERAGE.md`, never
     claim a figure that was not measured, and raise the floor over time toward 100%. Code that

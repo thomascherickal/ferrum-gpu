@@ -36,27 +36,27 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `train`: `--tie` | yes | **have (CPU engine only)**: one shared matrix (`head = tokᵀ`), gradients folded before AdamW, QAT snaps the embedding and derives the head from it; the file stores the embedding once. `--device gpu` with `--tie` is refused by name, `auto` uses the CPU | partial | GPU kernels, later |
 | `train`: `--dropout` | yes | refused by name: neither trainer has dropout | gap | engine work, later |
 | `train`: `--quant int8\|int4\|f32` | yes | **have (M4)**: both spellings accepted | have | |
-| `train`: `--tokenizer` (BPE file, trained and saved if missing) | yes | tokenizer exists (M1); the CLI/engine still train on bytes | partial | M4 |
+| `train`: `--tokenizer` (BPE file, trained and saved if missing) | yes | **have (M4)**: trained and saved if missing, loaded if present; a token file must be made with the same tokenizer (SHA-256 checked) | have | |
 | `train`: `--checkpoint --checkpoint-every --resume` | yes | **have (M4)**; our checkpoint is a different GGUF kind, not interchangeable with ferrum-cpu's `.fckp` | different | |
 | `train`: `--val --patience` | yes | **have (M4)** (validation after each epoch, best epoch kept) | have | |
 | `train`: `--max-seconds`, stop file `<model>.stop` | yes | **have (M4)** (the stop file is `<out>.stop` with the extension replaced) | have | |
 | `train`: `--metrics-csv`, `--verbose`, `--sample` | yes | **have (M4)**; `-v` short form not accepted; `--debug` and `--force` accepted and ignored | have | |
 | `train`: `--preset` | yes | **have (M4)**: ferrum-cpu's sizes for `--arch gpt2`; the old sizes stay under `--arch llama` | have | |
 | `train` on a token file (`tokens.gguf`, streamed) | yes (doc) | **have (M2)**: windows read from disk; the tokenizer file's SHA-256 is checked | have | |
-| `run` (train then generate in one command) | yes | none | gap | M4 (thin wrapper) |
+| `run` (train then generate in one command) | yes | **have (2026-11-12)**: `run --data F --model M.gguf --prompt TEXT [train and generate flags]`, flag-style; trains M.gguf if it does not exist, loads it if it does | have | |
 | `generate`: `--chars --temp --gen-seed --top-k --top-p --repetition-penalty` | yes | **have (M4)** for GPT-2 files (ferrum-cpu's spellings are aliases of ours) | have | |
 | `generate`: `--stream`, `--stop` (repeatable), `--max-tokens` | yes | **have (M4)** for GPT-2 files | have | |
 | `run-gguf`: `--quant --max --temp --gen-seed --top-k --top-p --rep` | yes | **have (M5)**: same sampling flags as `generate`, for GPT-2 files and for imported Llama/Qwen files with their own tokenizer | have | |
-| `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | **have (M5)**: `--stop`, `--ids`, `--raw` and the chat template (ChatML, Llama-3, `[INST]`, Zephyr) for imported files; the reply ends at the end-of-turn token. Not done: `--resume` (overlaying a checkpoint on an imported model); `--force` is accepted and does nothing | partial | |
+| `run-gguf`: `--stop`, `--ids`, `--raw`, chat template, `--force`, `--resume` | yes | **have (M5)**: `--stop`, `--ids`, `--raw` and the chat template (ChatML, Llama-3, `[INST]`, Zephyr) for imported files; the reply ends at the end-of-turn token. `--resume` (overlaying a checkpoint on an imported model) is deliberately different: ferrum-cpu fine-tunes into a separate `.flck` checkpoint that run-gguf overlays, while `finetune-gguf` here writes a complete GGUF, so there is nothing to overlay; `--force` is accepted and does nothing | partial | |
 | `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
 | `export-gguf` (`--quant`) | yes | **have (M3)**: f32/int8/int4 out | have | |
 | `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands; tested with fake tools only (the real tools are installed but registering writes outside the repo, so it was not run) | partial | |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
-| `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | **have (M5)**: `eval-gguf` is an alias of `eval`, which takes `--ctx --quant --json` and scores GPT-2 and imported files with their own tokenizers. Not done: `--resume` | partial | |
+| `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | **have (M5)**: `eval-gguf` is an alias of `eval`, which takes `--ctx --quant --json` and scores GPT-2 and imported files with their own tokenizers. `--resume` is deliberately different for the same reason as in `run-gguf` (our fine-tuned model is a complete GGUF) | have | |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes | splits and hashes equal ferrum-cpu on `fixtures/prepare/`; manifest differs only in paths, args and version | done | M2 |
 | `tokenize` (`--tokenizer --out --doc-sep`) | yes (doc) | **have (M2)**: `--data FILE\|DIR`; output is byte-identical to ferrum-cpu's on the fixture | have | |
-| `info` | prints model info | prints device and adapters | different | M4 (add model info; keep device lines under `--device`) |
+| `info` | prints model info | `info [--model F.gguf]` prints the device and adapters, plus the model's shape when a file is given | have | |
 | Unknown flags are errors | yes | yes | have | |
 
 ## Formats
@@ -90,9 +90,9 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 
 | Feature | ferrum-cpu | ferrum-gpu | Status |
 |---|---|---|---|
-| LightEval module (Python) | yes | none; the server's routes are ferrum-cpu's, so the module's HTTP client should work unchanged (untested) | gap (M7) |
-| DVC pipeline (`dvc.yaml`, `params.yaml`) | yes | none | gap (M2, optional) |
-| `scripts/fetch.sh` pinned download | yes | none | gap (M2) |
+| LightEval module (Python) | yes | ferrum-cpu's adapter code was driven against our server 2026-11-12 (info, log-likelihood, rolling, generate); it needed `context_len` in `/v1/info`, now added. The full benchmark tasks (they download datasets) were not run | have (adapter), tasks not run |
+| DVC pipeline (`dvc.yaml`, `params.yaml`) | yes | files exist at the repository root; DVC itself was never run | partial |
+| `scripts/fetch.sh` pinned download | yes | `scripts/fetch.sh` exists (not run against the network) | partial |
 | Browser | `slm_wasm` CPU in WASM | WebGPU in the tab | different (Phase 5b) |
 | GUI | Tauri desktop app | local web GUI | different; feature check in M8 |
 | RAM guard (Linux), `--force` | yes | GPU buffer pre-flight and `--gpu-mem-mb` | different |
