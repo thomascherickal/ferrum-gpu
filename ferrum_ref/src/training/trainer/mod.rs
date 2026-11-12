@@ -5,6 +5,8 @@
 //! shape. The loop is deterministic: epoch `e` draws its window order from `Rng(seed, e)`, so a
 //! run resumed from step `s` continues exactly where an uninterrupted run would be.
 
+#[cfg(test)]
+mod dropout_tests;
 mod engine;
 mod run;
 #[cfg(test)]

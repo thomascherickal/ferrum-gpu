@@ -1,12 +1,11 @@
 //! `train` for the GPT-2 path: tokenizer, model, loop, checkpoints, GGUF out.
 
+use super::extras;
 use super::gen::Loaded;
 use super::hooks::{Run, Validation};
 use super::{quant, Sizes};
-use crate::cmds::{app, app_requested, device_line, gate, mem_mb, say};
-use crate::device::Workload;
+use crate::cmds::{device_line, gate, mem_mb, say};
 use crate::flags::Args;
-use ferrum_gpu_gui::app::DeviceChoice;
 use ferrum_model::checkpoint::{atomic_write, from_bytes};
 use ferrum_model::gpt2_gguf::to_gguf_with;
 use ferrum_model::sha256::sha256_hex;
@@ -94,16 +93,9 @@ fn corpus_id(t: &ByteBpeTokenizer) -> String {
     format!("bpe-{}-{h:016x}", t.vocab_size())
 }
 
-fn refuse_unsupported(a: &Args) -> Result<(), String> {
-    if a.num("--dropout", 0.0f32)? != 0.0 {
-        return Err("--dropout is not supported yet on this engine; use 0".into());
-    }
-    Ok(())
-}
-
 /// `train`, or `finetune-gguf` when `base` is a loaded model (its tokenizer and weights are used).
 pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), String> {
-    refuse_unsupported(a)?;
+    let x = extras::parse(a)?;
     let target = a.need("--out")?;
     let data_path = a.need("--data")?;
     let token_file = is_token_file(data_path)
@@ -226,18 +218,7 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
         tc.epochs as u64 * spe
     };
     let q = quant(a, "int8")?;
-    let tie = a.has("--tie");
-    let app = if tie {
-        // ponytail: tied heads train on the CPU engine only; the GPU engine would need kernels to
-        // fold the head gradient into the embedding and to re-derive the head after each update.
-        if DeviceChoice::parse(a.get("--device").unwrap_or("auto"))? == DeviceChoice::Gpu {
-            return Err("--tie trains on the CPU engine only for now; use --device cpu (or auto) or drop --tie".into());
-        }
-        say(out, "--tie: training on the CPU engine".to_string())?;
-        app_requested(a, Workload::Train, DeviceChoice::Cpu)?
-    } else {
-        app(a, Workload::Train)?
-    };
+    let app = extras::app_for(a, &x, out)?;
     device_line(out, &app)?;
     say(
         out,
@@ -264,11 +245,7 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
         |cp| cp.snapshot.weights.clone(),
     );
     let qat = !a.has("--no-qat");
-    let mut engine = if tie {
-        app.backend.gpt2_tied_engine(&start, qat)?
-    } else {
-        app.backend.gpt2_engine(&start, qat)?
-    };
+    let mut engine = extras::engine(&app, &start, qat, &x, tc.seed)?;
     if let Some(cp) = &resume {
         engine.restore(&cp.snapshot)?;
         say(out, format!("resumed at step {}", cp.snapshot.steps))?;

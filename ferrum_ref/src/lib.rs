@@ -11,4 +11,4 @@ pub mod training;
 
 pub use kernels::{matmul, nn, rng, tuned};
 pub use models::{gpt2, llama};
-pub use training::{grad, optim, qat, trainer};
+pub use training::{dropout, grad, optim, qat, trainer};

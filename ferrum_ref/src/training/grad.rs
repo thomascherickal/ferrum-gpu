@@ -4,6 +4,7 @@
 //! Training forward/backward for [`Gpt2`] on the CPU: the oracle for the GPU trainer and the
 //! CPU baseline for speed comparisons. Batched: `ids` is `batch` sequences of length `t`.
 
+use crate::dropout::Dropout;
 use crate::gpt2::{Block, Gpt2};
 use crate::matmul::MatmulError;
 use crate::nn::{self, LN_EPS};
@@ -142,7 +143,10 @@ struct BlockCache {
     x2: Vec<f32>,
     h2: Vec<f32>,
     f1: Vec<f32>,
+    /// The FFN hidden activations as fed to `w2` (after dropout, when it is on).
     act: Vec<f32>,
+    /// The dropout multipliers applied to the activations, if dropout is on.
+    mask: Option<Vec<f32>>,
 }
 
 fn lin(x: &[f32], w: &[f32], b: &[f32], dims: (usize, usize, usize), threads: usize) -> Vec<f32> {
@@ -184,13 +188,26 @@ pub fn loss_and_grads(
     batch: usize,
     threads: usize,
 ) -> Result<(f32, Gpt2), String> {
+    loss_and_grads_with(m, ids, targets, batch, threads, None)
+}
+
+/// [`loss_and_grads`] with optional FFN-hidden dropout (see [`crate::dropout`]): the loss and the
+/// gradient are those of the network with that step's mask applied.
+pub fn loss_and_grads_with(
+    m: &Gpt2,
+    ids: &[usize],
+    targets: &[usize],
+    batch: usize,
+    threads: usize,
+    drop: Option<Dropout>,
+) -> Result<(f32, Gpt2), String> {
     let t = check(m, ids, targets, batch)?;
     let (c, rows) = (&m.cfg, ids.len());
     let (d, hid, hd) = (c.dim, c.hidden, c.head_dim());
     // Forward with caches.
     let mut x = nn::embed(&m.tok, &m.pos, ids, t, d);
     let mut caches = Vec::with_capacity(m.blocks.len());
-    for b in &m.blocks {
+    for (bi, b) in m.blocks.iter().enumerate() {
         let x_in = x.clone();
         let h1 = nn::layernorm(&x, &b.ln1_g, &b.ln1_b, rows, d);
         let q = lin(&h1, &b.wq, &b.bq, (rows, d, d), threads);
@@ -201,6 +218,11 @@ pub fn loss_and_grads(
         let h2 = nn::layernorm(&x2, &b.ln2_g, &b.ln2_b, rows, d);
         let f1 = lin(&h2, &b.w1, &b.b1, (rows, d, hid), threads);
         let act: Vec<f32> = f1.iter().map(|&v| nn::gelu(v)).collect();
+        let mask = drop.map(|d| d.mask(bi, act.len()));
+        let act: Vec<f32> = match &mask {
+            Some(mk) => act.iter().zip(mk).map(|(a, m)| a * m).collect(),
+            None => act,
+        };
         x = nn::add(&x2, &lin(&act, &b.w2, &b.b2, (rows, hid, d), threads));
         caches.push(BlockCache {
             x: x_in,
@@ -214,6 +236,7 @@ pub fn loss_and_grads(
             h2,
             f1,
             act,
+            mask,
         });
     }
     let hf = nn::layernorm(&x, &m.lnf_g, &m.lnf_b, rows, d);
@@ -233,10 +256,12 @@ pub fn loss_and_grads(
         let (dact, dw2, db2) = linear_bwd(&ca.act, &b.w2, &dx, (rows, hid, d), threads);
         gb.w2 = dw2;
         gb.b2 = db2;
+        // through the dropout mask (a dropped unit passes no gradient), then through GELU
         let df1: Vec<f32> = dact
             .iter()
             .zip(&ca.f1)
-            .map(|(&da, &f)| da * gelu_grad(f))
+            .enumerate()
+            .map(|(i, (&da, &f))| da * ca.mask.as_ref().map_or(1.0, |m| m[i]) * gelu_grad(f))
             .collect();
         let (dh2, dw1, db1) = linear_bwd(&ca.h2, &b.w1, &df1, (rows, d, hid), threads);
         gb.w1 = dw1;

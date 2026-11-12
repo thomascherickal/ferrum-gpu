@@ -1,6 +1,9 @@
 //! The CPU backend: `ferrum_ref::llama`, the oracle the GPU is checked against.
 
-use super::{generate_with, run_training, Backend, Engine, GenOpts, Gpt2Feed, Progress, TrainSpec};
+use super::{
+    generate_with, run_training, Backend, Engine, EngineOptions, GenOpts, Gpt2Feed, Progress,
+    TrainSpec,
+};
 use ferrum_ref::gpt2::{Cache as Gpt2Cache, Gpt2};
 use ferrum_ref::llama::{Cache, Llama, LlamaTrainer};
 use ferrum_ref::trainer::CpuTrainer;
@@ -35,10 +38,16 @@ impl Backend for CpuBackend {
         ))
     }
 
-    fn gpt2_tied_engine<'a>(&'a self, w: &Gpt2, qat: bool) -> Result<Box<dyn Engine + 'a>, String> {
+    fn gpt2_engine_with<'a>(
+        &'a self,
+        w: &Gpt2,
+        qat: bool,
+        o: &EngineOptions,
+    ) -> Result<Box<dyn Engine + 'a>, String> {
         Ok(Box::new(
             CpuTrainer::new(w.clone(), self.threads)
-                .with_tie(true)
+                .with_tie(o.tie)
+                .with_dropout(o.dropout, o.seed)
                 .with_qat(qat),
         ))
     }

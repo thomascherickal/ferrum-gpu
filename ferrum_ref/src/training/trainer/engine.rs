@@ -3,8 +3,9 @@
 // `slm/training_loop.rs` and `train_transformer/epoch.rs` (commit 56a9d3a). Our own code.
 //! The step interface ([`Engine`]), what a step needs and reports, and the CPU engine.
 
+use crate::dropout::{step_seed, Dropout};
 use crate::gpt2::Gpt2;
-use crate::grad::loss_and_grads;
+use crate::grad::loss_and_grads_with;
 use crate::optim::{adam_step, clip_scale, global_norm, Adam, AdamState};
 
 /// What one optimizer step needs.
@@ -63,6 +64,8 @@ pub struct CpuTrainer {
     threads: usize,
     qat: bool,
     tie: bool,
+    /// FFN-hidden dropout rate and the run's base seed (rate 0 is off).
+    dropout: (f32, u64),
 }
 
 impl CpuTrainer {
@@ -75,7 +78,16 @@ impl CpuTrainer {
             threads,
             qat: false,
             tie: false,
+            dropout: (0.0, 0),
         }
+    }
+
+    /// Train with FFN-hidden dropout at `rate` (clamped to 0.95; 0 or less is off). Each step's
+    /// mask is a function of `seed` and the step number, so a resumed run continues the same
+    /// masks and two runs with the same seed agree exactly.
+    pub fn with_dropout(mut self, rate: f32, seed: u64) -> Self {
+        self.dropout = (rate, seed);
+        self
     }
 
     /// Train with the output head tied to the token embedding (`head = tokᵀ`, one shared matrix).
@@ -120,7 +132,8 @@ impl Engine for CpuTrainer {
         } else {
             &self.w
         };
-        let (loss, mut g) = loss_and_grads(model, ids, targets, batch, self.threads)?;
+        let drop = Dropout::new(self.dropout.0, step_seed(self.dropout.1, self.state.t));
+        let (loss, mut g) = loss_and_grads_with(model, ids, targets, batch, self.threads, drop)?;
         if self.tie {
             g.fold_head_grad();
         }

@@ -437,7 +437,7 @@ fn unsupported_and_misplaced_options_are_refused_by_name() {
         "train --device gpu --data {c} --out {o} --preset tiny --tie"
     ))
     .contains("--tie trains on the CPU engine only"));
-    assert!(t("--preset tiny --dropout 0.1").contains("--dropout is not supported"));
+    assert!(t("--preset tiny --dropout 1.5").contains("--dropout must be in [0, 1)"));
     assert!(t("--preset tiny --arch bert").contains("unknown '"));
     assert!(t("--preset tiny --arch llama --epochs 3").contains("--epochs needs --arch gpt2"));
     assert!(t("--preset tiny --arch llama --embed 8").contains("--embed needs --arch gpt2"));

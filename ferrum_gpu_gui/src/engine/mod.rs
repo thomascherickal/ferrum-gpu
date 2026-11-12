@@ -226,6 +226,17 @@ pub fn generate_with(
     Ok(out)
 }
 
+/// Training extras a backend may or may not support (see [`Backend::gpt2_engine_with`]).
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct EngineOptions {
+    /// Share the token embedding and the output head.
+    pub tie: bool,
+    /// FFN-hidden dropout rate (`0.0` is off).
+    pub dropout: f32,
+    /// The run's seed (dropout masks are a function of it and the step).
+    pub seed: u64,
+}
+
 /// A one-token-at-a-time GPT-2 decoder: feed a token id, get the next-token logits.
 pub type Gpt2Feed<'a> = Box<dyn FnMut(usize) -> Result<Vec<f32>, String> + 'a>;
 
@@ -239,14 +250,15 @@ pub trait Backend: Send + Sync {
         ))
     }
 
-    /// Like [`Backend::gpt2_engine`], with the output head tied to the token embedding.
-    fn gpt2_tied_engine<'a>(
+    /// Like [`Backend::gpt2_engine`], with the extras in `opts` (a tied head, dropout).
+    fn gpt2_engine_with<'a>(
         &'a self,
         _w: &Gpt2,
         _qat: bool,
+        _opts: &EngineOptions,
     ) -> Result<Box<dyn Engine + 'a>, String> {
         Err(format!(
-            "tied output heads are not available on {}; train on the CPU",
+            "tied heads and dropout are not available on {}; train on the CPU",
             self.name()
         ))
     }

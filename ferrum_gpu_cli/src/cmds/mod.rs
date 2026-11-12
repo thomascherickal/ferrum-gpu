@@ -25,7 +25,7 @@ use std::sync::{Arc, Mutex};
 pub const USAGE: &str = "usage: ferrum-gpu <command> [flags]\n\
 commands:\n  \
 info          [--model F.gguf]\n  \
-train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie (CPU engine) --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
+train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie --dropout RATE (both CPU engine) --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 run           --data FILE --model F.gguf --prompt TEXT [train and generate flags]   (trains F.gguf on FILE if it does not exist, then generates; a model that exists is loaded as is)\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
