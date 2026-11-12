@@ -321,3 +321,42 @@ fn the_scripts_are_executable_and_documented() {
         );
     }
 }
+
+/// Regression: a session started in a parent directory has `CLAUDE_PROJECT_DIR` pointing there,
+/// where `scripts/` does not exist; the hook commands ran `bash <missing file>` and exited 127
+/// after every tool call. Every command in `.claude/settings.json` must succeed from anywhere.
+#[test]
+fn the_settings_commands_succeed_when_the_project_dir_is_not_this_repository() {
+    let text = std::fs::read_to_string(repo().join(".claude/settings.json")).unwrap();
+    let commands: Vec<String> = text
+        .lines()
+        .filter_map(|l| l.trim().strip_prefix("\"command\": "))
+        .map(|c| {
+            let c = c.trim_end_matches(',');
+            // a JSON string: strip the quotes and undo the two escapes it uses
+            c[1..c.len() - 1]
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+        })
+        .collect();
+    assert_eq!(commands.len(), 3, "status line and two hooks: {commands:?}");
+    let elsewhere = std::env::temp_dir().join(format!("ferrum_hook_cwd_{}", std::process::id()));
+    std::fs::create_dir_all(&elsewhere).unwrap();
+    for cwd in [repo(), elsewhere.clone()] {
+        for c in &commands {
+            let mut child = Command::new("bash")
+                .args(["-c", c])
+                .current_dir(&cwd)
+                .env("CLAUDE_PROJECT_DIR", &elsewhere)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .spawn()
+                .unwrap();
+            child.stdin.take().unwrap().write_all(b"{}").unwrap();
+            let status = child.wait().unwrap();
+            assert!(status.success(), "{c}\nin {}: {status}", cwd.display());
+        }
+    }
+    std::fs::remove_dir_all(elsewhere).ok();
+}

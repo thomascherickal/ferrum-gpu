@@ -1,7 +1,7 @@
 {
   "statusLine": {
     "type": "command",
-    "command": "bash \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/scripts/statusline.sh\""
+    "command": "f=\"$(git rev-parse --show-toplevel 2>/dev/null)/scripts/statusline.sh\"; [ -f \"$f\" ] || f=\"${CLAUDE_PROJECT_DIR:-.}/scripts/statusline.sh\"; [ -f \"$f\" ] || exit 0; exec bash \"$f\""
   },
   "hooks": {
     "PostToolUse": [
@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/scripts/handoff_check.sh\" PostToolUse"
+            "command": "f=\"$(git rev-parse --show-toplevel 2>/dev/null)/scripts/handoff_check.sh\"; [ -f \"$f\" ] || f=\"${CLAUDE_PROJECT_DIR:-.}/scripts/handoff_check.sh\"; [ -f \"$f\" ] || exit 0; exec bash \"$f\" PostToolUse"
           }
         ]
       }
@@ -19,7 +19,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel)}/scripts/handoff_check.sh\" UserPromptSubmit"
+            "command": "f=\"$(git rev-parse --show-toplevel 2>/dev/null)/scripts/handoff_check.sh\"; [ -f \"$f\" ] || f=\"${CLAUDE_PROJECT_DIR:-.}/scripts/handoff_check.sh\"; [ -f \"$f\" ] || exit 0; exec bash \"$f\" UserPromptSubmit"
           }
         ]
       }
