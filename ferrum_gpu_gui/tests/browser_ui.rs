@@ -43,6 +43,7 @@ fn the_page_trains_and_generates_in_a_real_browser() {
         &chrome,
         &format!("http://127.0.0.1:{port}/?autotest=ui"),
         "ui",
+        180,
     );
     let Some(result) = common::wait_for(Duration::from_secs(60), || fetch_result(port)) else {
         panic!(

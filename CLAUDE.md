@@ -111,3 +111,6 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     logged the whole desktop session out (nine times on 2026-11-11 and 2026-11-12; it looked like
     a GPU crash because long GPU and coverage runs burn through many pids). Signal a single
     process with `Child::kill` or a positive pid; never `pkill`/`killall` by name.
+    Browser and `node` children are started through `with_deadline` (coreutils `timeout`, a hard
+    lifetime that outlives a killed test run) and ended with `reap_group` (SIGTERM, then SIGKILL
+    for leaders and helpers that ignore it); do not hand-roll process cleanup in tests.

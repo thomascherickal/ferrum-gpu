@@ -43,7 +43,8 @@ fn the_js_reader_repack_and_rope_tables_match_the_rust_side() {
     }
     let server = start(app(), 0).unwrap();
     let script = concat!(env!("CARGO_MANIFEST_DIR"), "/js_tests/reader.test.mjs");
-    let out = Command::new("node")
+    // a hung node is ended by the deadline (exit 124) instead of hanging the suite
+    let out = common::with_deadline("node", 120)
         .arg(script)
         .arg(format!("http://127.0.0.1:{}", server.addr.port()))
         .output()
@@ -73,6 +74,7 @@ fn the_in_browser_runtime_matches_the_cpu_oracle_in_headless_chrome() {
         &chrome,
         &format!("http://127.0.0.1:{port}/?autotest=webgpu"),
         "gpu",
+        300,
     );
     let Some(text) = common::wait_for(Duration::from_secs(120), || result(port)) else {
         panic!(

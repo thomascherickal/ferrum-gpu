@@ -44,6 +44,7 @@ fn measure_in_browser_decode_speed() {
         &chrome,
         &format!("http://127.0.0.1:{port}/?autotest=bench"),
         "bench",
+        1800,
     );
     let Some(text) = common::wait_for(Duration::from_secs(1500), || result(port)) else {
         panic!("no result; console:\n{}", browser.console());
