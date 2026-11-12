@@ -10,7 +10,7 @@
 3. `--dropout` for GPT-2 training (engine work on both trainers), and `--tie` on the GPU engine (kernels to fold the head gradient and re-derive the head). Done 2026-11-12: `--vocab 0` as a byte-level model, and `--tie` on the CPU engine.
 4. Server: (done 2026-11-12) request cancel on client disconnect; LightEval: ferrum-cpu's adapter (`eval/lighteval/ferrum_model.py`, lighteval 0.13.0) was driven against our server on 2026-11-12 (`max_length`, `loglikelihood`, `loglikelihood_rolling`, `greedy_until` all answered correctly on a tiny CPU-trained model); that found one gap, `/v1/info` lacked `context_len`, now added. The full benchmark tasks (blimp, arc, tinystories_cloze; they download datasets) were not run.
 5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.
-6. First CI run on GitHub, and Apple, AMD and Windows hardware rows (Phase 7).
+6. (CI done 2026-11-12: Linux, Windows and macOS jobs are green on `main`; the first runs found and fixed a server crash on a closed stdout and Windows portability bugs, see docs/DEVICES.md.) Still open: Apple, AMD and Windows hardware rows (Phase 7), and the macOS GPU question: on the hosted runner's paravirtual Apple GPU the GPU/CPU loss curves disagree and the kernel tests hang, so only a real Apple machine can say whether our Metal path is right.
 
 ## 0. The independence rule (CRITICAL, unchanged)
 
