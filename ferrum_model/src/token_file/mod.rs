@@ -50,4 +50,6 @@ pub fn element_type(vocab_size: usize) -> (u32, usize) {
 }
 
 #[cfg(test)]
+mod hostile_tests;
+#[cfg(test)]
 mod tests;
