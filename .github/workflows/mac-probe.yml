@@ -1,0 +1,22 @@
+name: macOS GPU probe
+
+# Not part of CI. Run by hand (workflow_dispatch) or by pushing a probe/** branch, to see per test
+# what the hosted macOS runner's GPU does with ferrum_wgpu's kernels (docs/DEVICES.md).
+on:
+  workflow_dispatch:
+  push:
+    branches: ['probe/**']
+
+jobs:
+  probe:
+    name: ferrum_wgpu tests one by one (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Adapters
+        run: cargo run -q -p ferrum_gpu_cli --locked -- info --device cpu
+        continue-on-error: true
+      - name: Probe
+        run: bash scripts/mac_probe.sh 90
