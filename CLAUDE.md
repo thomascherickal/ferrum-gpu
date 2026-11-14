@@ -117,3 +117,11 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     Browser and `node` children are started through `with_deadline` (coreutils `timeout`, a hard
     lifetime that outlives a killed test run) and ended with `reap_group` (SIGTERM, then SIGKILL
     for leaders and helpers that ignore it); do not hand-roll process cleanup in tests.
+17. **No single test may take longer than 3 minutes (user decision 2026-11-14).** Tests use minimal
+    data (a model of tens of thousands of parameters trained for seconds, a sentence repeated, not a
+    corpus). `scripts/test-time-limit.sh [LIMIT] [cargo args]` enforces it: it runs every test in its
+    own process under `timeout` (default 180 s), reports a hung test as TIMEOUT and a slow one with
+    its time, and prints the slowest ten. libtest's own `--ensure-time` does not fire for workspace
+    members, so do not rely on it. The gate runs the script as one of its steps and CI runs it on
+    Linux. Tests that need an outside tool (llama.cpp, Ollama) skip with a printed reason when it is
+    absent; see `docs/INTEROP.md`.

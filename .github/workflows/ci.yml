@@ -32,7 +32,10 @@ jobs:
       - uses: EmbarkStudios/cargo-deny-action@v2
       # Independence guard and the context-script tests live in the `tests` crate.
       - run: cargo test -p integration_tests --locked
-      - run: cargo test --workspace --locked
+      # every test in its own process under a 180 s limit: a hung or slow test fails the job
+      - run: sudo apt-get install -y jq
+      - run: scripts/test-time-limit.sh 180 --locked
+      - run: cargo test --workspace --doc --locked
       - name: Device row (lavapipe)
         run: FERRUM_GPU_ADAPTER=llvmpipe cargo test --release -p ferrum_wgpu --locked
 
