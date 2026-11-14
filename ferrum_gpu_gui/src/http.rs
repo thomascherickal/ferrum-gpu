@@ -3,7 +3,7 @@
 //! rebinding and cross-site requests (the server only ever listens on loopback).
 
 use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
+use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -343,7 +343,31 @@ fn handle(
         Err(e) => Response::error(e.status, &e.message),
     };
     let _ = write_response(&mut stream, &resp);
+    close_gracefully(&mut stream);
 }
+
+/// Close after the response without losing it. Closing a socket that still has unread bytes in its
+/// receive buffer (a client that pipelined a second request, or sent a body we refused) makes the
+/// kernel send a reset, which can destroy the response before the client has read it. So: finish
+/// our side (`FIN`), swallow whatever is still arriving for a moment, then close.
+fn close_gracefully(stream: &mut TcpStream) {
+    let _ = stream.flush();
+    let _ = stream.shutdown(Shutdown::Write);
+    let _ = stream.set_read_timeout(Some(DRAIN_TIMEOUT));
+    let (mut sink, mut taken) = ([0u8; 4096], 0usize);
+    while taken < DRAIN_LIMIT {
+        match stream.read(&mut sink) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => taken += n,
+        }
+    }
+}
+
+/// How long to wait for a client's last bytes after the response (a client that has read the
+/// response and closed ends this at once).
+const DRAIN_TIMEOUT: Duration = Duration::from_millis(100);
+/// Most bytes swallowed after the response; a client sending more is cut off by the close.
+const DRAIN_LIMIT: usize = 1 << 20;
 
 /// Run `handler` for `req`; for a POST (the requests that compute), raise this thread's cancel
 /// flag ([`crate::cancel`]) as soon as the client closes its end of `stream`.
@@ -676,6 +700,32 @@ mod tests {
         let mut out = String::new();
         g.read_to_string(&mut out).unwrap();
         assert!(out.ends_with("done"), "{out}");
+        stop.store(true, Ordering::Relaxed);
+        t.join().unwrap();
+    }
+
+    #[test]
+    fn extra_bytes_after_a_request_are_not_mistaken_for_a_disconnect() {
+        // a client that pipelines a second request leaves bytes waiting on the socket; peeking
+        // returns them at once, forever, and they say nothing about the client leaving
+        let (port, stop, t) = serve_work(|_| {
+            std::thread::sleep(Duration::from_millis(200)); // several watcher polls
+            match crate::cancel::check() {
+                Ok(()) => Response::new(200, "text/plain", "done"),
+                Err(e) => Response::new(500, "text/plain", e),
+            }
+        });
+        let mut c = TcpStream::connect(("127.0.0.1", port)).unwrap();
+        c.write_all(
+            b"POST /a HTTP/1.1\r\nHost: x\r\nContent-Length: 0\r\n\r\nGET /b HTTP/1.1\r\nHost: x\r\n\r\n",
+        )
+        .unwrap();
+        let mut out = String::new();
+        c.read_to_string(&mut out).unwrap();
+        assert!(
+            out.starts_with("HTTP/1.1 200") && out.ends_with("done"),
+            "{out}"
+        );
         stop.store(true, Ordering::Relaxed);
         t.join().unwrap();
     }

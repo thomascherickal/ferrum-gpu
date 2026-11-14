@@ -2,7 +2,17 @@
 
 use ferrum_gpu_gui::app::App;
 use ferrum_gpu_gui::server::{parse_args, start, USAGE};
+use std::io::Write;
 use std::sync::Arc;
+
+/// Print a status line. A closed stdout (`ferrum_gpu_gui | head -1`, a parent that stopped
+/// reading) must not kill a server that is otherwise fine, which `println!` would (it panics on a
+/// broken pipe).
+macro_rules! say {
+    ($($t:tt)*) => {
+        let _ = writeln!(std::io::stdout(), $($t)*);
+    };
+}
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -14,7 +24,7 @@ fn main() {
         }
     };
     if opts.help {
-        println!("{USAGE}");
+        say!("{USAGE}");
         return;
     }
     let app = match App::new(opts.device, opts.adapter.as_deref(), opts.threads) {
@@ -24,14 +34,14 @@ fn main() {
             std::process::exit(1);
         }
     };
-    println!("device: {} ({})", app.backend.name(), app.backend.kind());
+    say!("device: {} ({})", app.backend.name(), app.backend.kind());
     if let Some(n) = &app.fallback_note {
-        println!("note: {n}");
+        say!("note: {n}");
     }
     match start(app, opts.port) {
         Ok(server) => {
-            println!("ferrum-gpu GUI: {}", server.url());
-            println!("press Ctrl-C to stop");
+            say!("ferrum-gpu GUI: {}", server.url());
+            say!("press Ctrl-C to stop");
             loop {
                 std::thread::park();
             }
