@@ -109,6 +109,8 @@ fn the_file_lms_receives_is_exactly_the_model_and_runs_in_llama_cpp() {
             "--no-warmup",
             "-ngl",
             "0",
+            "-t",
+            "1",
         ])
         .stdin(Stdio::null())
         .output()

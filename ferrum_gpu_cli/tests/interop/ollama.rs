@@ -121,7 +121,7 @@ fn export(server: &Server, model: &Path, name: &str) -> std::process::Output {
 /// Ollama's raw greedy continuation of [`PROMPT`] with the registered `name`.
 fn raw_generate(server: &Server, name: &str) -> String {
     let body = format!(
-        r#"{{"model":"{name}","prompt":"{PROMPT}","raw":true,"stream":false,"options":{{"temperature":0,"seed":1,"num_predict":{NEW_TOKENS},"num_gpu":0}}}}"#
+        r#"{{"model":"{name}","prompt":"{PROMPT}","raw":true,"stream":false,"options":{{"temperature":0,"seed":1,"num_predict":{NEW_TOKENS},"num_gpu":0,"num_thread":1}}}}"#
     );
     let (code, reply) = http(&server.host, "POST", "/api/generate", &body).expect("reach ollama");
     assert_eq!(code, 200, "{reply}");

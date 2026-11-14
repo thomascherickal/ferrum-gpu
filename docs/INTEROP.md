@@ -44,6 +44,11 @@ Recorded 2026-11-14 on Zorin OS 18.1 (Linux x86-64), CPU only.
 
 ## Findings
 
+- **llama.cpp b11521 is not deterministic at its default thread count.** The same `llama-completion`
+  command on the same file, eight times: seven runs gave the full text and one gave text cut short
+  with exit status 0. With `-t 1` or `-t 2`, eight of eight identical (checked on both). The tests
+  run it with `-t 1` (and Ollama with `num_thread: 1`), so a mismatch means a real difference.
+
 - llama.cpp accepted our GPT-2 files with no change: the embedded BPE vocabulary, the tensor names and
   the ggml dimension order all matched on the first try.
 - `export-ollama` produced a Modelfile Ollama accepted and described as family `gpt2` with our

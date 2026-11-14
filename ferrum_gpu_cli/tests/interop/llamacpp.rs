@@ -15,7 +15,16 @@ fn completion(dir: &Path, model: &Path) -> String {
         .args(["-m"])
         .arg(model)
         .args(["-p", PROMPT, "-n", &NEW_TOKENS.to_string()])
-        .args(["--temp", "0", "-no-cnv", "--no-warmup", "-ngl", "0"])
+        .args([
+            "--temp",
+            "0",
+            "-no-cnv",
+            "--no-warmup",
+            "-ngl",
+            "0",
+            "-t",
+            "1",
+        ])
         .stdin(Stdio::null())
         .output()
         .expect("run llama-completion");
