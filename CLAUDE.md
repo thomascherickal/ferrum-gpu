@@ -117,11 +117,14 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     Browser and `node` children are started through `with_deadline` (coreutils `timeout`, a hard
     lifetime that outlives a killed test run) and ended with `reap_group` (SIGTERM, then SIGKILL
     for leaders and helpers that ignore it); do not hand-roll process cleanup in tests.
-17. **No single test may take longer than 3 minutes (user decision 2026-11-14).** Tests use minimal
-    data (a model of tens of thousands of parameters trained for seconds, a sentence repeated, not a
-    corpus). `scripts/test-time-limit.sh [LIMIT] [cargo args]` enforces it: it runs every test in its
-    own process under `timeout` (default 180 s), reports a hung test as TIMEOUT and a slow one with
-    its time, and prints the slowest ten. libtest's own `--ensure-time` does not fire for workspace
-    members, so do not rely on it. The gate runs the script as one of its steps and CI runs it on
-    Linux. Tests that need an outside tool (llama.cpp, Ollama) skip with a printed reason when it is
-    absent; see `docs/INTEROP.md`.
+17. **Test time limits (user decision 2026-11-14, replacing the 3-minute rule of the same day).**
+    There is no time limit on ordinary tests. The interoperability tests (`ferrum_gpu_cli/tests/interop`,
+    which drive real external tools) may take up to 10 minutes each. `scripts/test-time-limit.sh
+    [GENERAL_LIMIT] [cargo args]` runs every test in its own process under GNU `timeout` and enforces
+    exactly that: the general limit defaults to 0 (none; pass a number to cap ordinary tests again),
+    the interop limit is 600 s (`INTEROP_LIMIT` changes it). It reports a hung test as TIMEOUT, a slow
+    one with its time, and the slowest eight. libtest's own `--ensure-time` does not fire for workspace
+    members, so do not rely on it. The gate runs the script and CI runs it on Linux. Tests that need an
+    outside tool skip with a printed reason when it is absent. The tests that change anything outside
+    the repository (a real `lms import` under `~/.lmstudio`) or use the GPU through an outside tool are
+    opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/INTEROP.md`.

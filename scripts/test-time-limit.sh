@@ -1,19 +1,25 @@
 #!/usr/bin/env bash
-# Run every test of the workspace in its own process under a hard time limit (default 180 s) and
-# FAIL if any single test exceeds it or fails.
+# Run every test of the workspace in its own process, with a hard time limit where one is set, and
+# FAIL if a test fails or exceeds its limit.
 #
-#   scripts/test-time-limit.sh [LIMIT_SECONDS] [extra `cargo test --no-run` arguments, e.g. -p ferrum_wgpu]
+#   scripts/test-time-limit.sh [GENERAL_LIMIT_SECONDS] [extra `cargo test --no-run` arguments]
 #
-# Why not libtest's own limit: `--ensure-time` never fires for workspace members (their tests are
-# not classified as unit or integration tests), and no flag stops a test that hangs. A process per
-# test with coreutils `timeout` does both: a hung test is killed at the limit and reported TIMEOUT,
-# a slow one is reported with its time. The test binaries are built once by cargo, then run
-# directly, so the cost is process start-up only. Doc-tests are not covered (the few there are
-# compile-checks). Needs GNU `timeout` and `jq`.
+# Limits (user decision 2026-11-14):
+#   - ordinary tests: none by default (GENERAL_LIMIT_SECONDS = 0). Pass a number to cap them again.
+#   - the interoperability tests (the `interop` test binary): 600 s each, or $INTEROP_LIMIT.
+# A limit of 0 means no limit.
+#
+# Why a process per test: libtest's `--ensure-time` never fires for workspace members (their tests
+# are not classified as unit or integration tests), and no flag stops a test that hangs; GNU
+# `timeout` does both. The test binaries are built once by cargo, then run directly, so the cost is
+# process start-up only. Doc-tests are not covered. Needs GNU `timeout` and `jq`.
 set -u
-limit=${1:-180}
+general=${1:-0}
 shift || true
-case $limit in ''|*[!0-9]*) echo "LIMIT_SECONDS must be a whole number, got '$limit'" >&2; exit 2;; esac
+interop=${INTEROP_LIMIT:-600}
+for v in "$general" "$interop"; do
+  case $v in ''|*[!0-9]*) echo "limits must be whole numbers of seconds, got '$v'" >&2; exit 2;; esac
+done
 command -v timeout >/dev/null || { echo "needs GNU coreutils 'timeout'" >&2; exit 2; }
 command -v jq >/dev/null || { echo "needs 'jq'" >&2; exit 2; }
 export CARGO_BUILD_JOBS=${CARGO_BUILD_JOBS:-3}
@@ -29,16 +35,18 @@ pass=0; fail=0; hang=0; failed=""; hung=""
 times=$(mktemp)
 trap 'rm -f "$times"' EXIT
 while IFS=$'\t' read -r dir bin; do
+  case $(basename "$bin") in interop-*) lim=$interop;; *) lim=$general;; esac
+  if [ "$lim" -eq 0 ]; then run=(); else run=(timeout -k 5 "$lim"); fi
   for name in $("$bin" --list --format terse 2>/dev/null | sed -n 's/: test$//p'); do
     t0=$(date +%s.%N)
-    ( cd "$dir" && CARGO_MANIFEST_DIR="$dir" timeout -k 5 "$limit" "$bin" --exact "$name" --test-threads 1 -q >/dev/null 2>&1 )
+    ( cd "$dir" && CARGO_MANIFEST_DIR="$dir" "${run[@]}" "$bin" --exact "$name" --test-threads 1 -q >/dev/null 2>&1 )
     rc=$?
     t1=$(date +%s.%N)
     echo "$(echo "$t1 - $t0" | bc) $(basename "$bin") $name" >> "$times"
     if [ $rc -eq 0 ]; then
       pass=$((pass + 1))
-    elif [ $rc -eq 124 ] || [ $rc -eq 137 ]; then
-      hang=$((hang + 1)); hung="$hung\n  $name"; echo "TIMEOUT (>${limit}s) $name"
+    elif [ "$lim" -ne 0 ] && { [ $rc -eq 124 ] || [ $rc -eq 137 ]; }; then
+      hang=$((hang + 1)); hung="$hung\n  $name"; echo "TIMEOUT (>${lim}s) $name"
     else
       fail=$((fail + 1)); failed="$failed\n  $name"; echo "FAILED  $name (exit $rc)"
     fi
@@ -46,10 +54,10 @@ while IFS=$'\t' read -r dir bin; do
 done <<< "$bins"
 
 echo
-echo "== slowest tests (limit ${limit}s) =="
+echo "== slowest tests (limits: ordinary ${general}s [0 = none], interop ${interop}s) =="
 sort -rn "$times" | head -8
 echo
-echo "RESULT: $pass passed, $fail failed, $hang over ${limit}s"
+echo "RESULT: $pass passed, $fail failed, $hang over their limit"
 [ -z "$failed" ] || printf "FAILED:%b\n" "$failed"
 [ -z "$hung" ] || printf "OVER THE LIMIT:%b\n" "$hung"
 [ $fail -eq 0 ] && [ $hang -eq 0 ]

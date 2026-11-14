@@ -1,0 +1,196 @@
+[2026-11-14T19:39:15+05:30] STEP 1 start: real-tool interoperability run (user-authorized: real lms import; llama.cpp and Ollama on a GPU backend)
+[2026-11-14T19:39:15+05:30] host: Linux 7.0.0-42-generic x86_64; "Zorin OS 18.1"
+[2026-11-14T19:39:15+05:30] gpu: NVIDIA GeForce MX330, 2048 MiB, 6.1, 580.178.04
+[2026-11-14T19:39:15+05:30] STEP 2: installed llama.cpp is llama.cpp-b11521: no vulkan/cuda library present => CPU only
+[2026-11-14T19:39:15+05:30] STEP 3: fetch the Vulkan build of the same release (b11521) to a scratch dir
+[2026-11-14T19:39:15+05:30] published digest: sha256:587fefc6ce595a72fbce69e67732040975decb8dd44072f22cd7869c5c1b8cd5
+[2026-11-14T19:39:40+05:30] downloaded sha256: sha256:587fefc6ce595a72fbce69e67732040975decb8dd44072f22cd7869c5c1b8cd5 (31784913 bytes)
+[2026-11-14T19:39:40+05:30] checksum MATCHES the published digest
+[2026-11-14T19:39:51+05:30] STEP 4: extracted to <scratch>/llama.cpp-b11521-vulkan (llama-b11521)
+[2026-11-14T19:39:51+05:30] binaries: llama-cli llama-completion llama-quantize llama-tokenize 
+[2026-11-14T19:39:51+05:30] backends present: libggml-cpu-haswell.so libggml-vulkan.so 
+[2026-11-14T19:39:51+05:30] vulkan dir: <scratch>/llama.cpp-b11521-vulkan/llama-b11521
+[2026-11-14T19:39:51+05:30] STEP 5: which devices does this llama.cpp see?
+Available devices:
+  Vulkan0: Intel(R) Iris(R) Xe Graphics (TGL GT2) (11787 MiB, 9092 MiB free)
+  Vulkan1: NVIDIA GeForce MX330 (2294 MiB, 2231 MiB free)
+[2026-11-14T19:40:07+05:30] STEP 6: lms recon (read-only): version, status, current library listing
+[2026-11-14T19:40:07+05:30] lms --version: CLI commit: dcefd5a 
+[2026-11-14T19:40:08+05:30] lms status: Server:  OFF   (i) To start the server, run the following command:      lms server start 
+[2026-11-14T19:40:14+05:30] lms ls --json: 10 entries (the user's own models; none will be touched)
+[2026-11-14T19:40:14+05:30] models dir publishers: bartowski empero-ai ggml-org GnLOLot google Jackrong KnutJaegersberg LiquidAI lmstudio-community microsoft openbmb QuantFactory Qwen stduhpf unsloth 
+[2026-11-14T19:40:14+05:30] is a 'ferrum' publisher dir already there? no
+[2026-11-14T19:42:21+05:30] STEP 7: first GPU smoke run of llama.cpp (Vulkan build) on each GPU, f32 model from an earlier session
+[2026-11-14T19:42:21+05:30] run: llama-completion -m m.gguf -p 'the cat' -n 10 --temp 0 -no-cnv --no-warmup -ngl 99 --device Vulkan0 -t 1
+[2026-11-14T19:42:22+05:30] exit=0 stdout=[the cat sat on the mat. the cat sat on the||]
+[2026-11-14T19:42:22+05:30] run: llama-completion -m m.gguf -p 'the cat' -n 10 --temp 0 -no-cnv --no-warmup -ngl 99 --device Vulkan1 -t 1
+[2026-11-14T19:42:23+05:30] exit=0 stdout=[the cat sat on the mat. the cat sat on the||]
+[2026-11-14T19:42:45+05:30] STEP 8: the same runs with -v (verbose) to capture the offload evidence
+[2026-11-14T19:42:45+05:30] run: llama-completion -v -ngl 99 --device Vulkan0 (f32 model)
+[2026-11-14T19:42:45+05:30] exit=0 stdout=[the cat sat on the mat. the cat sat on the||]
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.051.589 D ggml_vulkan: Found 2 Vulkan devices:
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.061.979 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 8756 MiB free
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.073.646 D load_tensors: layer   0 assigned to device Vulkan0, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.073.649 D load_tensors: layer   1 assigned to device Vulkan0, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.073.650 D load_tensors: layer   2 assigned to device Vulkan0, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.074.136 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.074.141 I load_tensors:      Vulkan0 model buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.074.142 I load_tensors:  Vulkan_Host model buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.074.271 D llama_kv_cache: layer   0: dev = Vulkan0
+[2026-11-14T19:42:45+05:30] run: llama-completion -v -ngl 99 --device Vulkan1 (f32 model)
+[2026-11-14T19:42:45+05:30] exit=0 stdout=[the cat sat on the mat. the cat sat on the||]
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.046.690 D ggml_vulkan: Found 2 Vulkan devices:
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.057.086 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.265 D load_tensors: layer   0 assigned to device Vulkan1, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.268 D load_tensors: layer   1 assigned to device Vulkan1, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.268 D load_tensors: layer   2 assigned to device Vulkan1, is_swa = 0
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.764 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.768 I load_tensors:      Vulkan1 model buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.769 I load_tensors:  Vulkan_Host model buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.092.945 D llama_kv_cache: layer   0: dev = Vulkan1
+[2026-11-14T19:42:45+05:30] run: llama-completion -v -ngl 0  (f32 model)
+[2026-11-14T19:42:45+05:30] exit=0 stdout=[the cat sat on the mat. the cat sat on the||]
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.044.396 D ggml_vulkan: Found 2 Vulkan devices:
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.051.887 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.079.342 I load_tensors: offloaded 0/3 layers to GPU
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.079.347 I load_tensors:  Vulkan_Host model buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.079.494 I llama_kv_cache:        CPU KV buffer size =     0.00 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.080.592 I sched_reserve: Vulkan_Host compute buffer size =     0.05 MiB
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.081.011 I common_memory_breakdown_print: |   - Vulkan1 (MX330)    |  2294 = 2228 + (   0 =     0 +       0 +       0) +          66 |
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.081.687 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2228 MiB free
+[2026-11-14T19:42:45+05:30]   llama.cpp: 0.00.082.705 I load_tensors: offloaded 0/3 layers to GPU
+[2026-11-14T19:44:39+05:30] === RUN llama.cpp on the GPUs: cargo test -p ferrum_gpu_cli --test interop -- llamacpp_gpu  (env: FERRUM_INTEROP_GPU=1 FERRUM_LLAMACPP_VULKAN_DIR=<scratch>/llama.cpp-b11521-vulkan/llama-b11521)
+[2026-11-14T19:44:39+05:30] llama.cpp Vulkan build at <scratch>/llama.cpp-b11521-vulkan/llama-b11521
+[2026-11-14T19:44:39+05:30] device Vulkan0: Intel(R) Iris(R) Xe Graphics (TGL GT2) (11787 MiB, 7811 MiB free)
+[2026-11-14T19:44:39+05:30] device Vulkan1: NVIDIA GeForce MX330 (2294 MiB, 2231 MiB free)
+[2026-11-14T19:44:41+05:30] Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2) (11787 MiB, 7811 MiB free)), f32: llama-completion -v -ngl 99 --device Vulkan0 -t 1 on /tmp/ferrum_interop_3266760/f32.gguf
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.057.619 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7825 MiB free
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.071.391 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.071.396 I load_tensors:      Vulkan0 model buffer size =     0.00 MiB
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.074.302 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7795 MiB free
+[2026-11-14T19:44:41+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:41+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:41+05:30]   Vulkan0 f32: MATCH
+[2026-11-14T19:44:41+05:30] Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2) (11787 MiB, 7811 MiB free)), q8_0: llama-completion -v -ngl 99 --device Vulkan0 -t 1 on /tmp/ferrum_interop_3266760/q8.gguf
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.057.335 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7798 MiB free
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.070.504 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.070.511 I load_tensors:      Vulkan0 model buffer size =     0.00 MiB
+[2026-11-14T19:44:41+05:30]   llama.cpp: 0.00.073.470 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7778 MiB free
+[2026-11-14T19:44:42+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:42+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:42+05:30]   Vulkan0 q8_0: MATCH
+[2026-11-14T19:44:42+05:30] Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2) (11787 MiB, 7811 MiB free)), q4_0: llama-completion -v -ngl 99 --device Vulkan0 -t 1 on /tmp/ferrum_interop_3266760/q4.gguf
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.061.884 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7778 MiB free
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.076.325 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.076.331 I load_tensors:      Vulkan0 model buffer size =     0.00 MiB
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.079.052 I llama_prepare_model_devices: using device Vulkan0 (Intel(R) Iris(R) Xe Graphics (TGL GT2)) (0000:00:02.0) - 7754 MiB free
+[2026-11-14T19:44:42+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:42+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:42+05:30]   Vulkan0 q4_0: MATCH
+[2026-11-14T19:44:42+05:30] Vulkan1 (NVIDIA GeForce MX330 (2294 MiB, 2231 MiB free)), f32: llama-completion -v -ngl 99 --device Vulkan1 -t 1 on /tmp/ferrum_interop_3266760/f32.gguf
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.057.559 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.094.544 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.094.549 I load_tensors:      Vulkan1 model buffer size =     0.00 MiB
+[2026-11-14T19:44:42+05:30]   llama.cpp: 0.00.097.845 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2228 MiB free
+[2026-11-14T19:44:42+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:42+05:30]   Vulkan1 f32: MATCH
+[2026-11-14T19:44:42+05:30] Vulkan1 (NVIDIA GeForce MX330 (2294 MiB, 2231 MiB free)), q8_0: llama-completion -v -ngl 99 --device Vulkan1 -t 1 on /tmp/ferrum_interop_3266760/q8.gguf
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.059.855 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.089.918 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.089.931 I load_tensors:      Vulkan1 model buffer size =     0.00 MiB
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.093.282 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2228 MiB free
+[2026-11-14T19:44:43+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:43+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:43+05:30]   Vulkan1 q8_0: MATCH
+[2026-11-14T19:44:43+05:30] Vulkan1 (NVIDIA GeForce MX330 (2294 MiB, 2231 MiB free)), q4_0: llama-completion -v -ngl 99 --device Vulkan1 -t 1 on /tmp/ferrum_interop_3266760/q4.gguf
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.059.090 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.087.883 I load_tensors: offloaded 3/3 layers to GPU
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.087.890 I load_tensors:      Vulkan1 model buffer size =     0.00 MiB
+[2026-11-14T19:44:43+05:30]   llama.cpp: 0.00.091.080 I llama_prepare_model_devices: using device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2228 MiB free
+[2026-11-14T19:44:43+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:43+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:44:43+05:30]   Vulkan1 q4_0: MATCH
+[2026-11-14T19:44:43+05:30] control: the Vulkan build with -ngl 0 (all layers on the CPU)
+[2026-11-14T19:44:43+05:30]   offloaded 0/3 layers to GPU; text "the cat sat on the mat. the cat sat on the"
+g device Vulkan1 (NVIDIA GeForce MX330) (0000:01:00.0) - 2231 MiB free
+[2026-11-14T19:44:44+05:30] === END llama.cpp on the GPUs (the cargo exit status is in the test result line above)
+[2026-11-14T19:45:58+05:30] === RUN Ollama on the GPU: cargo test -p ferrum_gpu_cli --test interop -- ollama_gpu  (env: FERRUM_INTEROP_GPU=1)
+[2026-11-14T19:45:58+05:30] Cuda: starting `ollama serve` (/home/thomas/.local/bin/ollama), private HOME and models, GPU allowed
+[2026-11-14T19:46:03+05:30] Cuda: ready on 127.0.0.1:42677; the server chose:
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:45:59.658+05:30 level=INFO source=routes.go:2373 msg="server config" env="map[CUDA_VISIBLE_DEVICES: GGML_VK_VISIBLE_DEVICES: GPU_DEVICE_ORDINAL: HIP_VISIBLE_DEVICES: HSA_OVERRIDE_GF
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:45:59.659+05:30 level=INFO source=runner.go:60 msg="discovering available GPUs..."
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:00.937+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:02.067+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:02.748+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:02.865+05:30 level=INFO source=runner.go:405 msg="dropping integrated GPU; to enable, set OLLAMA_IGPU_ENABLE=1" id=0 library=Vulkan compute=0.0 name=Vulkan0 description="Intel(R)
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:02.865+05:30 level=DEBUG source=runner.go:153 msg="verifying if device is supported" library=/home/thomas/.local/opt/ollama-v0.40.2/lib/ollama/cuda_v12 description="NVIDIA GeForc
+[2026-11-14T19:46:03+05:30]   ollama: time=2026-11-14T19:46:02.955+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:03+05:30] Cuda f32: ferrum-gpu export-ollama --model /tmp/ferrum_interop_3317505/f32.gguf --name ferrum-gpu-gpu-cuda-f32
+[2026-11-14T19:46:03+05:30]   export: created Ollama model 'ferrum-gpu-gpu-cuda-f32' (run it with: ollama run ferrum-gpu-gpu-cuda-f32)
+[2026-11-14T19:46:03+05:30] Cuda f32: POST /api/generate (raw, greedy, GPU offload left to Ollama)
+[2026-11-14T19:46:04+05:30]   ollama text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:04+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:04+05:30]   /api/ps: size 241171 bytes, in video memory 241171 bytes
+[2026-11-14T19:46:04+05:30]   ollama: sched_reserve:  CUDA_Host compute buffer size =     0.02 MiB
+[2026-11-14T19:46:04+05:30]   ollama: sched_reserve:      CUDA0 compute buffer size =     0.07 MiB
+[2026-11-14T19:46:04+05:30]   ollama: llama_kv_cache: size =    0.06 MiB (   256 cells,   2 layers,  1/1 seqs), K (f16):    0.03 MiB, V (f16):    0.03 MiB
+[2026-11-14T19:46:04+05:30]   ollama: llama_kv_cache:      CUDA0 KV buffer size =     0.06 MiB
+[2026-11-14T19:46:04+05:30]   Cuda f32: on the GPU and MATCH
+[2026-11-14T19:46:04+05:30] Cuda q8_0: ferrum-gpu export-ollama --model /tmp/ferrum_interop_3317505/q8.gguf --name ferrum-gpu-gpu-cuda-q8_0
+[2026-11-14T19:46:04+05:30]   export: created Ollama model 'ferrum-gpu-gpu-cuda-q8_0' (run it with: ollama run ferrum-gpu-gpu-cuda-q8_0)
+[2026-11-14T19:46:04+05:30] Cuda q8_0: POST /api/generate (raw, greedy, GPU offload left to Ollama)
+[2026-11-14T19:46:04+05:30]   ollama text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:04+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:04+05:30]   /api/ps: size 167771 bytes, in video memory 167771 bytes
+[2026-11-14T19:46:04+05:30]   ollama: sched_reserve:  CUDA_Host compute buffer size =     0.02 MiB
+[2026-11-14T19:46:04+05:30]   ollama: sched_reserve:      CUDA0 compute buffer size =     0.07 MiB
+[2026-11-14T19:46:04+05:30]   ollama: llama_kv_cache:      CUDA0 KV buffer size =     0.06 MiB
+[2026-11-14T19:46:04+05:30]   Cuda q8_0: on the GPU and MATCH
+[2026-11-14T19:46:04+05:30] Vulkan: starting `ollama serve` (/home/thomas/.local/bin/ollama), private HOME and models, GPU allowed
+[2026-11-14T19:46:05+05:30] Vulkan: ready on 127.0.0.1:38007; the server chose:
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.585+05:30 level=INFO source=routes.go:2373 msg="server config" env="map[CUDA_VISIBLE_DEVICES:-1 GGML_VK_VISIBLE_DEVICES: GPU_DEVICE_ORDINAL: HIP_VISIBLE_DEVICES: HSA_OVERRIDE_
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.586+05:30 level=INFO source=runner.go:60 msg="discovering available GPUs..."
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.586+05:30 level=WARN source=runner.go:726 msg="if GPUs are not correctly discovered, unset and try again"
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.663+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.806+05:30 level=DEBUG source=native_probe.go:259 msg="native GPU discovery failed" error="exit status 1" stderr="ggml_cuda_init: failed to initialize CUDA: no CUDA-capable dev
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:04.869+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:05.011+05:30 level=DEBUG source=native_probe.go:259 msg="native GPU discovery failed" error="exit status 1" stderr="ggml_cuda_init: failed to initialize CUDA: no CUDA-capable dev
+[2026-11-14T19:46:05+05:30]   ollama: time=2026-11-14T19:46:05.073+05:30 level=DEBUG source=llama_server.go:121 msg="llama-server discovery: stopped subprocess after collecting GPU info" exit=unknown libDirs="[/home/thomas/.local/opt/olla
+[2026-11-14T19:46:05+05:30] Vulkan f32: ferrum-gpu export-ollama --model /tmp/ferrum_interop_3317505/f32.gguf --name ferrum-gpu-gpu-vulkan-f32
+[2026-11-14T19:46:05+05:30]   export: created Ollama model 'ferrum-gpu-gpu-vulkan-f32' (run it with: ollama run ferrum-gpu-gpu-vulkan-f32)
+[2026-11-14T19:46:05+05:30] Vulkan f32: POST /api/generate (raw, greedy, GPU offload left to Ollama)
+[2026-11-14T19:46:06+05:30]   ollama text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:06+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:06+05:30]   /api/ps: size 188742 bytes, in video memory 188742 bytes
+[2026-11-14T19:46:06+05:30]   ollama: sched_reserve: Vulkan_Host compute buffer size =     0.01 MiB
+[2026-11-14T19:46:06+05:30]   ollama: sched_reserve:    Vulkan0 compute buffer size =     0.02 MiB
+[2026-11-14T19:46:06+05:30]   ollama: llama_kv_cache: size =    0.06 MiB (   256 cells,   2 layers,  1/1 seqs), K (f16):    0.03 MiB, V (f16):    0.03 MiB
+[2026-11-14T19:46:06+05:30]   ollama: llama_kv_cache:    Vulkan0 KV buffer size =     0.06 MiB
+[2026-11-14T19:46:06+05:30]   Vulkan f32: on the GPU and MATCH
+[2026-11-14T19:46:06+05:30] Vulkan q8_0: ferrum-gpu export-ollama --model /tmp/ferrum_interop_3317505/q8.gguf --name ferrum-gpu-gpu-vulkan-q8_0
+[2026-11-14T19:46:06+05:30]   export: created Ollama model 'ferrum-gpu-gpu-vulkan-q8_0' (run it with: ollama run ferrum-gpu-gpu-vulkan-q8_0)
+[2026-11-14T19:46:06+05:30] Vulkan q8_0: POST /api/generate (raw, greedy, GPU offload left to Ollama)
+[2026-11-14T19:46:07+05:30]   ollama text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:07+05:30]   ferrum-gpu text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:07+05:30]   /api/ps: size 115342 bytes, in video memory 115342 bytes
+cat sat on the"
+[2026-11-14T19:46:07+05:30]   ollama: sched_reserve:    Vulkan0 compute buffer size =     0.02 MiB
+[2026-11-14T19:46:07+05:30]   ollama: llama_kv_cache: size =    0.06 MiB (   256 cells,   2 layers,  1/1 seqs), K (f16):    0.03 MiB, V (f16):    0.03 MiB
+[2026-11-14T19:46:07+05:30]   ollama: llama_kv_cache:    Vulkan0 KV buffer size =     0.06 MiB
+[2026-11-14T19:46:07+05:30]   Vulkan q8_0: on the GPU and MATCH
+ the GPU and MATCH
+[2026-11-14T19:46:07+05:30] === END Ollama on the GPU (the cargo exit status is in the test result line above)
+[2026-11-14T19:46:16+05:30] === RUN real lms import: cargo test -p ferrum_gpu_cli --test interop -- lms  (env: FERRUM_INTEROP_LMS=1)
+[2026-11-14T19:46:18+05:30] lms: /home/thomas/.lmstudio/bin/lms
+[2026-11-14T19:46:18+05:30] before: `lms ls --json` lists 10 models (the user's own; untouched)
+[2026-11-14T19:46:18+05:30] import: ferrum-gpu export-lmstudio --model /tmp/ferrum_interop_3368190/f32.gguf --repo ferrum-interop-test/tiny-gpt2 --bin /home/thomas/.lmstudio/bin/lms
+[2026-11-14T19:46:19+05:30]   stdout: imported into LM Studio as 'tiny-gpt2' (load it with: lms load tiny-gpt2)
+[2026-11-14T19:46:19+05:30] after: `lms ls --json` lists 11 models
+[2026-11-14T19:46:19+05:30]   registered: modelKey tiny-gpt2  path ferrum-interop-test/tiny-gpt2/f32.gguf
+[2026-11-14T19:46:19+05:30]   on disk: /home/thomas/.lmstudio/models/ferrum-interop-test/tiny-gpt2/f32.gguf (symlink, `-l`)
+[2026-11-14T19:46:19+05:30]   the file LM Studio holds is byte-identical to the model we trained
+[2026-11-14T19:46:19+05:30] run: the imported file in llama.cpp (LM Studio's engine), greedy, 1 thread
+[2026-11-14T19:46:19+05:30]   llama.cpp text: "the cat sat on the mat. the cat sat on the"
+[2026-11-14T19:46:19+05:30]   MATCH
+[2026-11-14T19:46:19+05:30] cleanup: removed /home/thomas/.lmstudio/models/ferrum-interop-test
+[2026-11-14T19:46:19+05:30] === END real lms import (the cargo exit status is in the test result line above)

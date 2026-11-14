@@ -1,149 +1,27 @@
-//! Ollama: `export-ollama` registers a model with a real `ollama serve`, and Ollama's raw greedy
-//! text equals ours. The server gets a private HOME and model directory (it writes an identity key
-//! and its blobs there, never into the user's own) and is kept off the GPU.
+//! Ollama on the CPU: `export-ollama` registers a model with a real `ollama serve`, and Ollama's raw
+//! greedy text equals ours. The server gets a private HOME and model directory (it writes an
+//! identity key and its blobs there, never into the user's own) and is kept off the GPU. The GPU
+//! runs are in `real/ollama_gpu.rs`.
 
 use crate::skip;
-use crate::support::model::{ferrum, fixture, ours, NEW_TOKENS, PROMPT};
-use crate::support::proc::{wait_until, with_deadline, Group};
+use crate::support::model::{ferrum, fixture, ours, PROMPT};
+use crate::support::ollama_server::{free_port, http, start, Mode};
 use crate::support::tools::ollama;
 use ferrum_gpu_gui::json::Json;
-use std::io::{Read, Write};
-use std::net::{TcpListener, TcpStream};
-use std::path::{Path, PathBuf};
 use std::process::Command;
-
-/// A running `ollama serve`, ended with its process group when dropped.
-struct Server {
-    _group: Group,
-    host: String,
-    home: PathBuf,
-    bin: PathBuf,
-}
-
-impl Server {
-    /// The environment every Ollama client and server here shares.
-    fn env(&self) -> Vec<(&'static str, String)> {
-        vec![
-            ("HOME", self.home.display().to_string()),
-            ("OLLAMA_HOST", self.host.clone()),
-            (
-                "OLLAMA_MODELS",
-                self.home.join("models").display().to_string(),
-            ),
-            ("CUDA_VISIBLE_DEVICES", "-1".into()),
-            ("HIP_VISIBLE_DEVICES", "-1".into()),
-            ("OLLAMA_LLM_LIBRARY", "cpu".into()),
-        ]
-    }
-}
-
-fn free_port() -> u16 {
-    TcpListener::bind("127.0.0.1:0")
-        .unwrap()
-        .local_addr()
-        .unwrap()
-        .port()
-}
-
-/// Start a server for test `tag`; `None` if it never became ready.
-fn start(bin: &Path, tag: &str) -> Option<Server> {
-    let home = fixture().dir.join(format!("ollama-{tag}"));
-    std::fs::create_dir_all(home.join("models")).unwrap();
-    let host = format!("127.0.0.1:{}", free_port());
-    let mut s = Server {
-        _group: Group::spawn(&mut Command::new("true")),
-        host: host.clone(),
-        home,
-        bin: bin.to_path_buf(),
-    };
-    let mut cmd = with_deadline(bin, 900);
-    cmd.arg("serve");
-    for (k, v) in s.env() {
-        cmd.env(k, v);
-    }
-    s._group = Group::spawn(&mut cmd);
-    wait_until(40, || {
-        http(&host, "GET", "/api/version", "").is_some_and(|(c, _)| c == 200)
-    })
-    .then_some(s)
-}
-
-/// One HTTP request; the status and the (de-chunked) body, or `None` if the connection failed.
-fn http(host: &str, method: &str, path: &str, body: &str) -> Option<(u16, String)> {
-    let mut c = TcpStream::connect(host).ok()?;
-    c.set_read_timeout(Some(std::time::Duration::from_secs(120)))
-        .ok()?;
-    write!(
-        c,
-        "{method} {path} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{body}",
-        body.len()
-    )
-    .ok()?;
-    let mut raw = Vec::new();
-    c.read_to_end(&mut raw).ok()?;
-    let text = String::from_utf8_lossy(&raw).into_owned();
-    let (head, body) = text.split_once("\r\n\r\n")?;
-    let status = head.split(' ').nth(1)?.parse().ok()?;
-    let body = if head.to_lowercase().contains("transfer-encoding: chunked") {
-        dechunk(body)
-    } else {
-        body.to_string()
-    };
-    Some((status, body))
-}
-
-fn dechunk(mut s: &str) -> String {
-    let mut out = String::new();
-    while let Some((len, rest)) = s.split_once("\r\n") {
-        let n = usize::from_str_radix(len.trim(), 16).unwrap_or(0);
-        if n == 0 || rest.len() < n {
-            break;
-        }
-        out.push_str(&rest[..n]);
-        s = rest[n..].trim_start_matches("\r\n");
-    }
-    out
-}
-
-/// Register `model` as `name` through `ferrum-gpu export-ollama` against `server`.
-fn export(server: &Server, model: &Path, name: &str) -> std::process::Output {
-    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ferrum-gpu"));
-    cmd.args(["export-ollama", "--model"])
-        .arg(model)
-        .args(["--name", name, "--bin"])
-        .arg(&server.bin);
-    for (k, v) in server.env() {
-        cmd.env(k, v);
-    }
-    cmd.output().expect("run export-ollama")
-}
-
-/// Ollama's raw greedy continuation of [`PROMPT`] with the registered `name`.
-fn raw_generate(server: &Server, name: &str) -> String {
-    let body = format!(
-        r#"{{"model":"{name}","prompt":"{PROMPT}","raw":true,"stream":false,"options":{{"temperature":0,"seed":1,"num_predict":{NEW_TOKENS},"num_gpu":0,"num_thread":1}}}}"#
-    );
-    let (code, reply) = http(&server.host, "POST", "/api/generate", &body).expect("reach ollama");
-    assert_eq!(code, 200, "{reply}");
-    let j = Json::parse(&reply).unwrap_or_else(|e| panic!("{e}: {reply}"));
-    j.get("response")
-        .and_then(Json::as_str)
-        .expect("a response")
-        .to_string()
-}
 
 #[test]
 fn export_ollama_registers_the_model_and_ollama_continues_it_like_we_do() {
     let Some(bin) = ollama() else {
         skip!("ollama not installed (set FERRUM_OLLAMA)")
     };
-    let Some(server) = start(&bin, "run") else {
+    let Some(server) = start(&bin, "run", Mode::Cpu) else {
         skip!("ollama serve did not start")
     };
     let f = fixture();
     for (label, path) in [("f32", &f.f32), ("q8_0", &f.q8)] {
         let name = format!("ferrum-interop-{label}");
-        let o = export(&server, path, &name);
+        let o = server.export(path, &name);
         let text = String::from_utf8_lossy(&o.stdout);
         assert!(
             o.status.success(),
@@ -154,7 +32,7 @@ fn export_ollama_registers_the_model_and_ollama_continues_it_like_we_do() {
             text.contains(&format!("created Ollama model '{name}'")),
             "{text}"
         );
-        let theirs = raw_generate(&server, &name);
+        let theirs = server.raw_generate(&name, true);
         let mine = ours(path);
         assert_eq!(format!("{PROMPT}{theirs}").trim_end(), mine, "{label}");
     }
@@ -165,11 +43,12 @@ fn ollama_lists_and_describes_the_registered_model() {
     let Some(bin) = ollama() else {
         skip!("ollama not installed (set FERRUM_OLLAMA)")
     };
-    let Some(server) = start(&bin, "show") else {
+    let Some(server) = start(&bin, "show", Mode::Cpu) else {
         skip!("ollama serve did not start")
     };
     let f = fixture();
-    assert!(export(&server, &f.f32, "ferrum-interop-show")
+    assert!(server
+        .export(&f.f32, "ferrum-interop-show")
         .status
         .success());
     let (code, tags) = http(&server.host, "GET", "/api/tags", "").unwrap();

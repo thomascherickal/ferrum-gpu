@@ -1,7 +1,9 @@
 //! Shared helpers: finding the tools, running them under a deadline, and the small trained models
 //! every test uses.
 
+pub mod log;
 pub mod model;
+pub mod ollama_server;
 pub mod proc;
 pub mod tools;
 

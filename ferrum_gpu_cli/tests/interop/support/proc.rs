@@ -54,6 +54,20 @@ impl Group {
     }
 }
 
+impl Group {
+    /// Like [`Group::spawn`], with the child's stdout and stderr appended to the file `log`.
+    pub fn spawn_logged(cmd: &mut Command, log: &Path) -> Group {
+        let f = std::fs::File::create(log).expect("create the tool's log");
+        Group(
+            cmd.process_group(0)
+                .stdout(f.try_clone().expect("clone the log handle"))
+                .stderr(f)
+                .spawn()
+                .expect("start the tool"),
+        )
+    }
+}
+
 impl Drop for Group {
     fn drop(&mut self) {
         let pgid = self.0.id();

@@ -19,4 +19,5 @@ mod gguf;
 mod llamacpp;
 mod lmstudio;
 mod ollama;
+mod real;
 mod support;
