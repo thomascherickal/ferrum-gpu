@@ -64,7 +64,7 @@ async function refreshInfo() {
 $('model-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   try {
-    await post('/api/model', { preset: $('preset').value, seed: Number($('seed').value) });
+    await post('/api/model', { preset: $('preset').value, seed: Number($('seed').value), tied: $('tied').checked });
     $('model-msg').textContent = 'Created a new model.';
     $('model-msg').className = 'good';
     await refreshInfo();

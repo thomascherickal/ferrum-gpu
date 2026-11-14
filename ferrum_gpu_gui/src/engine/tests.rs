@@ -318,3 +318,10 @@ fn generate_with_stops_at_once_when_the_request_is_cancelled() {
     assert_eq!(e, crate::cancel::MESSAGE);
     assert!(fed <= 4, "stopped within a token of the flag: fed {fed}");
 }
+
+#[test]
+fn fresh_model_with_ties_the_head_and_the_default_does_not() {
+    assert!(fresh_model_with("tiny", 1, true).unwrap().tied);
+    assert!(!fresh_model_with("tiny", 1, false).unwrap().tied);
+    assert!(fresh_model_with("huge", 1, true).is_err());
+}

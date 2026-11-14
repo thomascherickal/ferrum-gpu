@@ -1,7 +1,7 @@
 //! The JSON API and static routes.
 
 use crate::app::{lock, App, JobState};
-use crate::engine::{fresh_model, preset, validation, GenOpts, TrainSpec};
+use crate::engine::{fresh_model_with, preset, validation, GenOpts, TrainSpec};
 use crate::http::{Request, Response};
 use crate::json::Json;
 use crate::{assets, stop, tokenizer};
@@ -147,7 +147,12 @@ fn new_model(app: &App, req: &Request) -> Response {
         Ok(s) => s as u64,
         Err(r) => return r,
     };
-    match fresh_model(name, seed) {
+    let tied = match j.get("tied") {
+        None | Some(Json::Null) => false,
+        Some(Json::Bool(b)) => *b,
+        Some(_) => return Response::error(400, "tied must be true or false"),
+    };
+    match fresh_model_with(name, seed, tied) {
         Ok(m) => {
             let out = model_json(&m);
             app.set_model(m);

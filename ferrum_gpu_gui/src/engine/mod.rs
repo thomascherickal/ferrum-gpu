@@ -47,9 +47,14 @@ pub fn preset(name: &str) -> Option<Config> {
 
 /// A freshly initialised (untied, bias-free) model of a preset.
 pub fn fresh_model(name: &str, seed: u64) -> Result<Llama, String> {
+    fresh_model_with(name, seed, false)
+}
+
+/// Like [`fresh_model`]; `tied` shares the token embedding with the output head.
+pub fn fresh_model_with(name: &str, seed: u64, tied: bool) -> Result<Llama, String> {
     let cfg =
         preset(name).ok_or_else(|| format!("unknown preset '{name}' (tiny, small, medium)"))?;
-    Ok(Llama::random(cfg, seed, false, false))
+    Ok(Llama::random(cfg, seed, false, tied))
 }
 
 /// What a training run needs.
