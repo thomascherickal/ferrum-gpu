@@ -73,6 +73,7 @@ cargo bench -p ferrum_wgpu --bench decode          # cached single-token decode,
 cargo bench -p ferrum_wgpu --bench train           # full training step, CPU vs GPU
 cargo bench -p ferrum_wgpu --bench llama           # Llama decode, fine-tune, size table
 cargo bench -p ferrum_wgpu --bench profile_train   # where a training step spends its time
+cargo bench -p ferrum_wgpu --bench capability   # real-size shapes (135M to 1.78B, random weights): what fits and how fast; see CAPABILITY.md
 ```
 
 Rules for reporting: record the adapter, backend, driver if known, OS, `wgpu` version, profile and date; give

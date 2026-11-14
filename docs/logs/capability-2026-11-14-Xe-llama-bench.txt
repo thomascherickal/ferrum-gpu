@@ -1,0 +1,29 @@
+2026-11-14T20:54:05+05:30
+Linux 7.0.0-42-generic
+rustc 1.96.0 (ac68faa20 2026-05-25)
+NVIDIA GeForce MX330, 2048 MiB, 580.178.04
+Mem:           15716        6612        5463         342        4316        9103
+
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+### Decode (single stream, ms/token and tokens/s)
+| model | params | cpu f32 (1 thread) | gpu f32 | gpu Q8_0 | gpu Q4_0 |
+|---|---|---|---|---|---|
+| small | 0.5M | 0.08 (11969/s) | 6.56 (152/s, 0.01x) | 4.58 (218/s, 0.02x) | 4.13 (242/s, 0.02x) |
+| medium | 6.3M | 1.55 (647/s) | 9.36 (107/s, 0.17x) | 9.79 (102/s, 0.16x) | 8.86 (113/s, 0.17x) |
+| large | 32.0M | 8.55 (117/s) | 20.20 (50/s, 0.42x) | 21.64 (46/s, 0.40x) | 19.03 (53/s, 0.45x) |
+### Fine-tuning step (batch 4 x 32 tokens, f32 AdamW, clip 1.0)
+| model | params | cpu ms/step | gpu ms/step | gpu vs cpu |
+|---|---|---|---|---|
+| small | 0.5M | 41.9 | 28.0 | 1.50x |
+| medium | 6.3M | 229.8 | 86.2 | 2.67x |
+| large | 32.0M | 1139.4 | 178.6 | 6.38x |
+(CPU baseline: `ferrum_ref::llama` with 8 matmul threads.)
+### Memory plans (MiB) against this adapter's binding limit
+| model | params | infer f32 | infer Q8_0 | infer Q4_0 | fine-tune f32 (batch 1 x 128) | verdict |
+|---|---|---|---|---|---|---|
+| small (run above) | 1M | 2 | 1 | 1 | 13 | infer f32 fits; infer Q4_0 fits; fine-tune fits |
+| medium (run above) | 6M | 25 | 11 | 8 | 119 | infer f32 fits; infer Q4_0 fits; fine-tune fits |
+| large (run above) | 32M | 126 | 50 | 37 | 539 | infer f32 fits; infer Q4_0 fits; fine-tune fits |
+| SmolLM-135M shape (plan only) | 163M | 712 | 343 | 279 | 2687 | infer f32 fits; infer Q4_0 fits; fine-tune fits |
+| Qwen2-0.5B shape (plan only) | 630M | 2454 | 1099 | 864 | 10047 | infer f32 fits; infer Q4_0 fits; fine-tune fits |
+| TinyLlama-1.1B shape (plan only) | 1100M | 4286 | 1449 | 956 | 17228 | infer f32 fits; infer Q4_0 fits; fine-tune fits |

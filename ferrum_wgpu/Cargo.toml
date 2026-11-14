@@ -35,3 +35,7 @@ harness = false
 [[bench]]
 name    = "profile_train"
 harness = false
+
+[[bench]]
+name    = "capability"
+harness = false

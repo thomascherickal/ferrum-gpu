@@ -9,7 +9,27 @@ use std::path::{Path, PathBuf};
 use std::process::Stdio;
 
 /// `llama-completion` on `model`: the prompt then up to [`NEW_TOKENS`] tokens, greedy, CPU only.
+/// llama.cpp b11521 sometimes exits 0 having printed nothing, or only the first tokens (seen at
+/// `-t 1` while the machine was loaded by a coverage run). An answer that is empty or a strict
+/// prefix of what we compute for the same file is asked for again, three attempts in all, and each
+/// retry is logged. Any other answer is returned at once, so a real difference still fails.
 fn completion(dir: &Path, model: &Path) -> String {
+    let expected = ours(model);
+    let mut text = String::new();
+    for attempt in 1..=3 {
+        text = completion_once(dir, model);
+        if !(text.is_empty() || (expected.starts_with(&text) && text != expected)) {
+            return text;
+        }
+        crate::support::log::step(format!(
+            "llama.cpp gave {text:?} for {} (attempt {attempt} of 3), expected {expected:?}",
+            model.display()
+        ));
+    }
+    text
+}
+
+fn completion_once(dir: &Path, model: &Path) -> String {
     let o = with_deadline(&dir.join("llama-completion"), 120)
         .env("LD_LIBRARY_PATH", dir)
         .args(["-m"])

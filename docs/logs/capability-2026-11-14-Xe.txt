@@ -1,0 +1,36 @@
+2026-11-14T20:54:05+05:30
+Linux 7.0.0-42-generic
+rustc 1.96.0 (ac68faa20 2026-05-25)
+NVIDIA GeForce MX330, 2048 MiB, 580.178.04
+Mem:           15716        6612        5463         342        4316        9103
+
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-135M shape | 163M | f32 | 712 | 87.4 | 11.4 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-135M shape | 163M | Q8_0 | 343 | 88.5 | 11.3 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-135M shape | 163M | Q4_0 | 279 | 70.4 | 14.2 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-360M shape | 409M | f32 | 1721 | 157.4 | 6.4 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-360M shape | 409M | Q8_0 | 729 | 137.1 | 7.3 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| SmolLM-360M shape | 409M | Q4_0 | 557 | 105.8 | 9.5 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | f32 | 2454 | 176.5 | 5.7 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | Q8_0 | 1099 | 129.5 | 7.7 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | Q4_0 | 864 | 100.9 | 9.9 | |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | f32 | 4286 | - | - | skipped: integrated GPU shares RAM; weights on the host plus the plan exceed the 6064 MiB available |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | Q8_0 | 1449 | - | - | skipped: integrated GPU shares RAM; weights on the host plus the plan exceed the 6126 MiB available |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | Q4_0 | 956 | - | - | skipped: integrated GPU shares RAM; weights on the host plus the plan exceed the 6122 MiB available |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | all | - | - | - | skipped: needs 10169 MiB of free host RAM for the f32 weights, 10033 MiB available |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | all | - | - | - | skipped: needs 10169 MiB of free host RAM for the f32 weights, 9985 MiB available |
+adapter: Intel(R) Iris(R) Xe Graphics (TGL GT2) (Vulkan, Integrated), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | all | - | - | - | skipped: needs 10169 MiB of free host RAM for the f32 weights, 10003 MiB available |

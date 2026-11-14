@@ -66,6 +66,10 @@ tests have none; each interop test may take 10 minutes (`scripts/test-time-limit
   command on the same file, eight times: seven runs gave the full text and one gave text cut short
   with exit status 0. With `-t 1` or `-t 2`, eight of eight identical (checked on both). The tests
   run it with `-t 1` (and Ollama with `num_thread: 1`), so a mismatch means a real difference.
+  One more occurrence, 2026-11-14: at `-t 1`, with the machine loaded by a coverage run, one Q4_K_M run
+  exited 0 with **empty** stdout, and a later one with only `the cat sat` (the same call gave full text in 20 of 20 runs on an idle machine). The
+  CPU-only llama.cpp helper now asks again, twice at most, when the output is empty or a strict prefix of our own text, three attempts in all, and logs each retry;
+  any other answer is returned at once, so a real difference still fails.
 
 - llama.cpp accepted our GPT-2 files with no change: the embedded BPE vocabulary, the tensor names and
   the ggml dimension order all matched on the first try.

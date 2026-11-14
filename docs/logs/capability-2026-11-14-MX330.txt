@@ -1,0 +1,36 @@
+2026-11-14T20:54:05+05:30
+Linux 7.0.0-42-generic
+rustc 1.96.0 (ac68faa20 2026-05-25)
+NVIDIA GeForce MX330, 2048 MiB, 580.178.04
+Mem:           15716        6612        5463         342        4316        9103
+
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-135M shape | 163M | f32 | 712 | 46.0 | 21.8 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-135M shape | 163M | Q8_0 | 343 | 51.6 | 19.4 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-135M shape | 163M | Q4_0 | 279 | 40.4 | 24.7 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-360M shape | 409M | f32 | 1721 | - | - | failed to load: GPU out of memory |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-360M shape | 409M | Q8_0 | 729 | 84.5 | 11.8 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| SmolLM-360M shape | 409M | Q4_0 | 557 | 62.4 | 16.0 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | f32 | 2454 | - | - | failed to load: GPU out of memory |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | Q8_0 | 1099 | 85.2 | 11.7 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2-0.5B shape | 630M | Q4_0 | 864 | 60.2 | 16.6 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | f32 | 4286 | - | - | failed to load: GPU out of memory |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | Q8_0 | 1449 | 137.1 | 7.3 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| TinyLlama-1.1B shape | 1100M | Q4_0 | 956 | 94.7 | 10.6 | |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | f32 | 6893 | - | - | failed to load: GPU out of memory |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | Q8_0 | 2661 | - | - | failed to load: GPU out of memory |
+adapter: NVIDIA GeForce MX330 (Vulkan, Discrete), max binding 2047 MiB
+| Qwen2.5-1.5B shape | 1777M | Q4_0 | 1925 | - | - | failed to load: GPU out of memory |
