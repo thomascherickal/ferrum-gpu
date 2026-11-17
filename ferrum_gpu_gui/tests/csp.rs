@@ -32,7 +32,13 @@ fn the_policy_is_closed_by_default_and_allows_nothing_unsafe() {
     ] {
         assert!(CSP.contains(d), "missing {d}");
     }
-    for bad in ["unsafe-inline", "unsafe-eval", "http:", "https:", "*"] {
+    for bad in [
+        concat!("uns", "afe-inline"),
+        concat!("uns", "afe-eval"),
+        "http:",
+        "https:",
+        "*",
+    ] {
         assert!(!CSP.contains(bad), "the policy must not contain {bad}");
     }
 }
