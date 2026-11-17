@@ -34,6 +34,7 @@ fn main() {
             std::process::exit(1);
         }
     };
+    app.jobs.set_cli(opts.cli.clone());
     say!("device: {} ({})", app.backend.name(), app.backend.kind());
     if let Some(n) = &app.fallback_note {
         say!("note: {n}");

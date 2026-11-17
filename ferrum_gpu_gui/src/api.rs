@@ -330,6 +330,9 @@ fn import(app: &App, req: &Request) -> Response {
 
 /// Route one request.
 pub fn route(app: &Arc<App>, req: &Request) -> Response {
+    if crate::jobs::routes::handles(&req.path) {
+        return crate::jobs::routes::route(app, req);
+    }
     let (m, p) = (req.method.as_str(), req.path.as_str());
     match (m, p) {
         ("GET", "/api/info") => info(app),

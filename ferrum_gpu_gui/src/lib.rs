@@ -9,6 +9,7 @@ pub mod assets;
 pub mod cancel;
 pub mod engine;
 pub mod http;
+pub mod jobs;
 pub mod json;
 pub mod selftest;
 pub mod server;

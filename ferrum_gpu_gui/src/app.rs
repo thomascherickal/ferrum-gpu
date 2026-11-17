@@ -94,6 +94,8 @@ pub struct App {
     pub job: Mutex<Job>,
     /// The last self-test result posted by a browser (Phase 5b).
     pub selftest: Mutex<Option<String>>,
+    /// `ferrum-gpu` subcommands run as child processes (the Studio tabs).
+    pub jobs: crate::jobs::Jobs,
 }
 
 /// Lock, recovering the data if a worker panicked while holding the lock.
@@ -144,6 +146,7 @@ impl App {
                 progress: Arc::new(Mutex::new(Progress::default())),
             }),
             selftest: Mutex::new(None),
+            jobs: crate::jobs::Jobs::default(),
         }
     }
 

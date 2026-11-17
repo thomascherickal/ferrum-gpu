@@ -69,14 +69,25 @@ fn no_help_entry_describes_a_control_that_is_not_in_the_page() {
     let ids = control_ids(&read("web/index.html"));
     let help = help_entries(&read("web/shell/help.js"));
     let stale: Vec<&String> = help.keys().filter(|k| !ids.contains(k)).collect();
-    assert!(stale.is_empty(), "help for controls that do not exist: {stale:?}");
+    assert!(
+        stale.is_empty(),
+        "help for controls that do not exist: {stale:?}"
+    );
 }
 
 #[test]
 fn each_help_text_is_a_real_explanation() {
     for (id, (expert, beginner)) in help_entries(&read("web/shell/help.js")) {
-        assert!(words(&expert) >= 25, "{id}: expert text has {} words", words(&expert));
-        assert!(words(&beginner) >= 15, "{id}: beginner text has {} words", words(&beginner));
+        assert!(
+            words(&expert) >= 25,
+            "{id}: expert text has {} words",
+            words(&expert)
+        );
+        assert!(
+            words(&beginner) >= 15,
+            "{id}: beginner text has {} words",
+            words(&beginner)
+        );
         assert_ne!(expert, beginner, "{id}: the two texts must differ");
     }
 }
