@@ -44,6 +44,17 @@ pub const MODULES: &[(&str, &str)] = &[
         include_str!("../web/tabs/train_args.js"),
     ),
     ("tabs/gtrain.js", include_str!("../web/tabs/gtrain.js")),
+    (
+        "tabs/flow_args.js",
+        include_str!("../web/tabs/flow_args.js"),
+    ),
+    ("tabs/finetune.js", include_str!("../web/tabs/finetune.js")),
+    ("tabs/evaluate.js", include_str!("../web/tabs/evaluate.js")),
+    ("tabs/generate.js", include_str!("../web/tabs/generate.js")),
+    (
+        "charts/livechart.js",
+        include_str!("../web/charts/livechart.js"),
+    ),
     ("charts/loss.js", include_str!("../web/charts/loss.js")),
     ("shell/index.js", include_str!("../web/shell/index.js")),
     ("shell/tabs.js", include_str!("../web/shell/tabs.js")),

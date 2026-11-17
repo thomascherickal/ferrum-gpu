@@ -2,24 +2,11 @@
 // training, validation with early stopping) as a job, with a live loss chart.
 import { mountJobPanel } from '../jobs/panel.js';
 import { trainArgs } from './train_args.js';
-import { draw } from '../charts/loss.js';
+import { mountLossChart, collect } from '../charts/livechart.js';
 import { store } from '../shell/state.js';
 import { api, humanTime } from '../shell/api.js';
 
-/** Fold output lines into the chart series: steps become `[step, loss]`, validations `[lastStep, loss]`. */
-export function collect(lines, series) {
-  for (const l of lines) {
-    const ev = l.ev;
-    if (!ev) continue;
-    if (ev.kind === 'step') {
-      series.train.push([ev.step, ev.loss]);
-      series.lastStep = ev.step;
-    } else if (ev.kind === 'val') {
-      series.val.push([series.lastStep, ev.loss]);
-    }
-  }
-  return series;
-}
+export { collect };
 
 /** The status sentence of a running training: speed and time left. */
 export function runSummary(step) {
@@ -27,30 +14,20 @@ export function runSummary(step) {
   return `step ${step.step}/${step.total} · ${Math.round(step.tokens_per_s)} tokens/s · ${humanTime(step.eta)} left`;
 }
 
+/** The adapters this machine reports, as `<option>`s for the device choice of any tab. */
+export async function fillAdapters(select, env = {}) {
+  try {
+    const info = await api('/api/info', {}, env.fetch);
+    select.add(new Option('automatic', ''));
+    for (const a of info.adapters) select.add(new Option(`${a.name} (${a.kind})`, a.name));
+  } catch { /* the Device tab shows the error */ }
+}
+
 export function mountGtrain(doc = document, env = {}) {
   const $ = (id) => doc.getElementById(id);
   const panel = mountJobPanel($('gt-job'), doc, env);
-  const series = { train: [], val: [], lastStep: 0 };
-  const canvas = $('gt-chart');
+  const chart = mountLossChart(doc, $('gt-chart'));
   const stats = $('gt-stats');
-
-  function css() {
-    const s = doc.defaultView.getComputedStyle(doc.documentElement);
-    const v = (k) => s.getPropertyValue(k).trim();
-    return { line: v('--line'), muted: v('--muted'), accent: v('--accent'), good: v('--good') };
-  }
-  function paint() {
-    const ratio = doc.defaultView.devicePixelRatio || 1;
-    const w = canvas.clientWidth || 600;
-    const h = Math.round((w * 220) / 600);
-    canvas.width = w * ratio;
-    canvas.height = h * ratio;
-    const g = canvas.getContext('2d');
-    g.scale(ratio, ratio);
-    draw(g, w, h, series.train, series.val, css());
-  }
-  paint();
-  doc.defaultView.addEventListener('resize', paint);
 
   const form = () => ({
     data: $('gt-data').value, out: $('gt-out').value, preset: $('gt-preset').value,
@@ -72,14 +49,11 @@ export function mountGtrain(doc = document, env = {}) {
       panel.elements.status.className = 'bad';
       return;
     }
-    series.train.length = 0;
-    series.val.length = 0;
-    series.lastStep = 0;
+    chart.reset();
     stats.textContent = '';
-    paint();
     try {
       await panel.run('train', r.args, {
-        onLines(lines) { collect(lines, series); paint(); },
+        onLines: chart.add,
         onState(p) { stats.textContent = runSummary(p.step); },
         onDone(p) {
           if (p.state === 'done' || p.state === 'stopped') store.set('modelPath', $('gt-out').value.trim());
@@ -91,16 +65,6 @@ export function mountGtrain(doc = document, env = {}) {
   // a dataset chosen in the Datasets tab, or a token file made in Prepare, is the default training data
   store.on('dataPath', (p) => { if (!$('gt-data').value) $('gt-data').value = p; });
   store.on('tokenFile', (p) => { $('gt-data').value = p; });
-
-  // the adapters this machine reports, for the device choice
-  async function fillAdapters() {
-    try {
-      const info = await api('/api/info', {}, env.fetch);
-      const sel = $('gt-adapter');
-      sel.add(new Option('automatic', ''));
-      for (const a of info.adapters) sel.add(new Option(`${a.name} (${a.kind})`, a.name));
-    } catch { /* the Device tab shows the error */ }
-  }
-  fillAdapters();
-  return { panel, series, paint };
+  fillAdapters($('gt-adapter'), env);
+  return { panel, chart };
 }

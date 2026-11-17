@@ -65,6 +65,7 @@ pub(crate) struct Inner {
     pub state: State,
     pub last_step: Option<Event>,
     pub last_val: Option<Event>,
+    pub last_eval: Option<Event>,
     pub finished: Option<Instant>,
 }
 
@@ -98,6 +99,8 @@ pub struct Poll {
     pub last_step: Option<Event>,
     /// The latest validation report.
     pub last_val: Option<Event>,
+    /// The result of an `eval`, once it has printed.
+    pub last_eval: Option<Event>,
     /// Seconds since the start (or the run time once finished).
     pub seconds: f64,
 }
@@ -115,6 +118,7 @@ impl Job {
                 state: State::Running,
                 last_step: None,
                 last_val: None,
+                last_eval: None,
                 finished: None,
             }),
             stopping: AtomicBool::new(false),
@@ -129,6 +133,7 @@ impl Job {
         match &ev {
             Some(e @ Event::Step { .. }) => i.last_step = Some(e.clone()),
             Some(e @ Event::Val { .. }) => i.last_val = Some(e.clone()),
+            Some(e @ Event::Eval { .. }) => i.last_eval = Some(e.clone()),
             None => {}
         }
         i.lines.push_back(Line { err, text, ev });
@@ -184,6 +189,7 @@ impl Job {
             next: i.base + i.lines.len(),
             last_step: i.last_step.clone(),
             last_val: i.last_val.clone(),
+            last_eval: i.last_eval.clone(),
             seconds: i
                 .finished
                 .unwrap_or_else(Instant::now)

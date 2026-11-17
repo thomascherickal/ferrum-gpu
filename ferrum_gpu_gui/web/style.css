@@ -109,5 +109,6 @@ button.link { background: none; color: var(--accent); border: 0; padding: 2px 4p
 .warnings:empty { display: none; }
 .job { margin-top: 8px; }
 body[data-mode="beginner"] .adv { display: none; }
+.result { font-size: 1.1rem; font-weight: 600; margin: 8px 0; }
 .joblog { max-height: 16rem; overflow: auto; font-size: 0.82rem; }
 .joblog:empty { display: none; }

@@ -24,6 +24,9 @@
   <button role="tab" id="tab-datasets" aria-controls="panel-datasets" aria-selected="true">Datasets</button>
   <button role="tab" id="tab-prepare" aria-controls="panel-prepare" aria-selected="false" data-adv="true">Prepare</button>
   <button role="tab" id="tab-gtrain" aria-controls="panel-gtrain" aria-selected="false">Train</button>
+  <button role="tab" id="tab-finetune" aria-controls="panel-finetune" aria-selected="false" data-adv="true">Fine-tune</button>
+  <button role="tab" id="tab-evaluate" aria-controls="panel-evaluate" aria-selected="false">Evaluate</button>
+  <button role="tab" id="tab-ggen" aria-controls="panel-ggen" aria-selected="false">Generate</button>
   <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
   <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" data-adv="true">Lab: model</button>
   <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" data-adv="true">Lab: train</button>
@@ -172,6 +175,110 @@
     <p id="gt-stats" class="muted" role="status" aria-live="polite"></p>
     <canvas id="gt-chart" role="img" aria-label="Training loss per step, with validation loss as dots" width="600" height="220"></canvas>
     <div class="job" id="gt-job"></div>
+  </section>
+
+  <section id="panel-finetune" role="tabpanel" aria-labelledby="tab-finetune" hidden>
+    <h2>Fine-tune</h2>
+    <p class="muted">Continue training a saved model on new text. The model keeps its own tokenizer and shape.</p>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model to fine-tune <input id="ft-model" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="picker" data-kind="any">
+      <label>New training text (file, folder or token file) <input id="ft-data" type="text" spellcheck="false"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <label class="block">Save the result as <input id="ft-out" type="text" spellcheck="false" placeholder="my-model-tuned.gguf"></label>
+    <div class="row">
+      <label>Run for
+        <select id="ft-lengthkind"><option value="epochs">epochs</option><option value="steps">steps</option><option value="tokens">tokens</option></select>
+      </label>
+      <label>How many <input id="ft-length" type="number" min="1" value="5"></label>
+      <label>Batch <input id="ft-batch" type="number" min="1" max="256" value="16"></label>
+      <label>Learning rate <input id="ft-lr" type="number" step="any" min="0.000001" max="1" placeholder="model default"></label>
+    </div>
+    <div class="adv">
+      <div class="row">
+        <label>Validation share <input id="ft-val" type="number" step="any" min="0" max="0.99" placeholder="0.1"></label>
+        <label>Patience (epochs) <input id="ft-patience" type="number" min="1"></label>
+        <label>Time limit (seconds) <input id="ft-maxsec" type="number" step="any" min="1"></label>
+        <label class="check"><input id="ft-qat" type="checkbox" checked> Quantisation-aware training</label>
+        <label>Save as
+          <select id="ft-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+        </label>
+        <label>Run on
+          <select id="ft-device"><option value="auto">automatic</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
+        </label>
+        <label>GPU adapter <select id="ft-adapter"></select></label>
+        <label>GPU memory budget (MiB) <input id="ft-gpumem" type="number" min="1" placeholder="automatic"></label>
+      </div>
+    </div>
+    <div class="row"><button id="ft-start" type="button">Start fine-tuning</button></div>
+    <p id="ft-stats" class="muted" role="status" aria-live="polite"></p>
+    <canvas id="ft-chart" role="img" aria-label="Fine-tuning loss per step, with validation loss as dots" width="600" height="220"></canvas>
+    <div class="job" id="ft-job"></div>
+  </section>
+
+  <section id="panel-evaluate" role="tabpanel" aria-labelledby="tab-evaluate" hidden>
+    <h2>Evaluate</h2>
+    <p class="muted">Measure how well a model predicts a text: the average loss and the perplexity. A lower number is better; measure on text the model was not trained on.</p>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model <input id="ev-model" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="picker" data-kind="file">
+      <label>Text to measure on <input id="ev-data" type="text" spellcheck="false" placeholder="held-out.txt"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <label>Window (tokens) <input id="ev-ctx" type="number" min="2" placeholder="model context"></label>
+      <label>Precision
+        <select id="ev-quant"><option value="">as saved</option><option value="f32">f32</option><option value="int8">int8</option><option value="int4">int4</option></select>
+      </label>
+      <label>Write a JSON report <input id="ev-json" type="text" spellcheck="false" placeholder="result.json"></label>
+      <button id="ev-start" type="button">Evaluate</button>
+    </div>
+    <p id="ev-result" class="result" role="status" aria-live="polite"></p>
+    <div class="job" id="ev-job"></div>
+  </section>
+
+  <section id="panel-ggen" role="tabpanel" aria-labelledby="tab-ggen" hidden>
+    <h2>Generate</h2>
+    <p class="muted">Continue a prompt with a saved model. The same prompt, settings and seed give the same text.</p>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model <input id="gg-model" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <label class="block">Prompt
+      <textarea id="gg-prompt" rows="3" spellcheck="false">the quick brown </textarea>
+    </label>
+    <div class="row">
+      <label>New tokens <input id="gg-maxnew" type="number" min="1" max="4096" value="64"></label>
+      <label>Temperature <input id="gg-temp" type="number" step="0.1" min="0" max="10" value="0"></label>
+      <label>Top-k <input id="gg-topk" type="number" min="0" max="256" placeholder="off"></label>
+      <label>Seed <input id="gg-seed" type="number" min="0" placeholder="1"></label>
+      <button id="gg-start" type="button">Generate</button>
+    </div>
+    <div class="adv">
+      <div class="row">
+        <label>Top-p <input id="gg-topp" type="number" step="any" min="0.01" max="1" placeholder="off"></label>
+        <label>Repetition penalty <input id="gg-rep" type="number" step="any" min="1" max="10" placeholder="off"></label>
+        <label>Run on
+          <select id="gg-device"><option value="auto">automatic</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select>
+        </label>
+        <label>GPU adapter <select id="gg-adapter"></select></label>
+      </div>
+      <label class="block">Stop strings (one per line; \n, \t and \\ are unescaped)
+        <textarea id="gg-stop" rows="2" spellcheck="false" placeholder="generation ends before the first match"></textarea>
+      </label>
+    </div>
+    <pre id="gg-output" aria-live="polite" aria-label="Generated text"></pre>
+    <div class="job" id="gg-job"></div>
   </section>
 
   <section id="panel-device" role="tabpanel" aria-labelledby="tab-device" hidden>

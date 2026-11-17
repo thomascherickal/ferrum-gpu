@@ -79,3 +79,33 @@ fn events_become_the_json_the_page_reads() {
         "{val}"
     );
 }
+
+#[test]
+fn an_eval_result_line_is_read_and_becomes_json() {
+    let e = parse_line("tokens: 4096 loss: 2.3456 perplexity: 10.442");
+    assert_eq!(
+        e,
+        Some(Event::Eval {
+            tokens: 4096,
+            loss: 2.3456,
+            perplexity: 10.442
+        })
+    );
+    let j = e.unwrap().json().to_string();
+    for needle in [
+        "\"kind\":\"eval\"",
+        "\"tokens\":4096",
+        "\"perplexity\":10.442",
+    ] {
+        assert!(j.contains(needle), "{needle} in {j}");
+    }
+    for l in [
+        "tokens: x loss: 1 perplexity: 2",
+        "tokens: 5 loss: y perplexity: 2",
+        "tokens: 5 loss: 1 perplexity: z",
+        "tokens: 5 loss: 1",
+        "tokens: 5 bad: 1 perplexity: 2",
+    ] {
+        assert_eq!(parse_line(l), None, "{l:?}");
+    }
+}

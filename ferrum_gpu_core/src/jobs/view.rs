@@ -51,5 +51,6 @@ pub fn poll(job: &Job, since: usize) -> Json {
         ("next", num(p.next as f64)),
         ("step", opt(&p.last_step)),
         ("val", opt(&p.last_val)),
+        ("eval", opt(&p.last_eval)),
     ])
 }

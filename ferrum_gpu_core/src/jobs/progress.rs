@@ -2,7 +2,8 @@
 //!
 //! The formats are a contract with `ferrum_gpu_cli` (`cmds/gpt2/hooks.rs`):
 //! `step 20/200 loss 3.1234 grad_norm 0.512 tokens/s 4800 elapsed 4.2s eta 38s` and
-//! `epoch 3 val loss 2.9876 (best)`.
+//! `epoch 3 val loss 2.9876 (best)`, and the result line of `eval`:
+//! `tokens: 4096 loss: 2.3456 perplexity: 10.442`.
 
 use crate::json::Json;
 
@@ -25,6 +26,15 @@ pub enum Event {
         elapsed: f64,
         /// Estimated seconds left.
         eta: f64,
+    },
+    /// The result of `eval`: the mean loss over some tokens and its perplexity.
+    Eval {
+        /// Tokens predicted.
+        tokens: u64,
+        /// Mean cross-entropy.
+        loss: f64,
+        /// `exp(loss)`.
+        perplexity: f64,
     },
     /// The validation loss after an epoch.
     Val {
@@ -60,6 +70,13 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 eta: after(&words, "eta")?,
             })
         }
+        "tokens:" if words.get(2) == Some(&"loss:") && words.get(4) == Some(&"perplexity:") => {
+            Some(Event::Eval {
+                tokens: words.get(1)?.parse().ok()?,
+                loss: words.get(3)?.parse().ok()?,
+                perplexity: words.get(5)?.parse().ok()?,
+            })
+        }
         "epoch" if words.get(2) == Some(&"val") && words.get(3) == Some(&"loss") => {
             Some(Event::Val {
                 epoch: words.get(1)?.parse().ok()?,
@@ -93,6 +110,16 @@ impl Event {
                 ("tokens_per_s", n(*tokens_per_s)),
                 ("elapsed", n(*elapsed)),
                 ("eta", n(*eta)),
+            ]),
+            Event::Eval {
+                tokens,
+                loss,
+                perplexity,
+            } => Json::obj([
+                ("kind", Json::Str("eval".into())),
+                ("tokens", n(*tokens as f64)),
+                ("loss", n(*loss)),
+                ("perplexity", n(*perplexity)),
             ]),
             Event::Val { epoch, loss, best } => Json::obj([
                 ("kind", Json::Str("val".into())),

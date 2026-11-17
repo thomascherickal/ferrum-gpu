@@ -139,6 +139,39 @@ export async function run(params) {
     await until(() => /^(stopped|done|error|failed)/.test(status()), 'the stop to take effect');
     check(status() === 'stopped', `stop: ${status()}`);
     steps.push('train-stop');
+
+    // Fine-tune the model Train saved, evaluate the result, and generate from it
+    const st = (id) => $(id).querySelector('[role="status"]').textContent;
+    const finished = (id) => /^(done|error|failed|stopped)/.test(st(id));
+    $('tab-finetune').click();
+    $('ft-model').value = params.get('gtout');
+    $('ft-data').value = params.get('file');
+    $('ft-out').value = params.get('ftout');
+    $('ft-lengthkind').value = 'steps'; $('ft-length').value = 10; $('ft-batch').value = 4; $('ft-device').value = 'cpu';
+    $('ft-start').click();
+    await until(() => finished('ft-job'), 'the fine-tune to finish');
+    check(st('ft-job') === 'done', `fine-tune: ${st('ft-job')} ${$('ft-job').textContent.slice(-300)}`);
+    steps.push('finetune');
+
+    $('tab-evaluate').click();
+    $('ev-model').value = params.get('ftout');
+    $('ev-data').value = params.get('file');
+    $('ev-start').click();
+    await until(() => finished('ev-job'), 'the evaluation to finish');
+    check(st('ev-job') === 'done', `evaluate: ${st('ev-job')} ${$('ev-job').textContent.slice(-300)}`);
+    check(/perplexity [\d.]+ · loss [\d.]+ · over \d+ tokens/.test($('ev-result').textContent), `result: ${$('ev-result').textContent}`);
+    steps.push('evaluate');
+
+    $('tab-ggen').click();
+    $('gg-model').value = params.get('ftout');
+    $('gg-prompt').value = 'document ';
+    $('gg-maxnew').value = 12; $('gg-device').value = 'cpu';
+    $('gg-start').click();
+    await until(() => finished('gg-job'), 'the generation to finish');
+    check(st('gg-job') === 'done', `generate: ${st('gg-job')} ${$('gg-job').textContent.slice(-300)}`);
+    check($('gg-output').textContent.includes('document'), `output: ${$('gg-output').textContent}`);
+    check(!/^device:/m.test($('gg-output').textContent), 'status lines are kept out of the text box');
+    steps.push('generate');
     return { kind: 'studio', pass: true, steps };
   } catch (e) {
     return { kind: 'studio', pass: false, steps, error: String(e.message || e) };
