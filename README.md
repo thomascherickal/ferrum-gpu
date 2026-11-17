@@ -133,6 +133,10 @@ with several GPUs, say) only the per-buffer limit is checked.
 | `eval` | Mean next-token loss and perplexity of a file under a model |
 | `export-gguf` | Re-write a model as f32, int8 or int4 |
 | `export-ollama`, `export-lmstudio` | Register or import a GPT-2 model with Ollama or LM Studio |
+| `lab` | Check the GPU against the CPU reference (f32, F16, Q8_0, Q4_0, weights stored in blocks), measure decode and prefill speed per precision, and print the adapter, driver and wgpu version; `--json` is the report to send back from other hardware ([docs/verification-kit.md](docs/verification-kit.md)) |
+
+`--gpu-weights f32|f16|q8_0|q4_0` (with `--device gpu`) stores a decoder's weights on the device in that precision, converted at load
+(f16 halves the weight memory and needs no `shader-f16` feature; a weight larger than one buffer binding is stored in blocks).
 
 Training flags, device flags, checkpoint and resume behaviour, and what each refuses are in
 [docs/USER-GUIDE.md](docs/USER-GUIDE.md) and [docs/cli.md](docs/cli.md) (a walkthrough with real output).
@@ -158,13 +162,13 @@ Linux so far; macOS and Windows builds and installers are configured in CI but n
 
 ## The GUI
 
-`scripts/run-gui.sh` starts a local web GUI on port 8080 (loopback, no authentication): pick the device, create a
-byte-level Llama-style model (`tiny`, `small`, `medium`, optionally with a tied output head), paste text and
-train it while the loss curve updates, generate with stop strings, and move the model in and out as GGUF. The
-same page can run the model **in your browser tab on WebGPU**. The first run picks the adapter and thread
-count for the machine and saves them in `.gui-prefs`. See [docs/gui.md](docs/gui.md) and
-[docs/browser-webgpu.md](docs/browser-webgpu.md). The GUI trains and generates with Llama-style byte-level
-models; the GPT-2 path (BPE tokenizer, `--dropout`, the Ollama and LM Studio exports) is in the CLI.
+The Studio has tabs for Datasets, Prepare, Train (GPT-2 style with BPE, with a live loss chart), Models (inspect any GGUF),
+Fine-tune, Evaluate, Generate, Export (precision, Ollama, LM Studio), Serve, Capable (what fits in a given memory), GPU lab
+(the `lab` report and each adapter's memory) and Device, plus Lab tabs that run a small byte-level Llama model, optionally in your
+browser tab on WebGPU. Beginner mode hides the Expert tabs and explains every control in plain words; the page keeps a checked
+accessibility contract (`tests/a11y.rs`). The web form starts with `scripts/run-gui.sh` (loopback, port 8080, no authentication);
+the first run picks the adapter and thread count for the machine and saves them in `.gui-prefs`. See [docs/gui.md](docs/gui.md) and
+[docs/browser-webgpu.md](docs/browser-webgpu.md).
 
 ## Works with llama.cpp, Ollama, LM Studio and Unsloth
 
@@ -296,6 +300,8 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 | [docs/DEVELOPING.md](docs/DEVELOPING.md) | Building, testing, coverage, benchmarks, adding a kernel or a command, project rules |
 | [docs/cli.md](docs/cli.md) | CLI and server walkthrough with real output |
 | [docs/gui.md](docs/gui.md), [docs/browser-webgpu.md](docs/browser-webgpu.md) | The GUI and the in-browser runtime |
+| [docs/gui-studio-plan.md](docs/gui-studio-plan.md) | The Studio and GPU-scale plan: what was built, what was measured, what was not done |
+| [docs/verification-kit.md](docs/verification-kit.md) | Run the lab report on your hardware (Apple Silicon, AMD, Windows) and send it back |
 | [docs/spike-matmul.md](docs/spike-matmul.md), [docs/train-speed.md](docs/train-speed.md), [docs/decode-crossover.md](docs/decode-crossover.md), [docs/llama-speed.md](docs/llama-speed.md) | Measurement reports from earlier phases |
 | [docs/DEVICES.md](docs/DEVICES.md), [docs/PARITY.md](docs/PARITY.md) | The device verification matrix; parity with ferrum-cpu feature by feature |
 | [docs/COVERAGE.md](docs/COVERAGE.md) | Test coverage numbers |

@@ -153,7 +153,12 @@ pub static SOURCES: &[(&str, &str)] = &[
     ),
     ("opt/transpose", include_str!("shaders/opt/transpose.wgsl")),
     ("quant/q8_snap", include_str!("shaders/quant/q8_snap.wgsl")),
+    ("quant/qgemv", include_str!("shaders/quant/qgemv.wgsl")),
     ("quant/qlinear", include_str!("shaders/quant/qlinear.wgsl")),
+    (
+        "quant/qlinear_tiled",
+        include_str!("shaders/quant/qlinear_tiled.wgsl"),
+    ),
 ];
 
 /// The source of kernel `path` (`group/name`), if registered.

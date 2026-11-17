@@ -1,4 +1,4 @@
-# HANDOFF (written 2026-11-17; updated after G2 and Studio tab 9; G3, G4, G5 and tab 10 remain)
+# HANDOFF (written 2026-11-17; every phase of docs/gui-studio-plan.md is done; what is not done is listed in the plan)
 
 > Not yet consumed. A fresh agent: read this first, then add a line here saying when you consumed it, and
 > read `CLAUDE.md` (the rules are binding: tests first, one feature per commit, the gate before every merge,
@@ -31,37 +31,34 @@ Models, Export, Serve, Capable, Device), the desktop app, `scripts/build-apps.sh
 - **Tab 9 GPU lab** (`ferrum_gpu_gui/web/tabs/{gpulab,lab_args}.js`, `capableapi/meter.rs`): runs `lab` as a job, JSON report box,
   memory table with the source of each figure (no invented "used" number). Real-Chrome step `gpulab` passes.
 
-## Real numbers from `ferrum-gpu lab --size medium --reps 5` (2026-11-17, release build, wgpu 30.0.1, Linux x86_64)
+## Since the G2 / tab 9 merge (`eae22a3` on `main`)
 
-| adapter, driver | precision | model buffers | decode tok/s | prefill tok/s |
-|---|---|---|---|---|
-| Intel Iris Xe (TGL GT2), Vulkan, Mesa 25.2.8 | f32 | 99.1 MiB | 58 | 993 |
-| | Q8_0 | 31.5 MiB | 53 | 657 |
-| | Q4_0 | 19.8 MiB | 64 | 1018 |
-| NVIDIA MX330, Vulkan, 580.178.04 | f32 | 99.1 MiB | 98 | 1523 |
-| | Q8_0 | 31.5 MiB | 78 | 561 |
-| | Q4_0 | 19.8 MiB | 96 | 813 |
+- **G3** f16 weights: `QKind::F16` (`ferrum_wgpu/src/ops/quant.rs`, `shaders/quant/*.wgsl`), no `shader-f16` needed
+  (`unpack2x16float`), bit-exact against the CPU decode; `--gpu-weights f32|f16|q8_0|q4_0` (`GpuBackend::with_weights`,
+  `Session::new_with`, `commands::gpu_weights`). Not done: f16 activations and KV cache.
+- **G4** quantised linear kernels: `qlinear_tiled.wgsl` (prefill) and `qgemv.wgsl` (decode), chosen by `ops_quant::choose` from
+  `cargo test --release -p ferrum_wgpu --lib -- --ignored bench_quant`; the naive kernel stays where the others measured slower.
+  Numbers are in the plan's G4 row. Not done: fused attention, batched decode, a subgroup variant. Cooperative matrix: not done,
+  `ExperimentalFeatures::enabled()` is `unsafe` in wgpu 30 (rule 4).
+- **G5** `docs/verification-kit.md` (the report is `ferrum-gpu lab --json`). No report from other hardware exists yet.
+- **Tab 10** `ferrum_gpu_gui/tests/a11y.rs`, `docs/gui.md` and README rewritten.
 
-CPU reference prefill, f32: 298 and 300 tokens/s. All five parity checks passed on both (errors 1.6e-6 to 3.1e-6 against 1e-5;
-blocks 0). **Findings for G4:** Q8_0 prefill is slower than f32 on both adapters (the in-kernel dequantising matmul is
-unoptimised); decode is far from bandwidth-bound (8 layers, about 100 dispatches per token). llvmpipe was not run for speed.
+End-to-end `lab --size medium` after G4 (tokens/s, decode / prefill, release build, wgpu 30.0.1): Xe f32 57 / 1010, F16 67 / 1028,
+Q8_0 68 / 1023, Q4_0 73 / 1023; MX330 f32 99 / 1548, F16 93 / 772, Q8_0 89 / 753, Q4_0 95 / 810; CPU reference prefill about 295.
+Prefill is flat near 1000 on the Xe at every precision, so the next bottleneck is not the linear layers (attention and per-dispatch
+cost are unmeasured).
 
 ## In progress
 
-Nothing uncommitted except possibly this file. Branch `worktree-gui-studio`, worktree `.claude/worktrees/gui-studio`.
+The gate has not been run on G3, G4, G5 and tab 10 yet (commit `scripts/gate.sh`'s result in `.gate/gate.txt`). Merge to `main` only
+when it says PASS.
 
 ## Next steps, in order
 
-1. Confirm the gate (`scripts/gate.sh`, results in `.gate/gate.txt`) says PASS, then fast-forward `main` and push (rule 15).
-2. **G3** f16. Start with f16 storage of weights and KV cache with f32 compute (least accuracy risk); gate on the detected
-   `shader-f16` feature, request it only when a kernel uses it, fall back to f32. Check what llvmpipe reports first. Xe reports
-   f16, the MX330 does not. Parity tests against f32 with stated tolerances; mark deferred f16 activations with `ponytail:`.
-3. **G4** kernels: baselines first (the table above is one), keep a kernel only if it beats the old one on a real adapter and
-   delete the loser with its numbers documented. Subgroups through `enable subgroups;` should be safe. Cooperative matrix: check
-   whether wgpu 30 needs an `unsafe` experimental opt-in (rule 4 forbids it: then record "not done: requires unsafe").
-4. **G5** is mostly `lab` plus `docs/verification-kit.md` (how an owner of an M5 Max or other machine runs it and sends the
-   file back); Apple rows stay "not run".
-5. **Tab 10** polish and docs (accessibility pass, empty and error states, `docs/gui.md` rewrite, README GUI section), last.
+1. Run `scripts/gate.sh` (`rm -rf target/llvm-cov-target` first), then fast-forward `main` and push (rule 15).
+2. Open work, none of it started: fused attention and batched decode (profile first: where does a decode step spend its time?),
+   a subgroup reduction variant, f16 activations and KV cache, a report from Apple Silicon or other hardware, and the Windows
+   desktop-app unit tests (a Tauri manifest issue, noted in `ci.yml`).
 
 ## Decisions already taken (do not re-litigate)
 

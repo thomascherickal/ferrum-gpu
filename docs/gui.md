@@ -1,6 +1,6 @@
-# The ferrum-gpu GUI (Phase 5a)
+# The ferrum-gpu GUI: Ferrum GPU Studio
 
-A local web GUI: pick a device, create a small Llama-style model, train it on text you paste, watch the loss fall, generate text, and move the model in and out as GGUF. It also runs the model **in your browser tab on WebGPU** (Phase 5b, [browser-webgpu.md](browser-webgpu.md)).
+Ferrum GPU Studio is a tabbed interface to everything the command line does: prepare and tokenize text, train a GPT-2 style model with its own BPE tokenizer, fine-tune, evaluate, generate, inspect any GGUF, export it (precision, Ollama, LM Studio), serve it, work out what a machine can run, and check a GPU against the CPU reference. It is the same page in two forms: **a native desktop app** (`ferrum_gpu_studio`, below), and a local web server for headless use over an SSH tunnel and for the browser tests. It also runs a small model **in your browser tab on WebGPU** (the Lab tabs, [browser-webgpu.md](browser-webgpu.md)). The engine never runs in the page: training, decoding and the exports run natively in Rust inside the application, so the desktop window changes packaging, not speed. The plan and what was built is [gui-studio-plan.md](gui-studio-plan.md).
 
 ```
 cargo run --release -p ferrum_gpu_gui                      # picks a free port, device auto
@@ -46,6 +46,10 @@ It is its own Cargo workspace with its own lockfile, so the Tauri dependency tre
 | Lab: model (Expert) | Create a model (`tiny` 35K, `small` 171K, `medium` 771K parameters; byte vocabulary 256), download it as GGUF (f32, Q8_0 or Q4_0), or load a `llama`/`qwen2` GGUF from disk. |
 | Lab: train (Expert) | Paste text, choose steps, learning rate, batch and context, start. **Validation share (%)** holds out the end of the text: the run trains on the rest and the status line shows the loss on the held-out part before and after (`validation 5.9 → 1.4`). A live loss chart and progress bar update while it runs; Stop keeps the weights reached so far. |
 | Lab: generate (Expert) | Type a prompt, choose length, temperature and top-k, optionally **stop strings** (one per line; `\n`, `\t` and `\\` are unescaped; the text ends before the first match), and run it on the server's device or on this browser's WebGPU. |
+
+## Accessibility
+
+`tests/a11y.rs` scans the page and keeps these true: the page declares its language; every id is unique; every form control has a name (a wrapping label, a `for` label or an `aria-label`); every button has text or a label; every tab names its panel and every panel its tab, in a tablist; every table header says whether it heads a column or a row; the notes that change after an action are live regions. The tab bar works from the keyboard, tool-tips are available on focus and carry `aria-describedby`, and the theme respects the system's light or dark setting. What a static scan cannot promise is **not checked**: colour contrast, behaviour with a screen reader, and the job log and charts, which are built in the browser (the log is a focusable `role="log"`).
 
 ## Tokens: bytes, deliberately
 
