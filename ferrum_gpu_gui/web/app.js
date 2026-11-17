@@ -29,8 +29,8 @@ async function refreshInfo() {
   $('device-badge').textContent = `${d.active.toUpperCase()} · ${d.name}`;
   $('device-note').textContent = d.note || `Requested: ${d.requested}. Running on: ${d.active}.`;
   $('adapters').innerHTML = info.adapters.length
-    ? info.adapters.map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.backend)}</td><td>${esc(a.kind)}</td><td>${a.max_binding_mib} MiB</td></tr>`).join('')
-    : '<tr><td colspan="4" class="muted">No GPU adapters found; the CPU path is used.</td></tr>';
+    ? info.adapters.map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.backend)}</td><td>${esc(a.kind)}</td><td>${a.max_binding_mib} MiB</td><td>${a.features.length ? esc(a.features.join(', ')) : '<span class="muted">none reported</span>'}</td><td title="${esc(a.memory_note)}">${a.memory_budget_mib == null ? '<span class="muted">unknown</span>' : a.memory_budget_mib + ' MiB'}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="muted">No GPU adapters found; the CPU path is used.</td></tr>';
   const sel = $('preset');
   if (!sel.options.length) {
     for (const p of info.presets) sel.add(new Option(`${p.name} · ${(p.params / 1e3).toFixed(0)}K params · context ${p.ctx}`, p.name));

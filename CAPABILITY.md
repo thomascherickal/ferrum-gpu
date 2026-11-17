@@ -127,13 +127,18 @@ runtime runs one token); fine-tuning baseline: 8 threads.
 
 ## Findings
 
-1. **The pre-flight does not know how much memory the device has.** `ferrum-gpu` checks every buffer
-   against the adapter's binding limit (2047 MiB here), but a *total* is checked only when
-   `--gpu-mem-mb` is given. Without it the memory plan said "fits" for a 4286 MiB f32 TinyLlama-shape
-   decode and a 17 GB fine-tune on a 2 GB card, and the loads then failed with `GPU out of memory`
-   (reported as an error, not a crash). **Pass `--gpu-mem-mb` with the card's free memory** (here 1900).
-   Reading the device's memory size automatically (for example from `nvidia-smi` or wgpu's memory
-   hints, through an injected input) is a worthwhile follow-up; it was not done.
+1. **The memory budget was too generous, and missing for other GPUs. (Corrected 2026-11-17; fixed in
+   Studio phase G1.)** This finding was first worded wrongly: it said the pre-flight had no total, and
+   blamed it for the "fits" verdicts in this document's benchmark. Those verdicts came from the
+   *benchmark*, which passes no budget at all. The command line did already ask `nvidia-smi`, but it used
+   the card's **total** memory (2048 MiB), and the measurements above show that is about 20% too
+   optimistic: plans up to 1449 MiB (73% of the 1989 MiB free) loaded, plans from 1721 MiB (86%) failed
+   with `GPU out of memory`. Non-NVIDIA GPUs got no budget at all. Since G1 the budget is a stated share
+   of the **free** memory for a discrete card (80%, from these measurements, on one card), a share of the
+   available RAM for integrated and unified-memory adapters (70%, an assumption not measured on such
+   hardware), and `ferrum-gpu info` prints each adapter's budget with where it came from; `--gpu-mem-mb`
+   still overrides. The benchmark's own "fits" column still ignores memory and should not be read as a
+   capacity claim.
 2. **A failed load leaks until the process ends** (see the method note). A long-running server that
    loads a model, fails, and tries a smaller one in the same process may hit this. Not investigated further.
 3. **On a 2 GB card the practical decode ceiling is about 1.1B parameters at Q4_0 or Q8_0**, around

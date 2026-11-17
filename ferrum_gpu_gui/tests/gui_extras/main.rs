@@ -1,5 +1,6 @@
 //! The GUI API's stop strings and validation share, called in-process (no sockets, no browser).
 
+mod adapters_info;
 mod backend_defaults;
 mod routes;
 mod stop_strings;

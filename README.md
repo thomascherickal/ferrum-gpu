@@ -112,9 +112,11 @@ target/release/ferrum-gpu train --arch llama --preset tiny --data corpus.txt --o
 ```
 
 `--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/USER-GUIDE.md) for
-what `auto` does and why. **On a GPU with little memory, pass `--gpu-mem-mb` with the card's free memory**:
-without it only the per-buffer limit is checked, and a model that is too large for the card fails to load with
-"GPU out of memory" instead of being refused up front ([CAPABILITY.md](CAPABILITY.md), finding 1).
+what `auto` does and why. Before a GPU run the memory plan is checked against a budget: 80% of a discrete card's
+free memory (read from `nvidia-smi`), or 70% of the available RAM for an integrated or unified-memory adapter
+(both estimates), or `--gpu-mem-mb` if you set it; `ferrum-gpu info` shows each adapter's budget, its features and
+where the figure came from ([CAPABILITY.md](CAPABILITY.md), finding 1). With no figure for an adapter (an AMD card
+with several GPUs, say) only the per-buffer limit is checked.
 
 ## Commands
 
@@ -208,9 +210,9 @@ shape, not the values), single-stream decode, one run per row, one process per r
 - **Training wins on the GPU, decode of one token does not** (up to 32M parameters): a fine-tuning step is 1.5x
   to 6.4x faster than 8 CPU threads on the two adapters, more as the model grows, while single-token decode on
   the GPU is slower than one CPU thread at those sizes. `--device auto` follows this.
-- **Found while measuring:** the memory plan said "fits" for models far larger than the card until
-  `--gpu-mem-mb` was given, and a failed load leaves buffers allocated until the process ends
-  ([CAPABILITY.md](CAPABILITY.md), findings 1 and 2).
+- **Found while measuring:** the memory budget used the card's total memory, about 20% more than a load
+  could really use (fixed: it now uses 80% of the free memory), and a failed load leaves buffers allocated
+  until the process ends ([CAPABILITY.md](CAPABILITY.md), findings 1 and 2).
 
 ## Hardware estimates
 

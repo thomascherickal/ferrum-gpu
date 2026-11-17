@@ -2,6 +2,7 @@
 //! `tensor.rs` and `matmul.rs` so a wgpu upgrade touches three places.
 
 pub mod budget;
+pub mod memory;
 pub mod runtime;
 pub mod select;
 pub mod tensor;
@@ -63,6 +64,17 @@ fn summarize(a: &wgpu::Adapter) -> AdapterSummary {
         max_buffer: l.max_buffer_size,
         max_binding: l.max_storage_buffer_binding_size,
         max_workgroup_invocations: l.max_compute_invocations_per_workgroup,
+        features: features_of(a.features()),
+    }
+}
+
+/// The reported optional capabilities of an adapter, from its `wgpu` feature set.
+pub(crate) fn features_of(f: wgpu::Features) -> select::AdapterFeatures {
+    select::AdapterFeatures {
+        shader_f16: f.contains(wgpu::Features::SHADER_F16),
+        subgroups: f.contains(wgpu::Features::SUBGROUP),
+        cooperative_matrix: f.contains(wgpu::Features::EXPERIMENTAL_COOPERATIVE_MATRIX),
+        timestamp_query: f.contains(wgpu::Features::TIMESTAMP_QUERY),
     }
 }
 

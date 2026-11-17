@@ -15,7 +15,7 @@ pub mod shaders;
 pub mod tolerance;
 pub mod training;
 
-pub use device::{budget, runtime, select, tensor};
+pub use device::{budget, memory, runtime, select, tensor};
 pub use device::{Gpu, GpuError};
 pub use models::{gpt2, llama};
 pub use ops::{

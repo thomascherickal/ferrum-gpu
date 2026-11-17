@@ -11,6 +11,7 @@ pub mod gpt2;
 pub mod llm;
 pub mod preflight;
 pub mod runtimes;
+pub mod sysmem;
 use crate::engine::{fresh_model, preset, GenOpts, Progress, TrainSpec};
 use crate::session::{DeviceChoice, Session};
 use crate::tokenizer::{decode, encode};
@@ -244,12 +245,23 @@ pub fn gate(
     plan: &ferrum_wgpu::budget::BufferPlan,
     mem_mb: Option<u64>,
 ) -> Result<(), String> {
+    gate_with(&sysmem::System, out, app, plan, mem_mb)
+}
+
+/// [`gate`] reading the machine's memory through `readers` (tests give fixtures).
+pub fn gate_with(
+    readers: &dyn sysmem::Readers,
+    out: &mut dyn Write,
+    app: &Session,
+    plan: &ferrum_wgpu::budget::BufferPlan,
+    mem_mb: Option<u64>,
+) -> Result<(), String> {
     let name = app.backend.name();
     let adapter = app.adapters.iter().find(|a| a.name == name);
     let Some(adapter) = adapter.filter(|_| app.backend.kind() == "gpu") else {
         return Ok(());
     };
-    let budget = preflight::budget(mem_mb, preflight::nvidia_vram_mb(&adapter.name));
+    let (budget, _) = sysmem::budget_for(mem_mb, adapter, readers);
     preflight::check(plan, adapter, budget)?;
     say(out, preflight::report(plan, budget))
 }
@@ -292,11 +304,27 @@ fn shape(m: &Llama) -> String {
 fn info(a: &Args, out: &mut dyn Write) -> Result<(), String> {
     let app = app(a, Workload::Decode)?;
     device_line(out, &app)?;
+    let mem = mem_mb(a)?;
     for ad in &app.adapters {
         say(
             out,
             format!("adapter: {} ({:?}, {})", ad.name, ad.kind, ad.backend),
         )?;
+        let feats = ad.features.words();
+        say(
+            out,
+            format!(
+                "  features: {}; largest buffer {} MiB",
+                if feats.is_empty() {
+                    "none reported".to_string()
+                } else {
+                    feats.join(", ")
+                },
+                ad.max_binding >> 20
+            ),
+        )?;
+        let (budget, facts) = sysmem::budget_for(mem, ad, &sysmem::System);
+        say(out, format!("  {}", preflight::explain(budget, &facts)))?;
     }
     if let Some(p) = a.get("--model") {
         say(

@@ -27,33 +27,10 @@ pub fn gpt2_decode_buffers(m: &ferrum_ref::gpt2::Gpt2) -> BufferPlan {
     ferrum_wgpu::gpt2::plan(&m.cfg)
 }
 
-/// The memory budget: `--gpu-mem-mb`, else the VRAM `nvidia-smi` reports (`tool_mb`); `None` means
-/// unknown, and then only the adapter's binding limit is enforced.
-// ponytail: NVIDIA only; sysfs (AMD) and half-of-RAM for integrated adapters exist in
-// `budget::resolve` and can be wired in when a run needs them.
-pub fn budget(mem_mb: Option<u64>, tool_mb: Option<u64>) -> Option<Budget> {
-    ferrum_wgpu::budget::resolve(mem_mb, tool_mb, false, None)
-}
-
-/// The total VRAM in MiB that `nvidia-smi` (csv, no header, no units: `name, total, used`) lists
-/// for the adapter called `adapter`.
-pub fn vram_from_smi(smi: &str, adapter: &str) -> Option<u64> {
-    ferrum_wgpu::budget::parse_nvidia_smi(smi)
-        .into_iter()
-        .find(|(name, _)| adapter.contains(name.as_str()) || name.contains(adapter))
-        .and_then(|(_, mb)| mb)
-}
-
-/// Ask `nvidia-smi` for the adapter's VRAM; `None` when the tool is absent or does not list it.
-pub fn nvidia_vram_mb(adapter: &str) -> Option<u64> {
-    let out = std::process::Command::new("nvidia-smi")
-        .args([
-            "--query-gpu=name,memory.total,memory.used",
-            "--format=csv,noheader,nounits",
-        ])
-        .output()
-        .ok()?;
-    vram_from_smi(&String::from_utf8_lossy(&out.stdout), adapter)
+/// The budget `--gpu-mem-mb` sets, or `None` when it is not given. What the machine reports instead
+/// (free VRAM, available RAM) is read and interpreted in `sysmem` and `ferrum_wgpu::memory`.
+pub fn override_budget(mem_mb: Option<u64>) -> Option<Budget> {
+    ferrum_wgpu::memory::resolve_memory(mem_mb, false, &ferrum_wgpu::memory::MemoryFacts::default())
 }
 
 /// Mebibytes, one decimal.
@@ -68,6 +45,15 @@ pub fn report(plan: &BufferPlan, budget: Option<Budget>) -> String {
         "preflight: GPU buffers {} in {} allocations (budget {have})",
         mib(plan.total()),
         plan.rows().len()
+    )
+}
+
+/// The same line with the budget's source spelled out (`describe`), for `info` and the GUI.
+pub fn explain(budget: Option<Budget>, facts: &ferrum_wgpu::memory::MemoryFacts) -> String {
+    budget.map_or(
+        "memory: unknown (only the largest-buffer limit is checked; pass --gpu-mem-mb to set a budget)"
+            .to_string(),
+        |b| format!("memory budget: {}", ferrum_wgpu::memory::describe(&b, facts)),
     )
 }
 
@@ -94,25 +80,26 @@ mod tests {
     use ferrum_wgpu::select::Kind;
 
     #[test]
-    fn the_budget_is_the_override_then_the_tool_then_unknown() {
+    fn the_override_budget_is_the_flag_and_nothing_else() {
         use ferrum_wgpu::budget::Source;
-        let b = budget(Some(100), Some(2048)).unwrap();
+        let b = override_budget(Some(100)).unwrap();
         assert_eq!((b.bytes, b.source), (100 << 20, Source::Override));
-        let b = budget(None, Some(2048)).unwrap();
-        assert_eq!((b.bytes, b.source), (2048 << 20, Source::Tool));
-        assert!(budget(None, None).is_none());
+        assert!(override_budget(None).is_none());
     }
 
     #[test]
-    fn nvidia_smi_vram_is_matched_to_the_adapter_by_name() {
-        let smi = "NVIDIA GeForce MX330, 2048, 11\nNVIDIA A100, 40960, 0\n";
-        assert_eq!(vram_from_smi(smi, "NVIDIA GeForce MX330"), Some(2048));
-        assert_eq!(vram_from_smi(smi, "NVIDIA A100"), Some(40960));
-        assert_eq!(vram_from_smi(smi, "AMD Radeon"), None);
-        assert_eq!(vram_from_smi("NVIDIA X, [N/A], 0", "NVIDIA X"), None);
-        assert_eq!(vram_from_smi("", "NVIDIA X"), None);
-        // the real tool, if present, answers or declines without failing
-        let _ = nvidia_vram_mb("NVIDIA GeForce MX330");
+    fn the_explanation_names_the_source_or_says_the_memory_is_unknown() {
+        use ferrum_wgpu::memory::MemoryFacts;
+        let none = explain(None, &MemoryFacts::default());
+        assert!(
+            none.contains("unknown") && none.contains("--gpu-mem-mb"),
+            "{none}"
+        );
+        let set = explain(override_budget(Some(300)), &MemoryFacts::default());
+        assert!(
+            set.contains("300 MiB") && set.contains("--gpu-mem-mb"),
+            "{set}"
+        );
     }
 
     #[test]
@@ -140,6 +127,7 @@ mod tests {
             max_buffer: max_binding * 4,
             max_binding,
             max_workgroup_invocations: 256,
+            features: Default::default(),
         }
     }
 
@@ -160,8 +148,8 @@ mod tests {
         let m = fresh_model("tiny", 1).unwrap();
         let p = train_plan(&m, 2, 16);
         check(&p, &adapter(1 << 30), None).unwrap();
-        check(&p, &adapter(1 << 30), budget(Some(4096), None)).unwrap();
-        assert!(report(&p, budget(Some(4096), None)).contains("budget 4096.0 MiB"));
+        check(&p, &adapter(1 << 30), override_budget(Some(4096))).unwrap();
+        assert!(report(&p, override_budget(Some(4096))).contains("budget 4096.0 MiB"));
         assert!(report(&p, None).contains("budget unknown"));
     }
 
@@ -169,7 +157,7 @@ mod tests {
     fn refuses_a_budget_that_is_too_small_and_says_what_to_do() {
         let m = fresh_model("tiny", 1).unwrap();
         let p = train_plan(&m, 2, 16);
-        let e = check(&p, &adapter(1 << 30), budget(Some(0), None)).unwrap_err();
+        let e = check(&p, &adapter(1 << 30), override_budget(Some(0))).unwrap_err();
         assert!(
             e.contains("Fake GPU")
                 && e.contains("GPU memory")

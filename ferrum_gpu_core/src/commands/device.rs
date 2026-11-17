@@ -71,6 +71,7 @@ mod tests {
             max_buffer: 1 << 30,
             max_binding: 1 << 27,
             max_workgroup_invocations: 256,
+            features: Default::default(),
         }
     }
 

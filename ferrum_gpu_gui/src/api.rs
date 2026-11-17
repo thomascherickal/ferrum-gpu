@@ -6,6 +6,7 @@ use crate::http::{Request, Response};
 use crate::json::Json;
 use crate::{assets, stop, tokenizer};
 use ferrum_gguf::Gguf;
+use ferrum_gpu_core::commands::{preflight, sysmem};
 use ferrum_model::gguf::gpt2::Quant;
 use ferrum_model::gguf::llama::{from_gguf, to_gguf};
 use ferrum_ref::llama::Llama;
@@ -75,11 +76,27 @@ fn info(app: &App) -> Response {
         .adapters
         .iter()
         .map(|a| {
+            let (budget, facts) = sysmem::budget_for(None, a, &sysmem::System);
             Json::obj([
                 ("name", Json::Str(a.name.clone())),
                 ("backend", Json::Str(a.backend.clone())),
                 ("kind", Json::Str(format!("{:?}", a.kind))),
                 ("max_binding_mib", num((a.max_binding / (1 << 20)) as usize)),
+                (
+                    "features",
+                    Json::Arr(
+                        a.features
+                            .words()
+                            .into_iter()
+                            .map(|w| Json::Str(w.into()))
+                            .collect(),
+                    ),
+                ),
+                (
+                    "memory_budget_mib",
+                    budget.map_or(Json::Null, |b| num((b.bytes >> 20) as usize)),
+                ),
+                ("memory_note", Json::Str(preflight::explain(budget, &facts))),
             ])
         })
         .collect();
