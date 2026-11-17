@@ -3,6 +3,7 @@
 //!
 //! ```text
 //! ferrum_gpu_cli, ferrum_gpu_gui, ferrum_gpu_server  ->  ferrum_gpu_core  ->  engine crates
+//! (the commands live in the core; the CLI is a thin `main` over them)
 //! ```
 
 use std::fs;
@@ -71,10 +72,15 @@ fn the_cli_and_the_gui_each_depend_on_the_core_and_not_on_each_other() {
 }
 
 #[test]
-fn the_server_depends_on_the_core_and_the_cli_but_not_the_gui() {
+fn the_server_depends_on_the_core_only_among_the_front_ends() {
     let d = deps("ferrum_gpu_server");
     assert!(d.contains(&"ferrum_gpu_core".to_string()));
-    assert!(!d.contains(&"ferrum_gpu_gui".to_string()));
+    for f in ["ferrum_gpu_gui", "ferrum_gpu_cli"] {
+        assert!(
+            !d.contains(&f.to_string()),
+            "the server must not depend on {f}"
+        );
+    }
 }
 
 #[test]

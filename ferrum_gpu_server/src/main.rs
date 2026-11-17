@@ -1,9 +1,9 @@
 //! `ferrum-gpu-server --model F.gguf [--host H] [--port N] [--token T] [--device cpu|gpu|auto] ...`
 //! Serves GPT-2 files (with their BPE tokenizer) and Llama-style byte-level files.
 
-use ferrum_gpu_cli::cmds::gpt2;
-use ferrum_gpu_cli::device::{decide, Workload};
-use ferrum_gpu_cli::flags::{switch, val, Args};
+use ferrum_gpu_core::commands::device::{decide, Workload};
+use ferrum_gpu_core::commands::flags::{switch, val, Args};
+use ferrum_gpu_core::commands::gpt2;
 use ferrum_gpu_core::session::{DeviceChoice, Session};
 use ferrum_gpu_server::decoder::{Decoder, Gpt2Decoder, ModelDecoder};
 use ferrum_gpu_server::limits::Limits;
@@ -97,19 +97,19 @@ fn run(args: &[String]) -> Result<(), String> {
         .transpose()?;
     let decoder: Arc<dyn Decoder> = if gpt2::is_gpt2(path) {
         let l = gpt2::load(path)?;
-        ferrum_gpu_cli::cmds::gate(
+        ferrum_gpu_core::commands::gate(
             &mut std::io::stdout(),
             &app,
-            &ferrum_gpu_cli::preflight::gpt2_decode_buffers(&l.model),
+            &ferrum_gpu_core::commands::preflight::gpt2_decode_buffers(&l.model),
             mem,
         )?;
         Arc::new(Gpt2Decoder::new(app.backend.clone(), l))
     } else {
-        let model = ferrum_gpu_cli::cmds::load(path)?;
-        ferrum_gpu_cli::cmds::gate(
+        let model = ferrum_gpu_core::commands::load(path)?;
+        ferrum_gpu_core::commands::gate(
             &mut std::io::stdout(),
             &app,
-            &ferrum_gpu_cli::preflight::decode_buffers(&model),
+            &ferrum_gpu_core::commands::preflight::decode_buffers(&model),
             mem,
         )?;
         Arc::new(ModelDecoder::new(app.backend.clone(), model))

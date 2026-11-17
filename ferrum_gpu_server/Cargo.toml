@@ -12,9 +12,8 @@ ferrum_ref = { path = "../ferrum_ref" }
 ferrum_tok = { path = "../ferrum_tok" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
 ferrum_model = { path = "../ferrum_model" }
-# ponytail: reuses the GUI crate's HTTP server, JSON, backends and tokenizer (see ferrum_gpu_cli).
+# The shared core holds the HTTP server, JSON, backends, tokenizer and the commands.
 ferrum_gpu_core = { path = "../ferrum_gpu_core" }
-ferrum_gpu_cli = { path = "../ferrum_gpu_cli" }
 
 [[bin]]
 name = "ferrum-gpu-server"

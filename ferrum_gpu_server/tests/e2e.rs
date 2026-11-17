@@ -115,7 +115,7 @@ fn a_gpt2_file_serves_with_its_bpe_tokenizer() {
     .split_whitespace()
     .map(String::from)
     .collect();
-    ferrum_gpu_cli::cmds::run(&cmd, &mut Vec::new()).unwrap();
+    ferrum_gpu_core::commands::run(&cmd, &mut Vec::new()).unwrap();
     let s = spawn(model.to_str().unwrap(), &[], &[]);
     let a = &s.addr;
     let info = http(a, "GET", "/v1/info", "", "");

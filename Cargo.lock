@@ -180,6 +180,7 @@ dependencies = [
  "ferrum_gguf",
  "ferrum_model",
  "ferrum_ref",
+ "ferrum_tok",
  "ferrum_wgpu",
 ]
 
@@ -199,7 +200,6 @@ name = "ferrum_gpu_server"
 version = "0.1.0"
 dependencies = [
  "ferrum_gguf",
- "ferrum_gpu_cli",
  "ferrum_gpu_core",
  "ferrum_model",
  "ferrum_ref",

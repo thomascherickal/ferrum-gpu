@@ -6,12 +6,16 @@
 //!
 //! - [`engine`]: the `Backend` trait with its CPU and GPU implementations, training and generation
 //!   loops, validation split and loss.
+//! - [`commands`]: every `ferrum-gpu` command (train, finetune, eval, generate, prepare, tokenize, the
+//!   exports), driven by an argument list and writing its report to any `Write`; the CLI is a thin
+//!   `main` over [`commands::run`], and the Studio runs the same functions in-process.
 //! - [`session`]: choosing a device (`cpu`, `gpu`, `auto`) and holding the backend that was opened.
 //! - [`cancel`]: one cooperative cancel flag (Ctrl-C in a terminal, Stop in a window).
 //! - [`json`], [`http`], [`stop`], [`tokenizer`]: the std-only helpers the servers and the byte-level
 //!   path use.
 
 pub mod cancel;
+pub mod commands;
 pub mod engine;
 pub mod http;
 pub mod json;

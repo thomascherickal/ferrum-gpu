@@ -1,7 +1,7 @@
 //! The decoders the routes talk to: a stub for tests, a Llama-style byte model, and a GPT-2
 //! model with its BPE tokenizer.
 
-use ferrum_gpu_cli::cmds::gpt2::gen::{run, Loaded, Opts};
+use ferrum_gpu_core::commands::gpt2::gen::{run, Loaded, Opts};
 use ferrum_gpu_core::engine::{Backend, GenOpts};
 use ferrum_gpu_core::tokenizer::{decode as bytes_to_text, encode as text_to_bytes};
 use ferrum_model::sampling::Params;

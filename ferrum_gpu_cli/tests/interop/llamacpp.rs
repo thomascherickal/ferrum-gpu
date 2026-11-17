@@ -63,7 +63,7 @@ fn our_tokenizer_gives_the_ids_llama_cpp_gives() {
         skip!("llama.cpp not installed (set FERRUM_LLAMACPP_DIR)")
     };
     let f = fixture();
-    let ours = ferrum_gpu_cli::cmds::gpt2::load(f.f32.to_str().unwrap()).unwrap();
+    let ours = ferrum_gpu_core::commands::gpt2::load(f.f32.to_str().unwrap()).unwrap();
     for text in [
         "the cat sat",
         "the",
