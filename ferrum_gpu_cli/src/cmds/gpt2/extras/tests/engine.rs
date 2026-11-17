@@ -1,11 +1,11 @@
 use crate::cmds::gpt2::extras::{engine, Extras};
-use ferrum_gpu_gui::app::{App, DeviceChoice};
+use ferrum_gpu_core::session::{DeviceChoice, Session};
 use ferrum_ref::gpt2::{Config, Gpt2};
 use ferrum_ref::optim::Adam;
 use ferrum_ref::trainer::StepConfig;
 
-fn cpu() -> App {
-    App::new(DeviceChoice::Cpu, None, 1).unwrap()
+fn cpu() -> Session {
+    Session::new(DeviceChoice::Cpu, None, 1).unwrap()
 }
 
 fn model() -> Gpt2 {
@@ -83,7 +83,7 @@ fn a_tied_head_changes_the_run() {
 fn the_gpu_backend_has_no_such_engine() {
     // the trait's default: a backend that does not override gpt2_engine_with refuses by name
     struct NoExtras;
-    impl ferrum_gpu_gui::engine::Backend for NoExtras {
+    impl ferrum_gpu_core::engine::Backend for NoExtras {
         fn kind(&self) -> &'static str {
             "gpu"
         }
@@ -93,8 +93,8 @@ fn the_gpu_backend_has_no_such_engine() {
         fn train(
             &self,
             _: &ferrum_ref::llama::Llama,
-            _: &ferrum_gpu_gui::engine::TrainSpec,
-            _: &std::sync::Arc<std::sync::Mutex<ferrum_gpu_gui::engine::Progress>>,
+            _: &ferrum_gpu_core::engine::TrainSpec,
+            _: &std::sync::Arc<std::sync::Mutex<ferrum_gpu_core::engine::Progress>>,
         ) -> Result<ferrum_ref::llama::Llama, String> {
             Err("unused".into())
         }
@@ -102,16 +102,16 @@ fn the_gpu_backend_has_no_such_engine() {
             &self,
             _: &ferrum_ref::llama::Llama,
             _: &[usize],
-            _: &ferrum_gpu_gui::engine::GenOpts,
+            _: &ferrum_gpu_core::engine::GenOpts,
         ) -> Result<Vec<usize>, String> {
             Err("unused".into())
         }
     }
-    let e = ferrum_gpu_gui::engine::Backend::gpt2_engine_with(
+    let e = ferrum_gpu_core::engine::Backend::gpt2_engine_with(
         &NoExtras,
         &model(),
         false,
-        &ferrum_gpu_gui::engine::EngineOptions {
+        &ferrum_gpu_core::engine::EngineOptions {
             tie: true,
             dropout: 0.0,
             seed: 1,

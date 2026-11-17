@@ -1,44 +1,12 @@
 //! Shared application state: the chosen backend, the current model and the training job.
 
 use crate::engine::validation::{mean_loss, split};
-use crate::engine::{preset, Backend, CpuBackend, GpuBackend, Progress, TrainSpec};
+use crate::engine::{preset, Backend, Progress, TrainSpec};
+pub use ferrum_gpu_core::session::{DeviceChoice, Session};
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::device::select::AdapterSummary;
-use ferrum_wgpu::Gpu;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
-
-/// Which device the user asked for.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum DeviceChoice {
-    /// The CPU oracle.
-    Cpu,
-    /// A GPU adapter; an error if none can be opened.
-    Gpu,
-    /// A GPU if one opens, else the CPU.
-    Auto,
-}
-
-impl DeviceChoice {
-    /// Parse `cpu`, `gpu` or `auto`.
-    pub fn parse(s: &str) -> Result<Self, String> {
-        match s {
-            "cpu" => Ok(Self::Cpu),
-            "gpu" => Ok(Self::Gpu),
-            "auto" => Ok(Self::Auto),
-            other => Err(format!("unknown device '{other}' (cpu, gpu, auto)")),
-        }
-    }
-
-    /// The flag spelling.
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Cpu => "cpu",
-            Self::Gpu => "gpu",
-            Self::Auto => "auto",
-        }
-    }
-}
 
 /// Where a training run stands.
 #[derive(Clone, Debug, PartialEq)]
@@ -78,14 +46,9 @@ pub struct Job {
 
 /// Everything the routes share.
 pub struct App {
-    /// Where models run.
-    pub backend: Arc<dyn Backend>,
-    /// What the user asked for.
-    pub requested: DeviceChoice,
-    /// Why the backend is not the requested one, if it is not.
-    pub fallback_note: Option<String>,
-    /// Every adapter the machine reports.
-    pub adapters: Vec<AdapterSummary>,
+    /// The opened device: `app.backend`, `app.requested`, `app.fallback_note` and `app.adapters` reach
+    /// it through `Deref`.
+    pub session: Session,
     /// The current model. Replace it with [`App::set_model`] so [`App::version`] moves.
     pub model: Mutex<Option<Llama>>,
     /// Bumped whenever the model is replaced (the browser runtime re-downloads on a change).
@@ -103,6 +66,13 @@ pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
     m.lock().unwrap_or_else(|e| e.into_inner())
 }
 
+impl std::ops::Deref for App {
+    type Target = Session;
+    fn deref(&self) -> &Session {
+        &self.session
+    }
+}
+
 impl App {
     /// Build the state for `choice`. `adapter` names a GPU (fragment). `Auto` falls back to the
     /// CPU with a note; `Gpu` with nothing usable is an error.
@@ -111,20 +81,8 @@ impl App {
         adapter: Option<&str>,
         cpu_threads: usize,
     ) -> Result<App, String> {
-        let adapters = Gpu::list();
-        let mut note = None;
-        let backend: Arc<dyn Backend> = match choice {
-            DeviceChoice::Cpu => Arc::new(CpuBackend::new(cpu_threads)),
-            DeviceChoice::Gpu => Arc::new(GpuBackend::open(adapter)?),
-            DeviceChoice::Auto => match GpuBackend::open(adapter) {
-                Ok(g) => Arc::new(g),
-                Err(e) => {
-                    note = Some(format!("no usable GPU ({e}); using the CPU"));
-                    Arc::new(CpuBackend::new(cpu_threads))
-                }
-            },
-        };
-        Ok(App::with_backend(backend, choice, note, adapters))
+        let s = Session::new(choice, adapter, cpu_threads)?;
+        Ok(App::with_session(s))
     }
 
     /// State around an already-built backend (tests use this with fakes).
@@ -134,11 +92,18 @@ impl App {
         fallback_note: Option<String>,
         adapters: Vec<AdapterSummary>,
     ) -> App {
-        App {
+        App::with_session(Session::with_backend(
             backend,
             requested,
             fallback_note,
             adapters,
+        ))
+    }
+
+    /// State around an opened [`Session`].
+    pub fn with_session(session: Session) -> App {
+        App {
+            session,
             model: Mutex::new(None),
             version: AtomicU64::new(0),
             job: Mutex::new(Job {

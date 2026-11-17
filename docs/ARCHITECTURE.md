@@ -8,7 +8,7 @@ changing it see [DEVELOPING.md](DEVELOPING.md). Measured claims link to the repo
 ```
                  ferrum-gpu (CLI)   ferrum-gpu-server   ferrum_gpu_gui (+ browser page)
                         \                 |                  /
-                         +--------- engine layer ------------+      ferrum_gpu_gui::engine
+                         +--------- engine layer ------------+      ferrum_gpu_core::engine
                                   Backend trait: train / generate
                               /                                \
                     CpuBackend (oracle)                   GpuBackend
@@ -22,9 +22,12 @@ changing it see [DEVELOPING.md](DEVELOPING.md). Measured claims link to the repo
 
 Dependency direction (each arrow is a Cargo dependency, nothing points back up):
 `ferrum_gguf` <- `ferrum_ref` <- `ferrum_model`; `ferrum_wgpu` depends on `ferrum_ref` and `ferrum_gguf`
-(and on `ferrum_model` only in tests); `ferrum_gpu_gui` depends on all four; `ferrum_gpu_cli` and
-`ferrum_gpu_server` depend on the GUI crate for its engine layer, HTTP/JSON layer and byte tokenizer
-(marked `ponytail:` in their `Cargo.toml`: move them to a shared crate if a third consumer appears).
+(and on `ferrum_model` only in tests); **`ferrum_gpu_core`** (2026-11-17) sits on those engine crates and holds
+the engine layer (`Backend`, `CpuBackend`, `GpuBackend`), device selection (`Session`), cancel, and the std-only
+HTTP, JSON, stop-string and byte-tokenizer helpers; `ferrum_gpu_cli`, `ferrum_gpu_server` and `ferrum_gpu_gui`
+each depend on the core and no front end depends on another (`tests/tests/test_architecture.rs` checks the
+manifests). The server also uses the CLI crate for the commands. The GUI crate keeps the web page, its HTTP
+routes and the browser self-test, and re-exports the core modules under their old paths.
 
 Every crate has `#![forbid(unsafe_code)]` and `#![warn(missing_docs)]`.
 
@@ -156,7 +159,7 @@ bit-exact with the CPU reference and with the encoder the GGUF export uses. Meas
 ([train-speed](train-speed.md)).
 
 **Limits today:** the Llama trainer is f32 AdamW with an untied head only (tied heads are refused), no
-micro-batching, no QAT; the CLI's training loop is the simple shared one in `ferrum_gpu_gui::engine`
+micro-batching, no QAT; the CLI's training loop is the simple shared one in `ferrum_gpu_core::engine`
 (random windows, warmup + cosine, clip 1.0, weight decay 0.01), not the epoch-based `trainer::train`.
 
 ## 9. Sampling and generation
@@ -167,7 +170,7 @@ top-p and a repetition penalty over recent tokens, drawing from the seeded `Rng`
 
 ## 10. The front ends
 
-- **Engine layer** (`ferrum_gpu_gui::engine`): presets (`tiny`, `small`, `medium`, byte vocabulary), the
+- **Engine layer** (`ferrum_gpu_core::engine`): presets (`tiny`, `small`, `medium`, byte vocabulary), the
   shared training loop, `generate_with`, and `trait Backend { kind, name, train, generate }` with a
   `CpuBackend` (the oracle) and a `GpuBackend`. Everything above this line is device-agnostic.
 - **CLI** (`ferrum_gpu_cli`): a flag-table parser (unknown, repeated or valueless flags are errors), the six

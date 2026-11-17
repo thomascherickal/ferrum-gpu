@@ -10,7 +10,7 @@ use crate::support::log::{opted_in, step};
 use crate::support::model::{ferrum, fixture, ours};
 use crate::support::proc::with_deadline;
 use crate::support::tools::{llamacpp_dir, lms};
-use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_core::json::Json;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 

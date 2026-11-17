@@ -116,7 +116,7 @@ fn mean_loss_of_untrained_model_is_is_finite_and_sane() {
 
 mod gate_tests {
     use super::*;
-    use ferrum_gpu_gui::engine::{Backend, CpuBackend, GenOpts, Progress, TrainSpec};
+    use ferrum_gpu_core::engine::{Backend, CpuBackend, GenOpts, Progress, TrainSpec};
     use ferrum_wgpu::select::{AdapterSummary, Kind};
 
     /// Pretends to be a GPU named "Fake GPU"; never runs anything.
@@ -152,8 +152,8 @@ mod gate_tests {
         }]
     }
 
-    fn app(b: Arc<dyn Backend>, adapters: Vec<AdapterSummary>) -> App {
-        App::with_backend(b, DeviceChoice::Gpu, None, adapters)
+    fn app(b: Arc<dyn Backend>, adapters: Vec<AdapterSummary>) -> Session {
+        Session::with_backend(b, DeviceChoice::Gpu, None, adapters)
     }
 
     #[test]

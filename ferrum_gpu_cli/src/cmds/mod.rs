@@ -10,9 +10,9 @@ pub mod llm;
 pub mod runtimes;
 use crate::preflight;
 use ferrum_gguf::Gguf;
-use ferrum_gpu_gui::app::{App, DeviceChoice};
-use ferrum_gpu_gui::engine::{fresh_model, preset, GenOpts, Progress, TrainSpec};
-use ferrum_gpu_gui::tokenizer::{decode, encode};
+use ferrum_gpu_core::engine::{fresh_model, preset, GenOpts, Progress, TrainSpec};
+use ferrum_gpu_core::session::{DeviceChoice, Session};
+use ferrum_gpu_core::tokenizer::{decode, encode};
 use ferrum_model::checkpoint::atomic_write;
 use ferrum_model::gpt2_gguf::Quant;
 use ferrum_model::llama_gguf::{from_gguf, to_gguf};
@@ -211,7 +211,7 @@ fn dispatch(args: &[String], out: &mut dyn Write) -> Result<(), String> {
 }
 
 /// Build the app (device) from the shared device flags.
-fn app(a: &Args, work: Workload) -> Result<App, String> {
+fn app(a: &Args, work: Workload) -> Result<Session, String> {
     app_requested(
         a,
         work,
@@ -220,13 +220,13 @@ fn app(a: &Args, work: Workload) -> Result<App, String> {
 }
 
 /// [`app`] with the device choice decided by the caller instead of read from `--device`.
-fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<App, String> {
+fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<Session, String> {
     let threads = a.num(
         "--threads",
         std::thread::available_parallelism().map_or(1, |n| n.get()),
     )?;
     let d = decide(requested, work, &Gpu::list(), a.get("--gpu-adapter"))?;
-    let mut app = App::new(d.choice, d.adapter.as_deref(), threads.max(1))?;
+    let mut app = Session::new(d.choice, d.adapter.as_deref(), threads.max(1))?;
     if d.note.is_some() {
         app.fallback_note = d.note;
     }
@@ -238,7 +238,7 @@ fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<Ap
 /// adapter missing from the list (limits unknown), passes.
 pub fn gate(
     out: &mut dyn Write,
-    app: &App,
+    app: &Session,
     plan: &ferrum_wgpu::budget::BufferPlan,
     mem_mb: Option<u64>,
 ) -> Result<(), String> {
@@ -262,7 +262,7 @@ fn say(out: &mut dyn Write, s: String) -> Result<(), String> {
     writeln!(out, "{s}").map_err(|e| e.to_string())
 }
 
-fn device_line(out: &mut dyn Write, app: &App) -> Result<(), String> {
+fn device_line(out: &mut dyn Write, app: &Session) -> Result<(), String> {
     say(
         out,
         format!("device: {} ({})", app.backend.name(), app.backend.kind()),

@@ -7,7 +7,7 @@ use crate::skip;
 use crate::support::model::{ferrum, fixture, ours, PROMPT};
 use crate::support::ollama_server::{free_port, http, start, Mode};
 use crate::support::tools::ollama;
-use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_core::json::Json;
 use std::process::Command;
 
 #[test]

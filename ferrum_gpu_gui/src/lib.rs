@@ -6,13 +6,10 @@
 pub mod api;
 pub mod app;
 pub mod assets;
-pub mod cancel;
-pub mod engine;
 pub mod fsapi;
-pub mod http;
 pub mod jobs;
-pub mod json;
 pub mod selftest;
 pub mod server;
-pub mod stop;
-pub mod tokenizer;
+
+/// The shared core, re-exported under the paths this crate has always had.
+pub use ferrum_gpu_core::{cancel, engine, http, json, stop, tokenizer};

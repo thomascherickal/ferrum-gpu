@@ -77,4 +77,4 @@ tests have none; each interop test may take 10 minutes (`scripts/test-time-limit
   `num_ctx` and stop token.
 - A client that pipelined extra bytes after a request made the GUI/server close the socket with
   unread data, which resets the connection and can destroy the response; connections now half-close
-  and drain briefly first (regression test in `ferrum_gpu_gui/src/http.rs`).
+  and drain briefly first (regression test in `ferrum_gpu_core/src/http.rs`).

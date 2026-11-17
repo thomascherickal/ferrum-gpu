@@ -4,7 +4,7 @@ use crate::auth;
 use crate::decoder::Decoder;
 use crate::limits::{Limits, MAX_INFLIGHT};
 use crate::routes::route;
-use ferrum_gpu_gui::http::{serve_with, Handler, Response};
+use ferrum_gpu_core::http::{serve_with, Handler, Response};
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;

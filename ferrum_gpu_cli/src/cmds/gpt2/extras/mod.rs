@@ -7,8 +7,8 @@
 use crate::cmds::{app, say};
 use crate::device::Workload;
 use crate::flags::Args;
-use ferrum_gpu_gui::app::App;
-use ferrum_gpu_gui::engine::{Engine, EngineOptions};
+use ferrum_gpu_core::engine::{Engine, EngineOptions};
+use ferrum_gpu_core::session::Session;
 use ferrum_ref::dropout::MAX_RATE;
 use ferrum_ref::gpt2::Gpt2;
 use std::io::Write;
@@ -43,7 +43,7 @@ pub fn parse(a: &Args) -> Result<Extras, String> {
 }
 
 /// The app for a run: the usual device choice. A rate above the maximum is announced as clamped.
-pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<App, String> {
+pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<Session, String> {
     if x.dropout > MAX_RATE {
         say(
             out,
@@ -55,7 +55,7 @@ pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<App, String>
 
 /// The training engine for `start`: the backend's plain one, or the one with [`Extras`].
 pub fn engine<'a>(
-    app: &'a App,
+    app: &'a Session,
     start: &Gpt2,
     qat: bool,
     x: &Extras,

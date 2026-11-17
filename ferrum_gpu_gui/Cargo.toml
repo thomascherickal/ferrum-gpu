@@ -8,6 +8,7 @@ rust-version.workspace = true
 
 [dependencies]
 ferrum_gguf = { path = "../ferrum_gguf" }
+ferrum_gpu_core = { path = "../ferrum_gpu_core" }
 ferrum_model = { path = "../ferrum_model" }
 ferrum_ref = { path = "../ferrum_ref" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }

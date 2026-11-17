@@ -4,7 +4,7 @@
 
 use crate::cmds::say;
 use crate::flags::Args;
-use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_core::json::Json;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;

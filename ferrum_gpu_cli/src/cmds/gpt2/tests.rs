@@ -803,7 +803,7 @@ fn the_token_loop_stops_at_once_when_the_request_is_cancelled() {
     use ferrum_model::sampling::Params;
     use std::sync::atomic::{AtomicBool, Ordering};
     let flag = std::sync::Arc::new(AtomicBool::new(false));
-    let _scope = ferrum_gpu_gui::cancel::install(flag.clone());
+    let _scope = ferrum_gpu_core::cancel::install(flag.clone());
     let o = gen::Opts {
         max_new: 50,
         params: Params {
@@ -826,6 +826,6 @@ fn the_token_loop_stops_at_once_when_the_request_is_cancelled() {
         Ok(vec![0.0, 1.0, 0.5])
     };
     let e = gen::run(&mut feed, &|_| String::new(), 100, &[1, 2], &o, &mut |_| {}).unwrap_err();
-    assert_eq!(e, ferrum_gpu_gui::cancel::MESSAGE);
+    assert_eq!(e, ferrum_gpu_core::cancel::MESSAGE);
     assert!(fed <= 5, "stopped within a token of the flag: fed {fed}");
 }

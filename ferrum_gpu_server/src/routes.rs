@@ -11,8 +11,8 @@
 use crate::decoder::{Decoder, GenReq};
 use crate::limits::{Limits, DEFAULT_MAX_TOKENS, MAX_STOPS, MAX_STOP_BYTES};
 use crate::score::{pair, rolling};
-use ferrum_gpu_gui::http::{Request, Response};
-use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_core::http::{Request, Response};
+use ferrum_gpu_core::json::Json;
 
 fn num(n: usize) -> Json {
     Json::Num(n as f64)

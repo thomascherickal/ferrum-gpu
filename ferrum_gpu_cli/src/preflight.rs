@@ -90,7 +90,7 @@ pub fn check(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ferrum_gpu_gui::engine::fresh_model;
+    use ferrum_gpu_core::engine::fresh_model;
     use ferrum_wgpu::select::Kind;
 
     #[test]

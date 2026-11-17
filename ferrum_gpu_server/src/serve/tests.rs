@@ -164,7 +164,7 @@ impl Decoder for SlowDecoder {
         _r: &crate::decoder::GenReq,
     ) -> Result<(String, usize), String> {
         for _ in 0..4000 {
-            if let Err(e) = ferrum_gpu_gui::cancel::check() {
+            if let Err(e) = ferrum_gpu_core::cancel::check() {
                 self.cancelled.store(true, Ordering::SeqCst);
                 return Err(e);
             }

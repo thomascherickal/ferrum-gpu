@@ -3,7 +3,7 @@
 //! not faster on the GPU up to 34M parameters). A pure function over an adapter table, so tests
 //! use fake adapters.
 
-use ferrum_gpu_gui::app::DeviceChoice;
+use ferrum_gpu_core::session::DeviceChoice;
 use ferrum_wgpu::device::select::{choose, AdapterSummary};
 
 /// What the command is about to do.
@@ -18,7 +18,7 @@ pub enum Workload {
 /// Where to run, and the one line to print about it, if any.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Decision {
-    /// What to ask `App::new` for.
+    /// What to ask `Session::new` for.
     pub choice: DeviceChoice,
     /// The adapter name to open, when the GPU is chosen.
     pub adapter: Option<String>,

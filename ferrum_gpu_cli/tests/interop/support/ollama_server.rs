@@ -3,7 +3,7 @@
 
 use super::model::{fixture, NEW_TOKENS, PROMPT};
 use super::proc::{wait_until, with_deadline, Group};
-use ferrum_gpu_gui::json::Json;
+use ferrum_gpu_core::json::Json;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};

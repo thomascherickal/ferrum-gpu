@@ -1,6 +1,6 @@
 //! End-to-end: the real `ferrum-gpu-server` binary on tiny models, queried over HTTP.
 
-use ferrum_gpu_gui::engine::fresh_model;
+use ferrum_gpu_core::engine::fresh_model;
 use ferrum_model::gpt2_gguf::Quant;
 use ferrum_model::llama_gguf::to_gguf;
 use std::io::{BufRead, BufReader, Read, Write};

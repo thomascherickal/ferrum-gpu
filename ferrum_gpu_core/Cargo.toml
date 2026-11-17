@@ -1,0 +1,13 @@
+[package]
+name = "ferrum_gpu_core"
+description = "The shared core of ferrum-gpu: the engine layer (CPU and GPU backends), device selection, and the std-only HTTP and JSON helpers every front end uses."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+ferrum_gguf = { path = "../ferrum_gguf" }
+ferrum_model = { path = "../ferrum_model" }
+ferrum_ref = { path = "../ferrum_ref" }
+ferrum_wgpu = { path = "../ferrum_wgpu" }

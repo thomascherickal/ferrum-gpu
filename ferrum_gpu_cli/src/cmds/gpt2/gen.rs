@@ -5,7 +5,7 @@ use crate::cmds::{app, device_line, mem_mb, say};
 use crate::device::Workload;
 use crate::flags::Args;
 use ferrum_gguf::Gguf;
-use ferrum_gpu_gui::app::App;
+use ferrum_gpu_core::session::Session;
 use ferrum_model::gpt2_gguf::from_gguf;
 use ferrum_model::sampling::{sample, Params, Rng};
 use ferrum_model::tokenizer_gguf;
@@ -123,13 +123,13 @@ pub fn run(
     let mut rng = Rng::new(o.seed);
     let mut logits = Vec::new();
     for &t in prompt {
-        ferrum_gpu_gui::cancel::check()?;
+        ferrum_gpu_core::cancel::check()?;
         logits = feed(t)?;
     }
     let (mut history, mut new, mut shown) = (prompt.to_vec(), Vec::new(), 0usize);
     let mut text = String::new();
     while new.len() < o.max_new && history.len() < ctx {
-        ferrum_gpu_gui::cancel::check()?;
+        ferrum_gpu_core::cancel::check()?;
         let next = sample(&logits, &o.params, &history, &mut rng);
         if o.stop_ids.contains(&next) {
             break;
@@ -169,7 +169,7 @@ pub fn run(
 
 /// A short greedy sample for `--sample`.
 pub fn sample_text(
-    app: &App,
+    app: &Session,
     m: &Gpt2,
     tok: &ByteBpeTokenizer,
     prompt: &str,

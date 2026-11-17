@@ -264,6 +264,7 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 | [`ferrum_gguf`](ferrum_gguf) | GGUF v3 reader and writer, f16 and block-quant codecs. std only, hostile-input safe |
 | [`ferrum_ref`](ferrum_ref) | CPU reference: kernels, GPT-2 and Llama models, gradients, AdamW, QAT, the training loop. The parity oracle |
 | [`ferrum_model`](ferrum_model) | GGUF mappings for `gpt2` / `llama` / `qwen2`, training checkpoints, token sampling |
+| [`ferrum_gpu_core`](ferrum_gpu_core) | The shared core under every front end: the engine layer (CPU and GPU backends), device selection, cancel, std-only HTTP and JSON helpers |
 | [`ferrum_wgpu`](ferrum_wgpu) | The GPU engine: device runtime, WGSL kernels, resident models, trainers, benchmarks |
 | [`ferrum_gpu_cli`](ferrum_gpu_cli) | The `ferrum-gpu` command line, the `auto` device rule, the memory pre-flight, the interop tests |
 | [`ferrum_gpu_server`](ferrum_gpu_server) | The `ferrum-gpu-server` JSON API |

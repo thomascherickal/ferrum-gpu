@@ -1,7 +1,7 @@
 use super::*;
 use crate::cmds::run as cli;
 use ferrum_gguf::Value;
-use ferrum_gpu_gui::engine::preset;
+use ferrum_gpu_core::engine::preset;
 use ferrum_model::gpt2_gguf::Quant;
 use ferrum_model::llama_gguf::to_gguf_with_meta;
 use ferrum_model::sampling::Params;

@@ -4,7 +4,7 @@
 use ferrum_gpu_cli::cmds::gpt2;
 use ferrum_gpu_cli::device::{decide, Workload};
 use ferrum_gpu_cli::flags::{switch, val, Args};
-use ferrum_gpu_gui::app::{App, DeviceChoice};
+use ferrum_gpu_core::session::{DeviceChoice, Session};
 use ferrum_gpu_server::decoder::{Decoder, Gpt2Decoder, ModelDecoder};
 use ferrum_gpu_server::limits::Limits;
 use ferrum_gpu_server::serve::{check_exposure, start, Config};
@@ -83,7 +83,7 @@ fn run(args: &[String]) -> Result<(), String> {
         &ferrum_wgpu::Gpu::list(),
         a.get("--gpu-adapter"),
     )?;
-    let mut app = App::new(dec.choice, dec.adapter.as_deref(), threads.max(1))?;
+    let mut app = Session::new(dec.choice, dec.adapter.as_deref(), threads.max(1))?;
     if dec.note.is_some() {
         app.fallback_note = dec.note;
     }
