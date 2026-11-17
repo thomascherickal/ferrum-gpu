@@ -32,7 +32,9 @@ pub fn name(id: u32) -> String {
 /// whole number of blocks.
 pub fn bytes_of(id: u32, elements: u64) -> Option<u64> {
     let (_, _, per, bytes) = TYPES.iter().find(|t| t.0 == id)?;
-    (elements % per == 0).then(|| elements / per * bytes)
+    elements
+        .is_multiple_of(*per)
+        .then(|| elements / per * bytes)
 }
 
 #[cfg(test)]
