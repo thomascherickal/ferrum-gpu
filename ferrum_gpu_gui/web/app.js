@@ -18,27 +18,8 @@ async function api(path, opts = {}) {
 }
 const post = (path, body) => api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
-// ---- tabs
-const tabs = [...document.querySelectorAll('[role="tab"]')];
-function showTab(tab) {
-  for (const t of tabs) {
-    const on = t === tab;
-    t.setAttribute('aria-selected', on);
-    t.tabIndex = on ? 0 : -1;
-    $(t.getAttribute('aria-controls')).hidden = !on;
-  }
-}
-tabs.forEach((t, i) => {
-  t.addEventListener('click', () => showTab(t));
-  t.addEventListener('keydown', (e) => {
-    const n = { ArrowRight: 1, ArrowLeft: -1 }[e.key];
-    if (!n) return;
-    const next = tabs[(i + n + tabs.length) % tabs.length];
-    next.focus();
-    showTab(next);
-  });
-});
-showTab(tabs[0]);
+// ---- tabs, mode, theme and tool-tips live in the shell
+import { showTab } from '/web/shell/index.js';
 
 // ---- device + model panels
 let info = null;

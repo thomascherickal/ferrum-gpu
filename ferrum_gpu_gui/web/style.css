@@ -83,3 +83,16 @@ pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); bord
   input[type="number"] { width: 6.5rem; }
   .row { gap: 8px; }
 }
+.prefs { display: flex; gap: 12px; margin-left: auto; align-items: end; }
+.prefs label { flex-direction: row; align-items: center; gap: 6px; }
+.prefs select { padding: 4px 8px; }
+.tip {
+  position: absolute; z-index: 20; max-width: 440px; padding: 8px 10px;
+  background: var(--panel); color: var(--text); border: 1px solid var(--accent);
+  border-radius: 6px; font-size: 0.85rem; line-height: 1.35; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}

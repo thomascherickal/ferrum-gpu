@@ -17,6 +17,11 @@ pub const MODULES: &[(&str, &str)] = &[
     ("selftest.js", include_str!("../web/selftest.js")),
     ("bench.js", include_str!("../web/bench.js")),
     ("stop.js", include_str!("../web/stop.js")),
+    ("shell/index.js", include_str!("../web/shell/index.js")),
+    ("shell/tabs.js", include_str!("../web/shell/tabs.js")),
+    ("shell/settings.js", include_str!("../web/shell/settings.js")),
+    ("shell/tooltip.js", include_str!("../web/shell/tooltip.js")),
+    ("shell/help.js", include_str!("../web/shell/help.js")),
 ];
 
 /// The response for a static `path`, or `None` if it names nothing embedded.
