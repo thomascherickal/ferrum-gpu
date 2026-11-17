@@ -21,14 +21,88 @@
 </header>
 
 <nav role="tablist" aria-label="Sections">
-  <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="true">Device</button>
+  <button role="tab" id="tab-datasets" aria-controls="panel-datasets" aria-selected="true">Datasets</button>
+  <button role="tab" id="tab-prepare" aria-controls="panel-prepare" aria-selected="false" data-adv="true">Prepare</button>
+  <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
   <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false">Model</button>
   <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false">Train</button>
   <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false">Generate</button>
 </nav>
 
 <main>
-  <section id="panel-device" role="tabpanel" aria-labelledby="tab-device">
+  <section id="panel-datasets" role="tabpanel" aria-labelledby="tab-datasets">
+    <h2>Datasets</h2>
+    <p class="muted">Look at the text you want to train on before you train. The path is on the machine running this program.</p>
+    <div class="picker" data-kind="any">
+      <label>File or folder <input id="ds-path" type="text" placeholder="/path/to/corpus.txt" spellcheck="false"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <button id="ds-inspect" type="button">Inspect</button>
+      <button id="ds-use" type="button" disabled>Use for training</button>
+    </div>
+    <p id="ds-summary" class="muted" role="status" aria-live="polite">Nothing chosen yet.</p>
+    <ul id="ds-warnings" class="warnings"></ul>
+    <pre id="ds-preview" aria-label="Start of the file"></pre>
+  </section>
+
+  <section id="panel-prepare" role="tabpanel" aria-labelledby="tab-prepare" hidden>
+    <h2>Prepare</h2>
+    <p class="muted">Clean raw text, remove duplicates and split it into train, validation and test files (<code>prepare</code>).</p>
+    <label class="block">Inputs, one file or folder per line
+      <textarea id="pr-inputs" rows="3" spellcheck="false" placeholder="/path/to/books"></textarea>
+    </label>
+    <div class="picker" data-kind="any">
+      <label>Add an input <input id="pr-add" type="text" spellcheck="false"></label>
+      <button type="button" class="browse">Browse…</button>
+      <button id="pr-add-btn" type="button">Add</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="picker" data-kind="dir">
+      <label>Output folder <input id="pr-out" type="text" spellcheck="false" placeholder="/path/to/prepared"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <label class="check"><input id="pr-nfkc" type="checkbox"> Normalise Unicode (NFKC)</label>
+      <label class="check"><input id="pr-lowercase" type="checkbox"> Lowercase</label>
+      <label class="check"><input id="pr-gutenberg" type="checkbox"> Strip Project Gutenberg headers</label>
+      <label class="check"><input id="pr-dedup" type="checkbox"> Remove duplicates</label>
+      <label class="check"><input id="pr-lossy" type="checkbox"> Allow invalid UTF-8</label>
+    </div>
+    <div class="row">
+      <label>Min characters <input id="pr-minchars" type="number" min="0" placeholder="1"></label>
+      <label>Max characters <input id="pr-maxchars" type="number" min="0" placeholder="no limit"></label>
+      <label>Validation share <input id="pr-valfrac" type="number" step="any" min="0" max="0.99" placeholder="0.05"></label>
+      <label>Test share <input id="pr-testfrac" type="number" step="any" min="0" max="0.99" placeholder="0.05"></label>
+      <label>Seed <input id="pr-seed" type="number" min="0" placeholder="42"></label>
+      <label>Document separator <input id="pr-docsep" type="text" placeholder="default"></label>
+    </div>
+    <div class="row"><button id="pr-run" type="button">Prepare</button></div>
+    <div class="job" id="pr-job"></div>
+
+    <h3>Tokenize</h3>
+    <p class="muted">Encode text with a tokenizer file into a token file that training reads from disk (<code>tokenize</code>).</p>
+    <div class="picker" data-kind="any">
+      <label>Text file or folder <input id="tk-data" type="text" spellcheck="false"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Tokenizer file <input id="tk-tokenizer" type="text" spellcheck="false" placeholder="tokenizer.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <label>Token file to write <input id="tk-out" type="text" spellcheck="false" placeholder="tokens.gguf"></label>
+      <label>Document separator <input id="tk-docsep" type="text" placeholder="default"></label>
+      <button id="tk-run" type="button">Tokenize</button>
+    </div>
+    <div class="job" id="tk-job"></div>
+  </section>
+
+  <section id="panel-device" role="tabpanel" aria-labelledby="tab-device" hidden>
     <h2>Device</h2>
     <p id="device-note" class="muted"></p>
     <table>

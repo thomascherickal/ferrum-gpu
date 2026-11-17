@@ -10,7 +10,8 @@ function storage() {
 const store = storage();
 let mode = load(store, 'mode', MODES, 'expert');
 let theme = load(store, 'theme', THEMES, 'auto');
-const lastTab = load(store, 'tab', ['tab-device', 'tab-model', 'tab-train', 'tab-generate'], null);
+const tabIds = [...document.querySelectorAll('nav[role="tablist"] [role="tab"]')].map((t) => t.id);
+const lastTab = load(store, 'tab', tabIds, null);
 
 const tabs = mountTabs(document.querySelector('nav[role="tablist"]'), document, {
   mode,

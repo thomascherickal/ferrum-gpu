@@ -19,7 +19,7 @@ async function api(path, opts = {}) {
 const post = (path, body) => api(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
 
 // ---- tabs, mode, theme and tool-tips live in the shell
-import { showTab } from '/web/shell/index.js';
+import { showTab } from '/web/studio.js';
 
 // ---- device + model panels
 let info = null;
@@ -202,6 +202,10 @@ async function uiAutotest() {
   } catch (err) { await reportSelfTest({ kind: 'ui', pass: false, steps, error: String(err) }); }
 }
 if (params.get('autotest') === 'ui') uiAutotest();
+if (params.get('autotest') === 'studio') {
+  import('/web/autotest/studio.js').then((m) => m.run(params)).then(reportSelfTest)
+    .catch((err) => reportSelfTest({ kind: 'studio', pass: false, error: String(err) }));
+}
 if (params.get('autotest') === 'webgpu') {
   import('/web/selftest.js').then((m) => m.runSelfTest()).then(reportSelfTest)
     .catch((err) => reportSelfTest({ kind: 'webgpu', pass: false, error: String(err) }));

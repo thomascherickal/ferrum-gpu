@@ -10,10 +10,18 @@ cargo run --release -p ferrum_gpu_gui -- --device cpu      # the CPU oracle
 
 It prints `ferrum-gpu GUI: http://127.0.0.1:PORT/`; open that URL. Flags: `--port N` (0 = any free port), `--device cpu|gpu|auto` (auto uses a GPU if one opens, otherwise the CPU and says so), `--gpu-adapter NAME` (case-insensitive fragment), `--threads N` (CPU matmul threads). Unknown flags are errors.
 
+## The Studio shell (2026-11-17)
+
+The page is a tabbed Studio: the tabs are a keyboard-operable tab bar (Left and Right arrows, Home and End; hidden tabs are skipped). **Mode** (header): *Beginner* hides the Expert tabs and shows plain-language help; *Expert* shows the technical description. **Theme**: Auto, Light or Dark. Every control has a tool-tip (hover for a moment, or focus it with the keyboard; Escape hides it), and each tipped control carries `aria-describedby` pointing at a hidden copy of the text for screen readers. The mode, theme and last tab are remembered in the browser only. The plan for the remaining tabs is [gui-studio-plan.md](gui-studio-plan.md).
+
+Long commands (prepare, tokenize, and later train, fine-tune, evaluate, export) run as **jobs**: the server starts `ferrum-gpu` as a child process (found next to the GUI executable, on `PATH`, or given with `--cli PATH`), streams its output to the page, and can stop it (a clean stop for training, a kill after a grace period or on request). A GPU fault ends the job and not the GUI. Only a fixed list of `ferrum-gpu` subcommands can run, with arguments passed as separate strings and never through a shell.
+
 ## What each tab does
 
 | Tab | What you can do |
 |---|---|
+| Datasets | Type a path (or **Browse** the server's folders) to a text file or folder; **Inspect** shows its kind, file count, size, line count and the start of the text, with warnings (empty, binary, very small, huge). **Use for training** hands the path to the other tabs. |
+| Prepare (Expert) | Runs `ferrum-gpu prepare` as a background job (clean, deduplicate and split raw text into train, validation and test files) and `ferrum-gpu tokenize` (encode text with a tokenizer file into a token file). Output is streamed into a log; Stop ends the job. |
 | Device | See the active device and every adapter the machine reports (name, backend, kind, largest buffer binding); see whether WebGPU works in this browser. |
 | Model | Create a model (`tiny` 35K, `small` 171K, `medium` 771K parameters; byte vocabulary 256), download it as GGUF (f32, Q8_0 or Q4_0), or load a `llama`/`qwen2` GGUF from disk. |
 | Train | Paste text, choose steps, learning rate, batch and context, start. **Validation share (%)** holds out the end of the text: the run trains on the rest and the status line shows the loss on the held-out part before and after (`validation 5.9 → 1.4`). A live loss chart and progress bar update while it runs; Stop keeps the weights reached so far. |
