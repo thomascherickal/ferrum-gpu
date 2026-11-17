@@ -65,7 +65,11 @@ pub fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
     }
     out.push(check("decode with the KV cache, f32", worst));
 
-    for (kind, name) in [(QKind::Q8_0, "Q8_0"), (QKind::Q4_0, "Q4_0")] {
+    for (kind, name) in [
+        (QKind::F16, "F16"),
+        (QKind::Q8_0, "Q8_0"),
+        (QKind::Q4_0, "Q4_0"),
+    ] {
         let oracle = dequantised(&w, kind).map_err(err)?;
         let want_q = oracle.forward_logits(&IDS).map_err(err)?;
         let m = GpuLlama::new(gpu, &w, Some(kind), None).map_err(err)?;

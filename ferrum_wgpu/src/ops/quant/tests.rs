@@ -4,7 +4,7 @@ use crate::tolerance::{max_rel_err, REDUCING};
 use ferrum_gguf::quant::decode;
 use ferrum_ref::matmul::{matmul, rand_vec};
 
-const KINDS: [QKind; 2] = [QKind::Q8_0, QKind::Q4_0];
+const KINDS: [QKind; 3] = [QKind::Q8_0, QKind::Q4_0, QKind::F16];
 
 /// Values that stress the quantisers: spread magnitudes, all-zero blocks, tiny blocks (the f16
 /// scale is subnormal), large blocks and exact small integers.
@@ -37,6 +37,8 @@ fn sizes_and_eligibility() {
     // the headline claim: 128 f32 bytes per block column against 36 and 20 on the device
     assert_eq!(QKind::Q8_0.words() * 4, 36);
     assert_eq!(QKind::Q4_0.words() * 4, 20);
+    assert_eq!(QKind::F16.words() * 4, 64, "32 f16 values and no scale");
+    assert_eq!(packed_words(QKind::F16, 64, 3), Some(2 * 3 * 16));
 }
 
 #[test]
@@ -169,16 +171,22 @@ fn quantised_output_stays_close_to_the_f32_product() {
         linear_q(&g, &gx, &qw, &gy, rows).unwrap();
         max_rel_err(&g.read(&gy).unwrap(), &exact)
     };
-    let (e8, e4) = (err(QKind::Q8_0), err(QKind::Q4_0));
-    eprintln!("quantised vs f32 product: q8 {e8:.2e}, q4 {e4:.2e}");
+    let (e8, e4, e16) = (err(QKind::Q8_0), err(QKind::Q4_0), err(QKind::F16));
+    eprintln!("quantised vs f32 product: q8 {e8:.2e}, q4 {e4:.2e}, f16 {e16:.2e}");
     assert!(e8 < 0.15 && e4 < 2.0 && e8 * 5.0 < e4);
+    // f16 keeps 11 significant bits: about 5e-4 per weight, so a 256-term sum is far closer than Q8_0
+    assert!(e16 < 5e-3 && e16 * 10.0 < e8, "f16 {e16} vs q8 {e8}");
 }
 
 #[test]
 fn the_packed_weight_is_smaller_by_the_claimed_ratio() {
     let Some(g) = open_for_test() else { return };
     let (k, n) = (64, 32);
-    for (kind, ratio) in [(QKind::Q8_0, 128.0 / 36.0), (QKind::Q4_0, 128.0 / 20.0)] {
+    for (kind, ratio) in [
+        (QKind::Q8_0, 128.0 / 36.0),
+        (QKind::Q4_0, 128.0 / 20.0),
+        (QKind::F16, 2.0),
+    ] {
         let qw = upload_quantised(&g, kind, &rand_vec(k * n, 1), k, n).unwrap();
         let f32_bytes = (k * n * 4) as f64;
         assert!(

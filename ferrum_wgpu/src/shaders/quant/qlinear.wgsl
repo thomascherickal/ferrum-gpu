@@ -3,6 +3,8 @@
 // memory: record (b * n + col) holds the block's scale as f32 bits (converted from the file's
 // f16 on the host, exactly) followed by the quants.
 //   kind 0 (Q8_0): 9 words = scale + 32 i8, 4 per word, little-endian; value = d * f32(q).
+//   kind 2 (F16):  16 words = 32 f16 values, two per word (low half first), no scale; value =
+//                  unpack2x16float. Exact: the f16 is widened, nothing is rounded again.
 //   kind 1 (Q4_0): 5 words = scale + 16 bytes; byte j's low nibble is element j, its high nibble
 //                  element j + 16; value = d * (f32(nibble) - 8).
 // The dequantised value is formed first and then multiplied by x, so it is bit-identical to the
@@ -32,6 +34,13 @@ fn main(@builtin(global_invocation_id) g: vec3<u32>) {
                     let q = bitcast<i32>(word << (24u - 8u * e)) >> 24u;
                     acc = acc + x[k0 + 4u * j + e] * (d * f32(q));
                 }
+            }
+        } else if (u.kind == 2u) {
+            let rec = (b * u.n + col) * 16u;
+            for (var j = 0u; j < 16u; j = j + 1u) {
+                let v = unpack2x16float(w[rec + j]);
+                acc = acc + x[k0 + 2u * j] * v.x;
+                acc = acc + x[k0 + 2u * j + 1u] * v.y;
             }
         } else {
             let rec = (b * u.n + col) * 5u;

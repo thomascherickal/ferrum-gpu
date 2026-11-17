@@ -52,7 +52,7 @@ fn every_precision_measures_a_speed_on_an_available_adapter() {
             .iter()
             .map(|s| s.precision.as_str())
             .collect::<Vec<_>>(),
-        ["f32", "Q8_0", "Q4_0"]
+        ["f32", "F16", "Q8_0", "Q4_0"]
     );
     for s in &speeds {
         assert!(
@@ -60,6 +60,9 @@ fn every_precision_measures_a_speed_on_an_available_adapter() {
             "{s:?}"
         );
     }
-    assert!(speeds[2].model_mib < speeds[1].model_mib && speeds[1].model_mib < speeds[0].model_mib);
+    assert!(
+        speeds.windows(2).all(|p| p[1].model_mib < p[0].model_mib),
+        "each precision is smaller than the one before: {speeds:?}"
+    );
     assert!(cpu > 0.0);
 }

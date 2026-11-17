@@ -6,7 +6,7 @@ fn every_check_passes_on_an_available_adapter() {
         return;
     };
     let checks = run(&gpu).unwrap();
-    assert_eq!(checks.len(), 5, "{checks:?}");
+    assert_eq!(checks.len(), 6, "{checks:?}");
     for c in &checks {
         assert!(
             c.ok(),
@@ -19,6 +19,7 @@ fn every_check_passes_on_an_available_adapter() {
     }
     assert!(checks.iter().any(|c| c.name.contains("blocks")));
     assert!(checks.iter().any(|c| c.name.contains("Q4_0")));
+    assert!(checks.iter().any(|c| c.name.contains("F16")));
 }
 
 #[test]

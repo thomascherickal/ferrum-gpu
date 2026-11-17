@@ -102,6 +102,7 @@ pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Resul
             .map_or("f32", |q| match q {
                 QKind::Q8_0 => "Q8_0",
                 QKind::Q4_0 => "Q4_0",
+                QKind::F16 => "F16",
             })
             .into(),
         model_mib: plan(&c, quant).total() as f64 / 1048576.0,
@@ -126,7 +127,7 @@ pub fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
 pub fn run(gpu: &Gpu, size: Size, reps: usize) -> Result<(Vec<Speed>, f64), String> {
     let w = Llama::random(size.config(), 5, false, false);
     let mut speeds = Vec::new();
-    for q in [None, Some(QKind::Q8_0), Some(QKind::Q4_0)] {
+    for q in [None, Some(QKind::F16), Some(QKind::Q8_0), Some(QKind::Q4_0)] {
         speeds.push(measure(gpu, &w, q, reps)?);
     }
     Ok((speeds, cpu_prefill(&w, reps)?))

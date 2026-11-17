@@ -31,7 +31,7 @@ pub fn decode_buffers_for(m: &Llama, app: &crate::session::Session) -> BufferPla
         .iter()
         .find(|a| a.name == name && app.backend.kind() == "gpu")
         .map_or(u64::MAX, |a| a.max_binding);
-    ferrum_wgpu::llama::plan_limited(&m.cfg, None, limit)
+    ferrum_wgpu::llama::plan_limited(&m.cfg, app.weights, limit)
 }
 
 /// Buffers a GPT-2 decoder needs: weights, KV cache and scratch.

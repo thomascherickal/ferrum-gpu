@@ -87,7 +87,7 @@ fn sharded_prefill_with_many_rows_equals_the_whole_model() {
 #[test]
 fn sharded_quantised_models_equal_their_whole_quantised_selves() {
     let Some(g) = open_for_test() else { return };
-    for kind in [QKind::Q8_0, QKind::Q4_0] {
+    for kind in [QKind::F16, QKind::Q8_0, QKind::Q4_0] {
         let w = Llama::random(cfg(), 3, false, false);
         let whole = &mut GpuLlama::new(&g, &w, Some(kind), None).unwrap();
         let cut = &mut GpuLlama::with_binding_limit(&g, &w, Some(kind), None, LIMIT).unwrap();

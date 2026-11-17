@@ -41,9 +41,10 @@ export-lmstudio --model F.gguf [--repo publisher/name] [--bin P]   (GPT-2 files;
 export-gguf   --model F.gguf --out G.gguf [--quant f32|int8|int4]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
 eval          --model F.gguf --data FILE [--ctx N] [--quant f32|int8|int4] [--json F]   (alias: eval-gguf)\n  \
 lab           [--gpu-adapter NAME] [--size small|medium] [--reps N] [--parity-only] [--json]   (GPU against the CPU reference, speed per precision, adapter facts; --json is the file to send back)\n\
-device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --threads N";
+device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --gpu-weights f32|f16|q8_0|q4_0 (how a GPU decoder stores weights; converted at load)  --threads N";
 
-const DEVICE: [Flag; 4] = [
+const DEVICE: [Flag; 5] = [
+    val("--gpu-weights"),
     val("--device"),
     val("--gpu-adapter"),
     val("--threads"),
@@ -232,7 +233,8 @@ fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<Se
         std::thread::available_parallelism().map_or(1, |n| n.get()),
     )?;
     let d = decide(requested, work, &Gpu::list(), a.get("--gpu-adapter"))?;
-    let mut app = Session::new(d.choice, d.adapter.as_deref(), threads.max(1))?;
+    let weights = gpu_weights(a.get("--gpu-weights"))?;
+    let mut app = Session::new_with(d.choice, d.adapter.as_deref(), threads.max(1), weights)?;
     if d.note.is_some() {
         app.fallback_note = d.note;
     }
@@ -340,6 +342,20 @@ fn info(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         )?;
     }
     Ok(())
+}
+
+/// `--gpu-weights`: how a GPU decoder stores weights (`f32` is the default and means no conversion).
+pub fn gpu_weights(v: Option<&str>) -> Result<Option<ferrum_wgpu::ops_quant::QKind>, String> {
+    use ferrum_wgpu::ops_quant::QKind;
+    match v.unwrap_or("f32") {
+        "f32" => Ok(None),
+        "f16" => Ok(Some(QKind::F16)),
+        "q8_0" => Ok(Some(QKind::Q8_0)),
+        "q4_0" => Ok(Some(QKind::Q4_0)),
+        o => Err(format!(
+            "--gpu-weights: unknown '{o}' (f32, f16, q8_0, q4_0)"
+        )),
+    }
 }
 
 fn quant(a: &Args) -> Result<Quant, String> {

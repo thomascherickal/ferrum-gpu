@@ -211,6 +211,7 @@ fn quant_ggml(q: QKind) -> u32 {
     match q {
         QKind::Q8_0 => ferrum_gguf::GGML_Q8_0,
         QKind::Q4_0 => ferrum_gguf::GGML_Q4_0,
+        QKind::F16 => ferrum_gguf::GGML_F16,
     }
 }
 

@@ -298,3 +298,18 @@ mod gate_tests {
         assert!(mem_mb(&bad).unwrap_err().contains("--gpu-mem-mb"));
     }
 }
+
+#[test]
+fn gpu_weights_names_parse_and_unknown_ones_list_the_choices() {
+    use ferrum_wgpu::ops_quant::QKind;
+    assert_eq!(gpu_weights(None).unwrap(), None);
+    assert_eq!(gpu_weights(Some("f32")).unwrap(), None);
+    assert_eq!(gpu_weights(Some("f16")).unwrap(), Some(QKind::F16));
+    assert_eq!(gpu_weights(Some("q8_0")).unwrap(), Some(QKind::Q8_0));
+    assert_eq!(gpu_weights(Some("q4_0")).unwrap(), Some(QKind::Q4_0));
+    let e = gpu_weights(Some("int3")).unwrap_err();
+    assert!(
+        e.contains("--gpu-weights") && e.contains("f32, f16, q8_0, q4_0"),
+        "{e}"
+    );
+}

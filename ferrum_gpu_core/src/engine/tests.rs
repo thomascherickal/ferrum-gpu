@@ -325,3 +325,38 @@ fn fresh_model_with_ties_the_head_and_the_default_does_not() {
     assert!(!fresh_model_with("tiny", 1, false).unwrap().tied);
     assert!(fresh_model_with("huge", 1, true).is_err());
 }
+
+#[test]
+fn a_gpu_decoder_with_stored_weights_stays_close_to_the_f32_one() {
+    use ferrum_wgpu::ops_quant::QKind;
+    let Some(g) = open_for_test() else { return };
+    let g = Arc::new(g);
+    let (w, _) = train_on(&CpuBackend::new(2), 5);
+    let prompt = crate::tokenizer::encode("the quick ");
+    let logits = |weights| {
+        let b = GpuBackend::new(g.clone()).with_weights(weights);
+        let mut feed = b.llama_decoder(&w).unwrap();
+        let mut last = Vec::new();
+        for &t in &prompt {
+            last = feed(t).unwrap();
+        }
+        last
+    };
+    let exact = logits(None);
+    // f16 keeps 11 bits, so every logit stays within a small relative error of the f32 one
+    let f16 = logits(Some(QKind::F16));
+    let e = ferrum_wgpu::tolerance::max_rel_err(&f16, &exact);
+    eprintln!("f16 weights vs f32 weights: max relative logit error {e:.2e}");
+    assert!(e < 5e-3, "{e}");
+    // generation runs end to end with each stored precision
+    let opts = GenOpts {
+        max_new: 4,
+        temperature: 0.0,
+        top_k: 0,
+        seed: 1,
+    };
+    for q in [QKind::F16, QKind::Q8_0, QKind::Q4_0] {
+        let b = GpuBackend::new(g.clone()).with_weights(Some(q));
+        assert_eq!(b.generate(&w, &prompt, &opts).unwrap().len(), 4, "{q:?}");
+    }
+}

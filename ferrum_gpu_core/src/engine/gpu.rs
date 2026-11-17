@@ -9,6 +9,7 @@ use ferrum_ref::llama::Llama;
 use ferrum_wgpu::gpt2::GpuGpt2;
 use ferrum_wgpu::llama::GpuLlama;
 use ferrum_wgpu::llama_train::GpuLlamaTrainer;
+use ferrum_wgpu::ops_quant::QKind;
 use ferrum_wgpu::train::GpuTrainer;
 use ferrum_wgpu::Gpu;
 use std::sync::{Arc, Mutex};
@@ -16,12 +17,21 @@ use std::sync::{Arc, Mutex};
 /// Runs training and decoding on an adapter.
 pub struct GpuBackend {
     gpu: Arc<Gpu>,
+    /// How decoder weights are stored on the device (`None` is f32). Training is always f32.
+    weights: Option<QKind>,
 }
 
 impl GpuBackend {
     /// Wrap an opened adapter.
     pub fn new(gpu: Arc<Gpu>) -> Self {
-        GpuBackend { gpu }
+        GpuBackend { gpu, weights: None }
+    }
+
+    /// Store decoder weights in `weights` on the device (converted at load). Matrices whose input
+    /// width is not a whole number of 32-blocks stay f32.
+    pub fn with_weights(mut self, weights: Option<QKind>) -> Self {
+        self.weights = weights;
+        self
     }
 
     /// Open the named adapter (or the best hardware one).
@@ -66,7 +76,8 @@ impl Backend for GpuBackend {
     }
 
     fn llama_decoder<'a>(&'a self, model: &'a Llama) -> Result<Gpt2Feed<'a>, String> {
-        let mut m = GpuLlama::new(&self.gpu, model, None, None).map_err(|e| e.to_string())?;
+        let mut m =
+            GpuLlama::new(&self.gpu, model, self.weights, None).map_err(|e| e.to_string())?;
         Ok(Box::new(move |t| m.feed(t).map_err(|e| e.to_string())))
     }
 
@@ -90,7 +101,8 @@ impl Backend for GpuBackend {
         prompt: &[usize],
         opts: &GenOpts,
     ) -> Result<Vec<usize>, String> {
-        let mut m = GpuLlama::new(&self.gpu, model, None, None).map_err(|e| e.to_string())?;
+        let mut m =
+            GpuLlama::new(&self.gpu, model, self.weights, None).map_err(|e| e.to_string())?;
         generate_with(
             &mut |t| m.feed(t).map_err(|e| e.to_string()),
             model.cfg.ctx,

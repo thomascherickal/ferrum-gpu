@@ -15,7 +15,7 @@ use crate::ops::{err, need};
 use crate::tensor::GpuBuf;
 use ferrum_gguf::f16::f16_to_f32;
 use ferrum_gguf::quant::encode;
-use ferrum_gguf::{GGML_Q4_0, GGML_Q8_0, QK};
+use ferrum_gguf::{GGML_F16, GGML_Q4_0, GGML_Q8_0, QK};
 use ferrum_ref::llama::transpose;
 
 /// Block quantisation formats the kernel understands.
@@ -25,6 +25,10 @@ pub enum QKind {
     Q8_0,
     /// 4-bit values with an f16 scale per 32.
     Q4_0,
+    /// Plain f16 values, two per word, no scale (half the memory of f32; the kernel unpacks with
+    /// `unpack2x16float`, which every WGSL implementation has, so it needs no `shader-f16`
+    /// feature). Compute stays f32.
+    F16,
 }
 
 impl QKind {
@@ -32,6 +36,7 @@ impl QKind {
         match self {
             QKind::Q8_0 => GGML_Q8_0,
             QKind::Q4_0 => GGML_Q4_0,
+            QKind::F16 => GGML_F16,
         }
     }
 
@@ -40,6 +45,7 @@ impl QKind {
         match self {
             QKind::Q8_0 => 2 + QK,
             QKind::Q4_0 => 2 + QK / 2,
+            QKind::F16 => 2 * QK,
         }
     }
 
@@ -48,6 +54,7 @@ impl QKind {
         match self {
             QKind::Q8_0 => 1 + QK / 4,
             QKind::Q4_0 => 1 + QK / 8,
+            QKind::F16 => QK / 2,
         }
     }
 }
@@ -117,8 +124,16 @@ pub fn pack(kind: QKind, bytes: &[u8], k: usize, n: usize) -> Result<Vec<u32>, G
         for b in 0..nb {
             let blk = &bytes[(col * nb + b) * fb..][..fb];
             let rec = &mut out[(b * n + col) * w..][..w];
-            rec[0] = f16_to_f32(u16::from_le_bytes([blk[0], blk[1]])).to_bits();
-            for (dst, c) in rec[1..].iter_mut().zip(blk[2..].chunks_exact(4)) {
+            // F16 blocks have no scale: the whole record is values
+            let (head, quants) = if kind == QKind::F16 {
+                (0, blk)
+            } else {
+                (1, &blk[2..])
+            };
+            if head == 1 {
+                rec[0] = f16_to_f32(u16::from_le_bytes([blk[0], blk[1]])).to_bits();
+            }
+            for (dst, c) in rec[head..].iter_mut().zip(quants.chunks_exact(4)) {
                 *dst = u32::from_le_bytes([c[0], c[1], c[2], c[3]]);
             }
         }
@@ -172,7 +187,11 @@ pub fn linear_q(
 ) -> Result<(), GpuError> {
     need("linear_q x", x, rows * w.k)?;
     need("linear_q y", y, rows * w.n)?;
-    let kind = u32::from(w.kind == QKind::Q4_0);
+    let kind = match w.kind {
+        QKind::Q8_0 => 0,
+        QKind::Q4_0 => 1,
+        QKind::F16 => 2,
+    };
     let p = pipe!(gpu, "quant/qlinear")?;
     gpu.dispatch_1d(
         &p,
