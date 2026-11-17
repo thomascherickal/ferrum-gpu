@@ -409,7 +409,12 @@ fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), String> 
         device_line(out, &app)?;
         say(out, shape(&model))?;
     }
-    gate(out, &app, &preflight::decode_buffers(&model), mem_mb(a)?)?;
+    gate(
+        out,
+        &app,
+        &preflight::decode_buffers_for(&model, &app),
+        mem_mb(a)?,
+    )?;
     let new = app.backend.generate(&model, &encode(prompt), &opts)?;
     say(out, format!("{prompt}{}", decode(&new)?))
 }

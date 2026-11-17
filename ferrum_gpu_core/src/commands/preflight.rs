@@ -22,6 +22,18 @@ pub fn decode_buffers(m: &Llama) -> BufferPlan {
     decode_plan(&m.cfg, None)
 }
 
+/// The same, with every weight larger than the chosen adapter's binding limit listed as the blocks
+/// the engine stores it in (a CPU backend, or an unknown adapter, has no limit).
+pub fn decode_buffers_for(m: &Llama, app: &crate::session::Session) -> BufferPlan {
+    let name = app.backend.name();
+    let limit = app
+        .adapters
+        .iter()
+        .find(|a| a.name == name && app.backend.kind() == "gpu")
+        .map_or(u64::MAX, |a| a.max_binding);
+    ferrum_wgpu::llama::plan_limited(&m.cfg, None, limit)
+}
+
 /// Buffers a GPT-2 decoder needs: weights, KV cache and scratch.
 pub fn gpt2_decode_buffers(m: &ferrum_ref::gpt2::Gpt2) -> BufferPlan {
     ferrum_wgpu::gpt2::plan(&m.cfg)

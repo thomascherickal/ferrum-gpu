@@ -35,7 +35,7 @@ impl GpuLlama<'_> {
         g.begin_batch()?;
         let rec = (|| -> Result<(), GpuError> {
             let mm = &self.matmul;
-            ops_llama::gather_rows(g, &self.tok, &gi, &x, (t, d))?;
+            self.tok.gather(g, (ids, &gi), &x, d)?;
             for b in &self.blocks {
                 ops_llama::rmsnorm(g, &x, &b.attn_norm, &h, (t, d), c.eps)?;
                 b.wq.apply(g, mm, (&h, b.bq.as_ref(), self.zero(qd)), (&q, &tmp_q), t)?;

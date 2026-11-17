@@ -5,8 +5,12 @@
 //! quantised kernel; split K across the workgroup (as `gemv.wgsl` does) if a profile on a large
 //! model says decode is latency-bound.
 
+mod embed;
 mod forward;
 mod lin;
+mod shard;
+#[cfg(test)]
+mod sharded_tests;
 #[cfg(test)]
 mod tests;
 
@@ -17,6 +21,7 @@ use crate::ops;
 use crate::ops_llama;
 use crate::ops_quant::{eligible, packed_words, quantise_matrix, QKind};
 use crate::tensor::GpuBuf;
+use embed::Embedding;
 use ferrum_gguf::quant::decode;
 use ferrum_ref::llama::{rope_tables, transpose, Config, Llama};
 use lin::Lin;
@@ -69,7 +74,9 @@ pub struct GpuLlama<'g> {
     gpu: &'g Gpu,
     cfg: Config,
     quant: Option<QKind>,
-    tok: GpuBuf,
+    /// The binding limit this model was built for (the adapter's, unless lowered for a test).
+    limit: u64,
+    tok: Embedding,
     cos: GpuBuf,
     sin: GpuBuf,
     blocks: Vec<DevBlock>,
@@ -95,30 +102,52 @@ fn matrix_bytes(quant: Option<QKind>, k: usize, n: usize) -> u64 {
 /// Every device buffer a model of this shape needs, named and sized (weights, RoPE tables, KV
 /// cache, scratch).
 pub fn plan(c: &Config, quant: Option<QKind>) -> BufferPlan {
+    plan_limited(c, quant, u64::MAX)
+}
+
+/// Like [`plan`], but a weight or the embedding larger than `limit` bytes is listed as the blocks
+/// it will be stored in (`name.0`, `name.1`, ...), so the binding check sees what is really bound.
+/// Buffers that cannot be split (KV cache, scratch) stay whole and fail the check as before.
+pub fn plan_limited(c: &Config, quant: Option<QKind>, limit: u64) -> BufferPlan {
     let (d, h, qd, kvd) = (c.dim, c.hidden, c.q_dim(), c.kv_dim());
     let mut p = BufferPlan::default();
-    p.add("tok_emb", f32s(c.vocab * d));
+    let add = |p: &mut BufferPlan, name: &str, bytes: u64, units: usize| {
+        let unit = if units == 0 {
+            bytes
+        } else {
+            bytes / units as u64
+        };
+        match shard::blocks(units, unit, limit) {
+            Ok(b) if b.len() > 1 && shard::splittable(name) => {
+                for (i, (_, len)) in b.iter().enumerate() {
+                    p.add(&format!("{name}.{i}"), *len as u64 * unit);
+                }
+            }
+            _ => p.add(name, bytes),
+        }
+    };
+    add(&mut p, "tok_emb", f32s(c.vocab * d), c.vocab);
     p.add("rope_cos", f32s(c.ctx * c.rope_dim / 2));
     p.add("rope_sin", f32s(c.ctx * c.rope_dim / 2));
     for i in 0..c.layers {
-        for (n, bytes) in [
-            ("attn_norm", f32s(d)),
-            ("wq", matrix_bytes(quant, d, qd)),
-            ("wk", matrix_bytes(quant, d, kvd)),
-            ("wv", matrix_bytes(quant, d, kvd)),
-            ("wo", matrix_bytes(quant, qd, d)),
-            ("ffn_norm", f32s(d)),
-            ("gate", matrix_bytes(quant, d, h)),
-            ("up", matrix_bytes(quant, d, h)),
-            ("down", matrix_bytes(quant, h, d)),
-            ("kcache", f32s(c.ctx * kvd)),
-            ("vcache", f32s(c.ctx * kvd)),
+        for (n, bytes, units) in [
+            ("attn_norm", f32s(d), 0),
+            ("wq", matrix_bytes(quant, d, qd), qd),
+            ("wk", matrix_bytes(quant, d, kvd), kvd),
+            ("wv", matrix_bytes(quant, d, kvd), kvd),
+            ("wo", matrix_bytes(quant, qd, d), d),
+            ("ffn_norm", f32s(d), 0),
+            ("gate", matrix_bytes(quant, d, h), h),
+            ("up", matrix_bytes(quant, d, h), h),
+            ("down", matrix_bytes(quant, h, d), d),
+            ("kcache", f32s(c.ctx * kvd), 0),
+            ("vcache", f32s(c.ctx * kvd), 0),
         ] {
-            p.add(&format!("blk{i}.{n}"), bytes);
+            add(&mut p, &format!("blk{i}.{n}"), bytes, units);
         }
     }
     p.add("out_norm", f32s(d));
-    p.add("head", matrix_bytes(quant, d, c.vocab));
+    add(&mut p, "head", matrix_bytes(quant, d, c.vocab), c.vocab);
     for (n, len) in [
         ("zero_q", qd),
         ("zero_kv", kvd),
@@ -195,16 +224,30 @@ impl<'g> GpuLlama<'g> {
         quant: Option<QKind>,
         budget: Option<Budget>,
     ) -> Result<Self, GpuError> {
+        Self::with_binding_limit(gpu, w, quant, budget, gpu.info().max_binding)
+    }
+
+    /// Like [`new`](Self::new), treating `limit` bytes as the largest buffer binding: a weight or
+    /// the embedding larger than that is stored as blocks (see `shard`). `limit` above the
+    /// adapter's own would fail at allocation; below it, it lets a test exercise sharding on a
+    /// small model.
+    pub fn with_binding_limit(
+        gpu: &'g Gpu,
+        w: &Llama,
+        quant: Option<QKind>,
+        budget: Option<Budget>,
+        limit: u64,
+    ) -> Result<Self, GpuError> {
         w.cfg.validate().map_err(err)?;
         w.rope.check(w.cfg.rope_dim).map_err(err)?;
-        plan(&w.cfg, quant)
-            .check(gpu.info().max_binding, budget)
+        plan_limited(&w.cfg, quant, limit)
+            .check(limit.min(gpu.info().max_binding), budget)
             .map_err(|e| err(e.to_string()))?;
         let c = w.cfg;
         let (d, h, qd, kvd) = (c.dim, c.hidden, c.q_dim(), c.kv_dim());
         let up = |v: &[f32]| gpu.upload(v);
         let bias = |v: &[f32]| (!v.is_empty()).then(|| gpu.upload(v)).transpose();
-        let lin = |m: &[f32], k, n| Lin::upload(gpu, m, (k, n), quant);
+        let lin = |m: &[f32], k, n| Lin::upload(gpu, m, (k, n), quant, limit);
         let blocks = w
             .blocks
             .iter()
@@ -258,7 +301,8 @@ impl<'g> GpuLlama<'g> {
             gpu,
             cfg: c,
             quant,
-            tok: up(&w.tok)?,
+            limit,
+            tok: Embedding::upload(gpu, &w.tok, d, limit)?,
             cos: up(&cos)?,
             sin: up(&sin)?,
             blocks,
@@ -274,6 +318,12 @@ impl<'g> GpuLlama<'g> {
     /// The model's hyperparameters.
     pub fn config(&self) -> &Config {
         &self.cfg
+    }
+
+    /// The largest buffer binding, in bytes, this model was built for: the adapter's own limit
+    /// unless [`with_binding_limit`](Self::with_binding_limit) lowered it.
+    pub fn binding_limit(&self) -> u64 {
+        self.limit
     }
 
     /// The quantisation requested at upload (ineligible matrices stay f32).
@@ -314,7 +364,7 @@ impl<'g> GpuLlama<'g> {
         let rec = (|| -> Result<(), GpuError> {
             let mm = &self.matmul;
             g.copy_f32(&id, 0, &s.ids, 0, 1)?;
-            ops_llama::gather_rows(g, &self.tok, &s.ids, &s.x, (1, d))?;
+            self.tok.gather(g, (&[token], &s.ids), &s.x, d)?;
             for b in &self.blocks {
                 ops_llama::rmsnorm(g, &s.x, &b.attn_norm, &s.h, (1, d), c.eps)?;
                 b.wq.apply(

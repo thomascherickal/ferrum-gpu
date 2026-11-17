@@ -111,7 +111,12 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
         device_line(out, &app)?;
         say(out, shape(&l.model))?;
     }
-    gate(out, &app, &preflight::decode_buffers(&l.model), mem_mb(a)?)?;
+    gate(
+        out,
+        &app,
+        &preflight::decode_buffers_for(&l.model, &app),
+        mem_mb(a)?,
+    )?;
     let mut feed = app.backend.llama_decoder(&l.model)?;
     let anchor = prompt[prompt.len() - 1];
     let shown = if chat {

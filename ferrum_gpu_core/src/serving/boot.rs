@@ -125,7 +125,7 @@ pub fn boot(args: &[String], out: &mut dyn Write) -> Result<Booted, String> {
             &crate::commands::sysmem::System,
             out,
             &app,
-            &crate::commands::preflight::decode_buffers(&model),
+            &crate::commands::preflight::decode_buffers_for(&model, &app),
             mem,
         )?;
         Arc::new(ModelDecoder::new(app.backend.clone(), model))
