@@ -19,15 +19,13 @@ pub struct Options {
     pub adapter: Option<String>,
     /// CPU matmul threads.
     pub threads: usize,
-    /// `--cli`: the `ferrum-gpu` binary the jobs run (else found next to this one, or on PATH).
-    pub cli: Option<std::path::PathBuf>,
     /// `--help` was given.
     pub help: bool,
 }
 
 /// The usage text.
 pub const USAGE: &str =
-    "usage: ferrum_gpu_gui [--port N] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--threads N] [--cli PATH]\n\
+    "usage: ferrum_gpu_gui [--port N] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--threads N]\n\
     Serves the GUI on http://127.0.0.1:PORT/ (loopback only). Default: a free port, --device auto.";
 
 /// Parse `args` (without the program name). Unknown flags and missing values are errors.
@@ -38,7 +36,6 @@ pub fn parse_args(args: &[String]) -> Result<Options, String> {
         adapter: None,
         threads: std::thread::available_parallelism().map_or(1, |n| n.get()),
         help: false,
-        cli: None,
     };
     let mut it = args.iter();
     while let Some(flag) = it.next() {
@@ -56,7 +53,6 @@ pub fn parse_args(args: &[String]) -> Result<Options, String> {
             }
             "--device" => o.device = DeviceChoice::parse(&value("--device")?)?,
             "--gpu-adapter" => o.adapter = Some(value("--gpu-adapter")?),
-            "--cli" => o.cli = Some(value("--cli")?.into()),
             "--threads" => {
                 o.threads = value("--threads")?
                     .parse()

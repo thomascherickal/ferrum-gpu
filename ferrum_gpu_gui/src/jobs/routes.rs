@@ -5,7 +5,7 @@
 //! | `GET /api/jobs` | every remembered job, one summary each |
 //! | `POST /api/jobs` `{"cmd":"train","args":["--data","t.txt",...]}` | start one; `{"id":N}` |
 //! | `GET /api/jobs/N?since=K` | state, exit status, output lines from index K, last progress |
-//! | `POST /api/jobs/N/stop` `{"force":false}` | ask it to stop (a stop file), or kill it |
+//! | `POST /api/jobs/N/stop` | ask it to stop; training and generation end cleanly at the next step or token |
 
 use super::view;
 use crate::app::App;
@@ -94,11 +94,11 @@ pub fn route(app: &App, req: &Request) -> Response {
             Response::json(200, &view::poll(&job, since))
         }
         ("POST", "stop") => {
-            let force = match parse_body(req) {
-                Ok(j) => matches!(j.get("force"), Some(Json::Bool(true))),
-                Err(r) => return r,
-            };
-            let asked = job.stop(force);
+            // the body is optional and ignored (older pages sent {"force": bool}); it must still be JSON
+            if let Err(r) = parse_body(req) {
+                return r;
+            }
+            let asked = job.stop();
             Response::json(200, &Json::obj([("stopping", Json::Bool(asked))]))
         }
         (_, "" | "stop") => Response::error(405, "method not allowed"),

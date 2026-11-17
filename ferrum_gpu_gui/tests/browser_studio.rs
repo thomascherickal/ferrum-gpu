@@ -1,7 +1,6 @@
-//! Drives the Studio tabs in headless Chrome against the real server and the real `ferrum-gpu`
-//! binary: keyboard tab movement, Beginner/Expert, tool-tips, Datasets, the file picker, and real
-//! Prepare and Tokenize jobs. Skipped (with the reason printed) when Chrome or the CLI binary is
-//! missing, so the suite passes on a bare machine.
+//! Drives the Studio tabs in headless Chrome against the real server: keyboard tab movement, Beginner/Expert, tool-tips, Datasets, the file picker, and real
+//! Prepare and Tokenize jobs (the real commands, in-process). Skipped (with the reason printed) when
+//! Chrome is missing, so the suite passes on a bare machine.
 
 // the harness uses process groups, `kill`, `sh` and `timeout`: not built on Windows
 #![cfg(unix)]
@@ -13,7 +12,6 @@ use ferrum_gpu_gui::engine::CpuBackend;
 use ferrum_gpu_gui::json::Json;
 use ferrum_gpu_gui::server::start;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -30,12 +28,6 @@ fn fetch_result(port: u16) -> Option<String> {
     c.read_to_string(&mut out).ok()?;
     let (head, body) = out.split_once("\r\n\r\n")?;
     head.starts_with("HTTP/1.1 200").then(|| body.to_string())
-}
-
-fn cli() -> Option<PathBuf> {
-    let exe = std::env::current_exe().ok()?;
-    let p = exe.parent()?.parent()?.join("ferrum-gpu");
-    p.is_file().then_some(p)
 }
 
 fn work(tag: &str) -> PathBuf {
@@ -61,36 +53,30 @@ fn corpus(dir: &Path) -> String {
 }
 
 #[test]
-fn the_new_tabs_work_in_a_real_browser_with_the_real_cli() {
+fn the_new_tabs_work_in_a_real_browser_with_the_real_commands() {
     let Some(chrome) = common::chrome() else {
         eprintln!("SKIP: no Chrome or Chromium installed");
-        return;
-    };
-    let Some(exe) = cli() else {
-        eprintln!("SKIP: target/<profile>/ferrum-gpu is not built");
         return;
     };
     let dir = work("tabs");
     let inputs = corpus(&dir);
     // a tokenizer file, as a training run saves it
     let tok = dir.join("tok.gguf");
-    let trained = Command::new(&exe)
-        .args([
-            "train", "--preset", "tiny", "--steps", "2", "--batch", "2", "--vocab", "300",
-        ])
-        .args(["--device", "cpu", "--data"])
-        .arg(dir.join("corpus.txt"))
-        .arg("--out")
-        .arg(dir.join("m.gguf"))
-        .arg("--tokenizer")
-        .arg(&tok)
-        .output()
-        .unwrap();
-    assert!(
-        trained.status.success(),
-        "{}",
-        String::from_utf8_lossy(&trained.stderr)
-    );
+    let train: Vec<String> = [
+        "train", "--preset", "tiny", "--steps", "2", "--batch", "2", "--vocab", "300", "--device",
+        "cpu", "--data",
+    ]
+    .iter()
+    .map(|s| s.to_string())
+    .chain([
+        dir.join("corpus.txt").display().to_string(),
+        "--out".into(),
+        dir.join("m.gguf").display().to_string(),
+        "--tokenizer".into(),
+        tok.display().to_string(),
+    ])
+    .collect();
+    ferrum_gpu_core::commands::run(&train, &mut Vec::new()).unwrap();
     assert!(tok.is_file());
 
     let app = Arc::new(App::with_backend(
@@ -99,7 +85,6 @@ fn the_new_tabs_work_in_a_real_browser_with_the_real_cli() {
         None,
         vec![],
     ));
-    app.jobs.set_cli(Some(exe));
     let server = start(app, 0).unwrap();
     let port = server.addr.port();
     let out = dir.join("prepared");

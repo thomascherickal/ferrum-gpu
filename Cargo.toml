@@ -1,6 +1,7 @@
 [workspace]
 members  = ["ferrum_tok", "ferrum_gguf", "ferrum_model", "ferrum_ref", "ferrum_wgpu", "ferrum_gpu_core", "ferrum_gpu_cli", "ferrum_gpu_gui", "ferrum_gpu_server", "tests"]
 resolver = "2"
+exclude  = ["ferrum_gpu_studio"]
 
 [workspace.package]
 version      = "0.1.0"

@@ -96,6 +96,10 @@ impl Hooks for Run<'_> {
             ));
             return false;
         }
+        if crate::cancel::requested() {
+            self.reason = Some(format!("cancelled; stopped after step {step}"));
+            return false;
+        }
         self.reason.is_none()
     }
 

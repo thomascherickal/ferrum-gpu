@@ -1,9 +1,6 @@
-//! Tests of the file API, on real temp-directory trees.
+//! Tests of the file API routes, on real temp-directory trees.
 
-mod list;
-mod preview;
 mod routes;
-mod stat;
 
 pub(crate) mod support {
     use std::path::{Path, PathBuf};
@@ -14,7 +11,7 @@ pub(crate) mod support {
     /// A fresh empty directory under the system temp directory.
     pub fn tmp() -> PathBuf {
         let d = std::env::temp_dir().join(format!(
-            "ferrum_fs_{}_{}",
+            "ferrum_fsroutes_{}_{}",
             std::process::id(),
             N.fetch_add(1, Ordering::SeqCst)
         ));

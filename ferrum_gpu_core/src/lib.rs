@@ -17,7 +17,9 @@
 pub mod cancel;
 pub mod commands;
 pub mod engine;
+pub mod fsapi;
 pub mod http;
+pub mod jobs;
 pub mod json;
 pub mod session;
 pub mod stop;

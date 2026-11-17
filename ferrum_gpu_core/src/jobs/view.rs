@@ -43,7 +43,6 @@ pub fn poll(job: &Job, since: usize) -> Json {
         ),
         ("state", Json::Str(p.state.into())),
         ("exit", p.exit.map_or(Json::Null, num)),
-        ("error", p.error.map_or(Json::Null, Json::Str)),
         ("seconds", num(p.seconds)),
         (
             "lines",

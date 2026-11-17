@@ -58,16 +58,31 @@ every command.
 - **Kept:** the HTTP front end (headless use over an SSH tunnel, the Chrome-driven tests, the in-browser WebGPU
   runtime). Not planned: a mobile build, auto-update, code signing (documented as steps for the owner).
 
+## Decisions taken while building (2026-11-17)
+
+- **R2 kept the command interface as "argument list in, report out".** Instead of a second typed-options layer that
+  could drift from the CLI, the whole command layer moved into `ferrum_gpu_core::commands`; a job calls
+  `commands::run(argv, &mut sink)`. The CLI is a three-line `main`; the page builds the same argument lists from its
+  forms (`web/tabs/args.js`, tested under node).
+- **R3 did not add a second transport or move the page.** The desktop app runs the GUI's loopback server in-process
+  and points its window at it, so there is one transport (HTTP), one guard (Host/Origin), and one page. What the app
+  needed from the page was a strict Content-Security-Policy, now sent on every static response and tested
+  (`tests/csp.rs`). `rpc.js` and a `ui/` move are dropped; native file dialogs are not used (the page has its own
+  server-side file picker). Revisit if a native-only feature needs Tauri commands.
+- **Cancellation is cooperative.** Stop raises the job's flag; training (both trainers), generation and the byte
+  model's loop poll it. `prepare`, `tokenize` and the exports have no check and run to their end; the UI says so.
+- **Device-using commands take turns** (adapter enumeration is not safe from several threads); the others run beside them.
+
 ## Phases
 
 **Refactor (required first)**
 
 | # | Phase | Deliverable | Tests |
 |---|---|---|---|
-| R1 | **Extract `ferrum_gpu_core`** | Move the engine layer, JSON, tokenizer, cancel and stop helpers out of the GUI crate into the new library; the GUI, CLI and server depend on it | the moved code's tests move with it; workspace stays green; dependency-direction test |
-| R2 | **Commands as library functions** | One command at a time (info, prepare, tokenize, train, finetune, eval, generate, export-*): typed options, `Reporter`, `CancelToken`; the CLI becomes flag parsing plus a call | CLI test suite unchanged and green after each command; new unit tests on the options and on cancellation |
-| R3 | **The Studio API and the in-process jobs** | `core::studio` with jobs (threads), files, device info; the HTTP front end becomes a thin transport; the subprocess runner is deleted; `rpc.js` transport abstraction; `ui/` layout, relative imports, CSP | jobs tests re-pointed at in-process commands; node tests for `rpc.js`; the Chrome tests still pass |
-| R4 | **The desktop app** | `ferrum_gpu_studio`: Tauri 2 window, commands, native file dialogs, icons, bundle config, CSP; CI job per OS; `cargo deny` for it | app launches headless under a virtual display in a test where possible; command wiring unit-tested without a window |
+| R1 | **Extract `ferrum_gpu_core`** (done) | Move the engine layer, JSON, tokenizer, cancel and stop helpers out of the GUI crate into the new library; the GUI, CLI and server depend on it | the moved code's tests move with it; workspace stays green; dependency-direction test |
+| R2 | **Commands as library functions** (done) | One command at a time (info, prepare, tokenize, train, finetune, eval, generate, export-*): typed options, `Reporter`, `CancelToken`; the CLI becomes flag parsing plus a call | CLI test suite unchanged and green after each command; new unit tests on the options and on cancellation |
+| R3 | **The Studio API and the in-process jobs** (done) | `core::studio` with jobs (threads), files, device info; the HTTP front end becomes a thin transport; the subprocess runner is deleted; `rpc.js` transport abstraction; `ui/` layout, relative imports, CSP | jobs tests re-pointed at in-process commands; node tests for `rpc.js`; the Chrome tests still pass |
+| R4 | **The desktop app** (done) | `ferrum_gpu_studio`: Tauri 2 window, commands, native file dialogs, icons, bundle config, CSP; CI job per OS; `cargo deny` for it | app launches headless under a virtual display in a test where possible; command wiring unit-tested without a window |
 
 **Tabs (on the in-process core)**
 

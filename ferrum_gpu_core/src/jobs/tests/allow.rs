@@ -1,5 +1,4 @@
-use crate::jobs::allow::{stop_file, validate, COMMANDS, MAX_ARGS, MAX_ARG_BYTES};
-use std::path::PathBuf;
+use crate::jobs::allow::{uses_device, validate, COMMANDS, MAX_ARGS, MAX_ARG_BYTES};
 
 fn v(a: &[&str]) -> Vec<String> {
     a.iter().map(|s| s.to_string()).collect()
@@ -62,21 +61,31 @@ fn bin_may_only_name_ollama_or_lms() {
 }
 
 #[test]
-fn a_training_command_has_a_stop_file_next_to_its_output() {
-    let args = v(&["--data", "t.txt", "--out", "/tmp/m.gguf"]);
-    assert_eq!(
-        stop_file("train", &args),
-        Some(PathBuf::from("/tmp/m.stop"))
-    );
-    assert_eq!(
-        stop_file("finetune-gguf", &args),
-        Some(PathBuf::from("/tmp/m.stop"))
-    );
-    assert_eq!(
-        stop_file("run", &v(&["--model", "d/r.gguf", "--data", "x"])),
-        Some(PathBuf::from("d/r.stop"))
-    );
-    assert_eq!(stop_file("generate", &args), None);
-    assert_eq!(stop_file("train", &v(&["--data", "t"])), None);
-    assert_eq!(stop_file("train", &v(&["--out"])), None);
+fn only_the_commands_that_open_a_device_are_exclusive() {
+    for c in [
+        "info",
+        "train",
+        "finetune-gguf",
+        "run",
+        "generate",
+        "run-gguf",
+    ] {
+        assert!(uses_device(c), "{c}");
+    }
+    for c in [
+        "prepare",
+        "tokenize",
+        "export-ollama",
+        "export-lmstudio",
+        "export-gguf",
+        "eval",
+        "",
+        "sh",
+    ] {
+        assert!(!uses_device(c), "{c}");
+    }
+    // every command that opens a device is on the allow-list
+    for c in COMMANDS.iter().filter(|c| uses_device(c)) {
+        assert!(validate(c, &[]).is_ok());
+    }
 }

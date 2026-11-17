@@ -3,7 +3,7 @@
 //! separate arguments (never through a shell). The CLI itself rejects unknown and repeated flags;
 //! this layer refuses what the CLI would accept but a web page should not be able to ask for.
 
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 /// The subcommands the Studio runs.
 pub const COMMANDS: &[&str] = &[
@@ -59,13 +59,12 @@ pub fn validate(cmd: &str, args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
-/// The `<out>.stop` file a training command watches, if the request names the file it writes (the
-/// CLI uses `Path::new(target).with_extension("stop")`; `run` writes to `--model`).
-pub fn stop_file(cmd: &str, args: &[String]) -> Option<PathBuf> {
-    if !matches!(cmd, "train" | "finetune-gguf" | "run") {
-        return None;
-    }
-    let flag = if cmd == "run" { "--model" } else { "--out" };
-    let at = args.iter().position(|a| a == flag)?;
-    Some(Path::new(args.get(at + 1)?).with_extension("stop"))
+/// Does `cmd` open a compute device (the CPU backend or a GPU adapter)? Adapter enumeration is not
+/// safe from several threads at once, so these commands take turns; the others (prepare, tokenize,
+/// the exports, eval, which always runs on the CPU) can run beside them.
+pub fn uses_device(cmd: &str) -> bool {
+    matches!(
+        cmd,
+        "info" | "train" | "finetune-gguf" | "run" | "generate" | "run-gguf"
+    )
 }

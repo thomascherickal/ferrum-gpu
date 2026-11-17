@@ -1,22 +1,56 @@
-use super::support::{jobs, stub, wait};
 use crate::app::{App, DeviceChoice};
 use crate::engine::CpuBackend;
 use crate::http::Request;
 use crate::jobs::routes::{handles, route};
+use crate::jobs::{Jobs, RunFn};
 use crate::json::Json;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+/// Fake commands: `info` echoes its arguments, `train` reports progress then waits to be stopped,
+/// `eval` fails.
+fn fake() -> Jobs {
+    let run: Arc<RunFn> = Arc::new(|argv, out| {
+        match argv[0].as_str() {
+            "info" => {
+                writeln!(out, "args: {}", argv[1..].join(" ")).unwrap();
+                writeln!(out, "device: fake").unwrap();
+            }
+            "train" => {
+                writeln!(
+                    out,
+                    "step 10/100 loss 3.0000 grad_norm 0.500 tokens/s 1000 elapsed 1.0s eta 9s"
+                )
+                .unwrap();
+                writeln!(out, "epoch 1 val loss 2.5000 (best)").unwrap();
+                writeln!(
+                    out,
+                    "step 20/100 loss 2.0000 grad_norm 0.400 tokens/s 1100 elapsed 2.0s eta 8s"
+                )
+                .unwrap();
+                let t0 = Instant::now();
+                while !ferrum_gpu_core::cancel::requested() {
+                    assert!(t0.elapsed() < Duration::from_secs(20), "never stopped");
+                    std::thread::sleep(Duration::from_millis(2));
+                }
+            }
+            _ => return Err("the fake command failed".into()),
+        }
+        Ok(())
+    });
+    Jobs::with_runner(run)
+}
+
 fn app() -> Arc<App> {
-    let (_dir, p) = stub();
-    let a = Arc::new(App::with_backend(
-        Arc::new(CpuBackend::new(1)),
-        DeviceChoice::Cpu,
-        None,
-        vec![],
-    ));
-    a.jobs.set_cli(Some(p));
-    a
+    Arc::new(
+        App::with_backend(
+            Arc::new(CpuBackend::new(1)),
+            DeviceChoice::Cpu,
+            None,
+            vec![],
+        )
+        .with_jobs(fake()),
+    )
 }
 
 fn call(a: &App, method: &str, path: &str, query: &[(&str, &str)], body: &[u8]) -> (u16, Json) {
@@ -50,7 +84,7 @@ fn wait_state(a: &App, id: u64, want: &str) -> Json {
             return j;
         }
         assert!(t0.elapsed() < Duration::from_secs(20), "never {want}: {j}");
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(5));
     }
 }
 
@@ -80,7 +114,6 @@ fn a_job_is_started_polled_and_listed() {
     assert_eq!(field(&lines[0], "t").as_str(), Some("args: --device cpu"));
     assert_eq!(field(&lines[0], "e"), Json::Bool(false));
     assert_eq!(field(&done, "next").as_f64(), Some(2.0));
-    // since skips what was seen
     let (_, tail) = call(
         &a,
         "GET",
@@ -102,12 +135,15 @@ fn a_job_is_started_polled_and_listed() {
 }
 
 #[test]
-fn progress_events_reach_the_page() {
+fn progress_events_reach_the_page_and_stop_ends_the_job() {
     let a = app();
-    let dir = std::env::temp_dir();
-    let out = dir.join(format!("ferrum_route_{}.gguf", std::process::id()));
-    let body = format!(r#"{{"cmd":"train","args":["--out","{}"]}}"#, out.display());
-    let (_, j) = call(&a, "POST", "/api/jobs", &[], body.as_bytes());
+    let (_, j) = call(
+        &a,
+        "POST",
+        "/api/jobs",
+        &[],
+        br#"{"cmd":"train","args":["--out","m.gguf"]}"#,
+    );
     let id = field(&j, "id").as_usize().unwrap() as u64;
     let t0 = Instant::now();
     let seen = loop {
@@ -116,18 +152,14 @@ fn progress_events_reach_the_page() {
             break p;
         }
         assert!(t0.elapsed() < Duration::from_secs(20), "{p}");
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(Duration::from_millis(5));
     };
     assert_eq!(field(&field(&seen, "step"), "loss").as_f64(), Some(2.0));
     assert_eq!(field(&field(&seen, "val"), "best"), Json::Bool(true));
-    let (s, r) = call(
-        &a,
-        "POST",
-        &format!("/api/jobs/{id}/stop"),
-        &[],
-        br#"{"force":true}"#,
-    );
-    assert_eq!((s, field(&r, "stopping")), (200, Json::Bool(true)));
+    for body in [&br#"{"force":true}"#[..], b""] {
+        let (s, r) = call(&a, "POST", &format!("/api/jobs/{id}/stop"), &[], body);
+        assert_eq!((s, field(&r, "stopping")), (200, Json::Bool(true)));
+    }
     wait_state(&a, id, "stopped");
     let (_, again) = call(&a, "POST", &format!("/api/jobs/{id}/stop"), &[], b"");
     assert_eq!(
@@ -135,6 +167,23 @@ fn progress_events_reach_the_page() {
         Json::Bool(false),
         "already finished"
     );
+}
+
+#[test]
+fn a_failing_command_is_an_error_job_with_the_message_as_a_line() {
+    let a = app();
+    let (_, j) = call(&a, "POST", "/api/jobs", &[], br#"{"cmd":"eval"}"#);
+    let id = field(&j, "id").as_usize().unwrap() as u64;
+    let p = wait_state(&a, id, "error");
+    assert_eq!(field(&p, "exit").as_f64(), Some(2.0));
+    let Json::Arr(lines) = field(&p, "lines") else {
+        panic!("{p}")
+    };
+    assert_eq!(
+        field(&lines[0], "t").as_str(),
+        Some("the fake command failed")
+    );
+    assert_eq!(field(&lines[0], "e"), Json::Bool(true));
 }
 
 #[test]
@@ -157,23 +206,7 @@ fn bad_start_requests_are_400s_that_say_why() {
         let msg = field(&j, "error");
         assert!(msg.as_str().unwrap().contains(needle), "{msg}");
     }
-    // no cli found: an error, not a crash
-    let none = Arc::new(App::with_backend(
-        Arc::new(CpuBackend::new(1)),
-        DeviceChoice::Cpu,
-        None,
-        vec![],
-    ));
-    none.jobs.set_cli(Some("/no/such/ferrum-gpu".into()));
-    let (s, j) = call(&none, "POST", "/api/jobs", &[], br#"{"cmd":"info"}"#);
-    assert_eq!(s, 400);
-    assert!(field(&j, "error")
-        .as_str()
-        .unwrap()
-        .contains("no such file"));
-    // an empty body has no cmd either
     assert_eq!(call(&a, "POST", "/api/jobs", &[], b"").0, 400);
-    // null args are an empty list
     let (s, _) = call(
         &a,
         "POST",
@@ -206,14 +239,7 @@ fn unknown_jobs_routes_and_methods_are_refused() {
 
 #[test]
 fn the_api_router_sends_jobs_paths_here() {
-    let (j, _d) = jobs();
-    let a = Arc::new(App::with_backend(
-        Arc::new(CpuBackend::new(1)),
-        DeviceChoice::Cpu,
-        None,
-        vec![],
-    ));
-    drop(j);
+    let a = app();
     let req = Request {
         method: "GET".into(),
         path: "/api/jobs".into(),
@@ -222,16 +248,24 @@ fn the_api_router_sends_jobs_paths_here() {
         body: vec![],
     };
     assert_eq!(crate::api::route(&a, &req).status, 200);
-    let _ = wait; // the shared waiter is used by the other tests in this module
 }
 
 #[test]
-fn the_cli_flag_is_parsed() {
-    let o = crate::server::parse_args(&["--cli".into(), "/x/ferrum-gpu".into()]).unwrap();
-    assert_eq!(
-        o.cli.as_deref(),
-        Some(std::path::Path::new("/x/ferrum-gpu"))
+fn the_default_app_runs_the_real_commands() {
+    let a = Arc::new(App::with_backend(
+        Arc::new(CpuBackend::new(1)),
+        DeviceChoice::Cpu,
+        None,
+        vec![],
+    ));
+    let (_, j) = call(
+        &a,
+        "POST",
+        "/api/jobs",
+        &[],
+        br#"{"cmd":"info","args":["--device","cpu"]}"#,
     );
-    assert!(crate::server::parse_args(&["--cli".into()]).is_err());
-    assert_eq!(crate::server::parse_args(&[]).unwrap().cli, None);
+    let id = field(&j, "id").as_usize().unwrap() as u64;
+    let done = wait_state(&a, id, "done");
+    assert_eq!(field(&done, "exit").as_f64(), Some(0.0), "{done}");
 }

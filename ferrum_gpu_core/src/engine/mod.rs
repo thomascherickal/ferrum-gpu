@@ -156,9 +156,14 @@ pub fn run_training(
     let mut rng = Rng::new(spec.seed);
     progress.lock().map_err(|_| "progress lock poisoned")?.total = spec.steps;
     for i in 1..=spec.steps {
-        if progress.lock().map_err(|_| "progress lock poisoned")?.stop {
+        let mut p = progress.lock().map_err(|_| "progress lock poisoned")?;
+        if crate::cancel::requested() {
+            p.stop = true;
+        }
+        if p.stop {
             break;
         }
+        drop(p);
         let (ids, targets) = make_batch(&spec.text, spec.context, spec.batch, &mut rng);
         let cfg = StepConfig {
             adam: Adam {

@@ -145,6 +145,13 @@ Routes: `GET /health`, `GET /v1/info`, `POST /v1/generate`, `POST /v1/loglikelih
 `POST /v1/loglikelihood_rolling`, compatible with ferrum-cpu's `ferrum-serve`. Loopback only by default; a
 non-loopback host is refused unless a token is set. Limits are checked before any model work.
 
+## The desktop app
+
+`scripts/build-studio.sh --run` builds and starts **Ferrum GPU Studio**, a native window (Tauri 2) around the GUI below,
+self-contained: the engine and every command run inside the app, with no other binary to find. It has its own
+Cargo workspace (`ferrum_gpu_studio`), so the Tauri dependency tree stays out of the main workspace. Run on
+Linux so far; macOS, Windows and installers are configured in CI but not run by hand. See [docs/gui.md](docs/gui.md).
+
 ## The GUI
 
 `scripts/run-gui.sh` starts a local web GUI on port 8080 (loopback, no authentication): pick the device, create a
@@ -264,11 +271,12 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 | [`ferrum_gguf`](ferrum_gguf) | GGUF v3 reader and writer, f16 and block-quant codecs. std only, hostile-input safe |
 | [`ferrum_ref`](ferrum_ref) | CPU reference: kernels, GPT-2 and Llama models, gradients, AdamW, QAT, the training loop. The parity oracle |
 | [`ferrum_model`](ferrum_model) | GGUF mappings for `gpt2` / `llama` / `qwen2`, training checkpoints, token sampling |
-| [`ferrum_gpu_core`](ferrum_gpu_core) | The shared core under every front end: the engine layer (CPU and GPU backends), device selection, cancel, std-only HTTP and JSON helpers |
+| [`ferrum_gpu_core`](ferrum_gpu_core) | The shared core under every front end: the commands (train, finetune, eval, generate, prepare, tokenize, exports), the `auto` device rule and memory pre-flight, the engine layer (CPU and GPU backends), jobs, cancel, std-only HTTP and JSON helpers |
 | [`ferrum_wgpu`](ferrum_wgpu) | The GPU engine: device runtime, WGSL kernels, resident models, trainers, benchmarks |
-| [`ferrum_gpu_cli`](ferrum_gpu_cli) | The `ferrum-gpu` command line, the `auto` device rule, the memory pre-flight, the interop tests |
+| [`ferrum_gpu_cli`](ferrum_gpu_cli) | The `ferrum-gpu` binary (a thin `main` over the core's commands) and the interoperability tests |
 | [`ferrum_gpu_server`](ferrum_gpu_server) | The `ferrum-gpu-server` JSON API |
 | [`ferrum_gpu_gui`](ferrum_gpu_gui) | Local web GUI, std-only HTTP server, in-browser WebGPU runtime |
+| [`ferrum_gpu_studio`](ferrum_gpu_studio) | The desktop app (Tauri 2), its own workspace: a native window around the GUI with the engine in-process |
 | [`tests`](tests) | Cross-crate guards (independence from ferrum-cpu, the context-window scripts, the capability tables) |
 
 ## Documentation

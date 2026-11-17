@@ -57,7 +57,7 @@ pub struct App {
     pub job: Mutex<Job>,
     /// The last self-test result posted by a browser (Phase 5b).
     pub selftest: Mutex<Option<String>>,
-    /// `ferrum-gpu` subcommands run as child processes (the Studio tabs).
+    /// `ferrum-gpu` commands run as in-process jobs (the Studio tabs).
     pub jobs: crate::jobs::Jobs,
 }
 
@@ -98,6 +98,12 @@ impl App {
             fallback_note,
             adapters,
         ))
+    }
+
+    /// This state with another job table (tests give one whose commands are fakes).
+    pub fn with_jobs(mut self, jobs: crate::jobs::Jobs) -> App {
+        self.jobs = jobs;
+        self
     }
 
     /// State around an opened [`Session`].

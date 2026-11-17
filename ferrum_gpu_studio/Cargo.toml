@@ -1,0 +1,37 @@
+[package]
+name = "ferrum_gpu_studio"
+description = "Ferrum GPU Studio: the desktop app (Tauri 2) around the ferrum-gpu engine and its web GUI."
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.87"
+default-run = "ferrum_gpu_studio"
+
+[lib]
+name = "ferrum_gpu_studio_lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "ferrum_gpu_studio"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+ferrum_gpu_core = { path = "../ferrum_gpu_core" }
+ferrum_gpu_gui = { path = "../ferrum_gpu_gui" }
+
+[dev-dependencies]
+tauri = { version = "2", features = ["test"] }
+
+# This crate is its own workspace, like ferrum-cpu's Studio: the Tauri dependency tree (and the system
+# libraries it needs: webkit2gtk on Linux) stays out of the main workspace, its lockfile and its
+# `cargo deny` run. Build it with `cargo build -p ferrum_gpu_studio --manifest-path ferrum_gpu_studio/Cargo.toml`
+# or `scripts/build-studio.sh`.
+[workspace]
+
+# Optimise the CPU reference even in debug builds: the app's tests train and run tiny models.
+[profile.dev.package.ferrum_ref]
+opt-level = 3
