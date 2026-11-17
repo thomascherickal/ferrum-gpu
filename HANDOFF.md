@@ -1,4 +1,4 @@
-# HANDOFF (written 2026-11-17, at the end of Studio phases 1 to 3 and R1 to R4)
+# HANDOFF (written 2026-11-17; updated after G1 and Studio tabs 4 and 5)
 
 > Not yet consumed. A fresh agent: read this first, then add a line here saying when you consumed it, and
 > read `CLAUDE.md` (the rules are binding: tests first, one feature per commit, the gate before every merge,
@@ -13,7 +13,13 @@ changes a GPU engine needs, and planned for very powerful GPUs such as the Mac M
 **`docs/gui-studio-plan.md` (version 2)**; read it, including "Decisions taken while building" and "What cannot
 be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, its Tauri app).
 
-## What is done and merged (main is at `902350d`; CI for it was queued when this was written)
+## What is done
+
+Merged to `main` (at `bc2b9c4`): everything in the first list below. **Committed on `worktree-gui-studio` but not yet merged:**
+G1 (`d64414a`), Train tab (`b8f870c`), Fine-tune/Evaluate/Generate tabs (`0a0ce6a`); the gate had not been run on them
+when this was written (run `scripts/gate.sh`, then fast-forward `main` if green).
+
+Merged first list:
 
 - **Studio phases 1 to 3:** the tabbed shell (ARIA tabs, Beginner/Expert, theme, a tool-tip on every control with a
   Rust test that every control has help), the Datasets tab and Prepare/Tokenize tab, a read-only file browser, a
@@ -30,24 +36,33 @@ be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, i
   `docs/gui.md`). Tests use Tauri's mock runtime (no display). `cargo deny` passes for its tree.
 - Gate: all steps green at `0c7016a` (coverage 98.50% lines after clearing a stale `target/llvm-cov-target`).
 
+## Done since, on the branch (not merged)
+
+- **G1:** `AdapterFeatures` (f16, subgroups, cooperative matrix, timestamps; reported only), `ferrum_wgpu::memory`
+  (`resolve_memory`: override, then free VRAM x 80% for a discrete card (measured on the MX330: plans up to 73% of free
+  loaded, 86% failed), available RAM x 70% for integrated and unified memory (an assumption), then total x 70%), the
+  injected readers in `ferrum_gpu_core::commands::sysmem` (`nvidia-smi` free memory, `/proc/meminfo`, `sysctl`, sysfs),
+  `ferrum-gpu info` and `/api/info` and the Device tab show features and the budget with its source. **The earlier
+  CAPABILITY.md finding 1 was wrong in its wording and is corrected there** (the CLI did use total VRAM; the "fits" verdicts
+  came from the benchmark, which passes no budget).
+- **Tab 4 Train** (GPT-2, all the options, live chart, Stop), **tab 5 Fine-tune / Evaluate / Generate**; eval results are
+  parsed into an event (`Event::Eval`). The byte-model tabs are now "Lab: model/train/generate", Expert-only (ids kept).
+  Page logic is in `web/tabs/*.js` with node tests (`js_tests/*.test.mjs`); `browser_studio.rs` drives the whole chain in real
+  Chrome (prepare, tokenize, train, stop, fine-tune, evaluate, generate) against the in-process commands.
+
 ## In progress
 
-Nothing uncommitted except this hand-off, `scripts/gate.sh` and the archived old hand-off (commit them first).
-Branch `worktree-gui-studio`, worktree `.claude/worktrees/gui-studio`.
+Nothing uncommitted except possibly this file. Branch `worktree-gui-studio`, worktree `.claude/worktrees/gui-studio`.
 
 ## Next steps, in order (from the plan)
 
-1. **G1 Features and the memory budget** in `ferrum_wgpu` / core: detect and show adapter features (f16, subgroups,
-   cooperative matrix where `wgpu` 30 exposes them); a memory budget that reads honestly (unified memory from the OS
-   with a stated usable fraction, discrete from the driver where readable, always labelled an estimate) and is used by
-   the pre-flight. Fixes the finding in `CAPABILITY.md` that a plan "fit" a card it did not. Note the device is already
-   opened with the adapter's own limits (2047 MiB binding on both Vulkan adapters here).
-2. **Tabs 4 to 8** on the in-process core: Train (GPT-2, BPE, live chart), Fine-tune/Evaluate/Generate, GGUF and Models,
-   Export and Serve (the server in-process), System and Capable (the HARDWARE-CAPs.md formulas in Rust, tested against
-   `scripts/capability-estimates.py`). Each tab: its module under `ferrum_gpu_gui/web/tabs/`, its help entries in
+1. **Run the gate and merge** the three commits above (see "Done since").
+2. **Tabs 6 to 8** on the in-process core: GGUF and Models (inspect a GGUF in-process with `ferrum_gguf`; list models in a
+   folder), Export and Serve (`export-gguf`/`export-ollama`/`export-lmstudio` as jobs with tool detection; the server
+   in-process), System and Capable (the HARDWARE-CAPs.md formulas in Rust, tested against
+   `scripts/capability-estimates.py`; `memory::resolve_memory` already gives the budget). Each tab: its module under `ferrum_gpu_gui/web/tabs/`, its help entries in
    `web/shell/help.js` (the Rust help test enforces them), `args.js` builders with node tests, and a step in
-   `web/autotest/studio.js` driven by `browser_studio.rs`. Relabel the existing byte-model tabs ("Model", "Train",
-   "Generate"; ids must stay, the Chrome tests use them) as Lab/Expert-only when the new Train/Generate arrive.
+   `web/autotest/studio.js` driven by `browser_studio.rs`. (The byte-model tabs are already relabelled Lab and Expert-only.)
 3. **G2** tensors larger than one binding (row-block sharding; testable by lowering the limit), **tab 9 GPU lab**,
    **G3** f16, **G4** kernels (subgroup matmul, fused attention, batching; keep a kernel only if its benchmark beats the
    old on a real adapter), **G5** verification kit for hardware not available here, **tab 10** polish and docs.
