@@ -4,11 +4,11 @@
 //! the imported file runs is shown by loading the very bytes `lms` received in llama.cpp.
 
 use crate::skip;
-use crate::support::model::{ferrum, fixture, ours, NEW_TOKENS, PROMPT};
-use crate::support::proc::with_deadline;
+use crate::support::llama::completion;
+use crate::support::model::{ferrum, fixture, ours};
 use crate::support::tools::llamacpp_dir;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output, Stdio};
+use std::process::{Command, Output};
 
 /// A fake `lms` and the files it leaves behind.
 struct Fake {
@@ -94,29 +94,7 @@ fn the_file_lms_receives_is_exactly_the_model_and_runs_in_llama_cpp() {
     let Some(dir) = llamacpp_dir() else {
         skip!("llama.cpp not installed: file bytes checked, engine not run")
     };
-    let o = with_deadline(&dir.join("llama-completion"), 120)
-        .env("LD_LIBRARY_PATH", &dir)
-        .args(["-m"])
-        .arg(&fk.captured)
-        .args([
-            "-p",
-            PROMPT,
-            "-n",
-            &NEW_TOKENS.to_string(),
-            "--temp",
-            "0",
-            "-no-cnv",
-            "--no-warmup",
-            "-ngl",
-            "0",
-            "-t",
-            "1",
-        ])
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
-    assert!(o.status.success());
-    assert_eq!(String::from_utf8_lossy(&o.stdout).trim_end(), ours(&f.q8));
+    assert_eq!(completion(&dir, &fk.captured), ours(&f.q8));
 }
 
 #[test]
