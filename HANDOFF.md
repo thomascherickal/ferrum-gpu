@@ -1,164 +1,90 @@
-# HANDOFF (updated 2026-11-11 after Phase 5 tasks 5.0 to 5.3)
+# HANDOFF (written 2026-11-17, at the end of Studio phases 1 to 3 and R1 to R4)
 
-> Consumed 2026-11-11 by a Sonnet 5.5 session (read, then continued with Phase 5). Phase 5 progress
-> is in the section "Phase 5 status" below; the older text describes Phases 0 to 4.
->
-> (Original note:) Not yet consumed. A fresh agent: read this first, then add a line here saying when you
-> consumed it, and read `CLAUDE.md` (rules 1 to 12 are binding, especially: independence from
-> ferrum-cpu, tests for everything, stay autonomous and take the Recommended option, and the
-> rule-12 handoff mechanism that produced this file).
+> Not yet consumed. A fresh agent: read this first, then add a line here saying when you consumed it, and
+> read `CLAUDE.md` (the rules are binding: tests first, one feature per commit, the gate before every merge,
+> autonomous mode, never touch ferrum-cpu, no invented numbers, rule 16 on process kills). The earlier
+> hand-off (Phase 5, consumed 2026-11-11) is `docs/logs/handoff-2026-11-11-phase5.md`.
 
-## Phase 5 status (branch `worktree-phase5-llama`, worktree `.claude/worktrees/phase5-llama`, NOT pushed, NOT merged)
+## The goal
 
-Commits on top of `main` (ddfd1ce): 5.0 `12278d1`, 5.1 `13a0760`, 5.2 `a4cdfd3`, 5.3 `c592877`.
+The user asked (2026-11-17): improve the GUI to ferrum-cpu parity with tabs plus GPU-specific extras, then
+redirected: **the GUI must be fully self-contained, a desktop app like ferrum-cpu's Tauri "SLM Studio", with the
+changes a GPU engine needs, and planned for very powerful GPUs such as the Mac M5 Max.** The plan of record is
+**`docs/gui-studio-plan.md` (version 2)**; read it, including "Decisions taken while building" and "What cannot
+be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, its Tauri app).
 
-- **5.0 done**: `ferrum_ref::llama` (RMSNorm, RoPE NORM/NEOX with host cos/sin tables and
-  linear + `rope_freqs` scaling, GQA `attend_row`, SwiGLU, full + KV-cached forward, optional q/k/v
-  biases, tied head, `Llama::random`) and `ferrum_model::llama_gguf` (`from_gguf`/`to_gguf`, llama =
-  NORM, qwen2 = NEOX, Q8_0/Q4_0, hostile-metadata refusals, scaling policy: none/linear/freq tensor,
-  yarn/longrope/attn_factor refused). 29 tests.
-- **5.1 done**: `ferrum_wgpu::ops_llama` kernels `rmsnorm`, `rope` (table offset), `swiglu`,
-  `gather_rows`, `attention_gqa`, `attention_decode_gqa`; parity vs oracle on MX330/Xe/llvmpipe
-  (worst 2.4e-7), fault sweeps pin command counts.
-- **5.2 done**: `ferrum_wgpu::ops_quant` (`QKind`, `pack`, `quantise_matrix`, `upload_qweight`,
-  `upload_quantised`, `linear_q`, shader `qlinear.wgsl`). Device layout: block-major records
-  (`b*n+col`), f32 scale + quants; dequantised values bit-identical to `ferrum_gguf::quant::decode`
-  (identity read-back test). encode(decode(x)) is value-idempotent (bytes can differ for blocks
-  whose f16 scale underflows). `ferrum_gguf` is now a normal dependency of `ferrum_wgpu`.
-- **5.3 done**: `ferrum_wgpu::llama::GpuLlama` (`new(gpu, &Llama, Option<QKind>, Option<Budget>)`,
-  `feed`, `forward_all`, `score`, `reset`, `plan`, `dequantised` = the oracle for a quantised run).
-  Parity at every position of a full context for 4 variants (llama, qwen+bias+tied, MQA+partial
-  rotary, dim 24 with ineligible widths), quantised parity vs `dequantised()`, GGUF round trip.
-  Worst error 4.8e-6 against FORWARD 1e-5 (~2x margin; quantised and bias variants are the worst).
-  Command counts: decode 40 (f32, 2 layers), `forward_all` 37 for 3 tokens.
-  `Llama::random` scales q/k init by `1/sqrt(dim)` (a saturated softmax made parity measure
-  conditioning).
-- **5.4 done**: CPU oracle backward + AdamW (`ferrum_ref::llama::{loss_and_grads, LlamaTrainer}`, checked against finite differences), GPU backward kernels (`ops_llama_bwd`), `llama_train::GpuLlamaTrainer` (own `step`, `LlamaSnapshot`; tied heads refused). Gradients within 7.6e-7 of the oracle; 12-step loss curve within ~3e-7.
-- **5.5 done**: `docs/llama-speed.md` (decode, fine-tune, size table; only shapes up to 32M params were run, larger rows are labelled plan-only). Finding: decode is slower than one CPU thread everywhere; quantised decode is not faster on the GPUs (kernel has no K-split).
-- **Verified**: fmt, clippy `-D warnings`, `cargo deny`, 349 tests pass in each of four configurations (MX330, no GPU, llvmpipe, Intel Xe), coverage 99.35% lines (see `docs/COVERAGE.md`).
-- **Not done / next**: merge `worktree-phase5-llama` into `main` (user decision; not merged); generalise `Engine`/training loop/checkpoint beyond GPT-2 so Llama fine-tuning can use them; K-split quantised GEMV; Llama tied head, micro-batching, QAT; Phase 6 (CLI/server/BPE, a real ferrum-cpu GGUF fixture) and Phase 7 (device matrix).
+## What is done and merged (main is at `902350d`; CI for it was queued when this was written)
 
-## Layout after the 2026-11-11 restructure (read this before opening files)
+- **Studio phases 1 to 3:** the tabbed shell (ARIA tabs, Beginner/Expert, theme, a tool-tip on every control with a
+  Rust test that every control has help), the Datasets tab and Prepare/Tokenize tab, a read-only file browser, a
+  jobs client and panel, node tests (`ferrum_gpu_gui/js_tests`) and real-Chrome tests (`browser_studio.rs`).
+- **R1:** `ferrum_gpu_core` extracted (engine layer, `Session`, cancel, http, json, stop, tokenizer).
+- **R2:** the whole command layer moved to `ferrum_gpu_core::commands`; the CLI is a three-line `main`; the server
+  depends on the core only. Command interface = "argument list in, report to a `Write`".
+- **R3:** jobs run **in-process** (`ferrum_gpu_core::jobs`: a thread per job, a line sink, a per-job cancel flag polled
+  by both trainers and by generation, device-using commands take turns); the subprocess runner is gone; a strict CSP
+  is on every page (`ferrum_gpu_gui/tests/csp.rs`).
+- **R4:** `ferrum_gpu_studio/` is the Tauri 2 desktop app, **its own workspace and lockfile**, excluded from the main
+  workspace; it runs the GUI's loopback server in-process and shows it in a window. Verified on this machine: it
+  launches, serves the page with the CSP, and an X window "Ferrum GPU Studio" 1320x880 appears (see
+  `docs/gui.md`). Tests use Tauri's mock runtime (no display). `cargo deny` passes for its tree.
+- Gate: all steps green at `0c7016a` (coverage 98.50% lines after clearing a stale `target/llvm-cov-target`).
 
-`ferrum_wgpu/src`: `device/` (adapter, runtime, tensor, select, budget), `ops/` (kernels: `mod.rs` forward, `bwd`, `opt`, `qat`, `quant`, `llama`, `llama_bwd`, `matmul`), `models/` (`gpt2.rs`, `llama/`), `training/` (`gpt2/`, `llama/`), `shaders/{fwd,bwd,opt,quant,matmul,llama}/`. `ferrum_ref/src`: `kernels/`, `models/{gpt2,llama}`, `training/{grad,optim,qat,trainer/}`. `ferrum_gguf/src`: `codec/`, `io/`. `ferrum_model/src`: `gguf/{gpt2,llama}`, `checkpoint.rs`, `sampling.rs`. Each `lib.rs` re-exports the old flat names (`ops_bwd`, `gpt2`, `train`, `nn`, `grad`, `gpt2_gguf`, ...), so existing paths still compile. Pipelines are looked up with `pipe!(gpu, "group/name")` (ops only); 1-D launches use `Gpu::dispatch_1d`. The independence test resolves `include_str!` paths against the file's directory.
+## In progress
 
-Caveat learned: `EnterWorktree` bases new worktrees on `origin/main`, not the local `main`; after entering run `git reset --hard main` if local `main` is ahead.
+Nothing uncommitted except this hand-off, `scripts/gate.sh` and the archived old hand-off (commit them first).
+Branch `worktree-gui-studio`, worktree `.claude/worktrees/gui-studio`.
 
-State: local `main` is 15+ commits ahead of `origin/main` and has NOT been pushed.
+## Next steps, in order (from the plan)
 
-## Phases 5a and 5b (GUI, browser WebGPU) 2026-11-11
+1. **G1 Features and the memory budget** in `ferrum_wgpu` / core: detect and show adapter features (f16, subgroups,
+   cooperative matrix where `wgpu` 30 exposes them); a memory budget that reads honestly (unified memory from the OS
+   with a stated usable fraction, discrete from the driver where readable, always labelled an estimate) and is used by
+   the pre-flight. Fixes the finding in `CAPABILITY.md` that a plan "fit" a card it did not. Note the device is already
+   opened with the adapter's own limits (2047 MiB binding on both Vulkan adapters here).
+2. **Tabs 4 to 8** on the in-process core: Train (GPT-2, BPE, live chart), Fine-tune/Evaluate/Generate, GGUF and Models,
+   Export and Serve (the server in-process), System and Capable (the HARDWARE-CAPs.md formulas in Rust, tested against
+   `scripts/capability-estimates.py`). Each tab: its module under `ferrum_gpu_gui/web/tabs/`, its help entries in
+   `web/shell/help.js` (the Rust help test enforces them), `args.js` builders with node tests, and a step in
+   `web/autotest/studio.js` driven by `browser_studio.rs`. Relabel the existing byte-model tabs ("Model", "Train",
+   "Generate"; ids must stay, the Chrome tests use them) as Lab/Expert-only when the new Train/Generate arrive.
+3. **G2** tensors larger than one binding (row-block sharding; testable by lowering the limit), **tab 9 GPU lab**,
+   **G3** f16, **G4** kernels (subgroup matmul, fused attention, batching; keep a kernel only if its benchmark beats the
+   old on a real adapter), **G5** verification kit for hardware not available here, **tab 10** polish and docs.
 
-Done on branch `worktree-gui-webgpu` (merged to `main` only if the log says so). New crate `ferrum_gpu_gui` (std-only, no new dependencies; `naga` is a dev-dependency of `ferrum_wgpu` for shader validation): `src/{http,json,tokenizer,engine/,app,api,assets,selftest,server}.rs`, `web/{index.html,app.js,style.css,gguf.js,webgpu.js,llama.js,browser.js,selftest.js,bench.js}`, `js_tests/reader.test.mjs`, tests `api.rs`, `browser_ui.rs`, `browser_webgpu.rs`, `browser_bench.rs` (ignored; slow). `ferrum_wgpu::shaders` is the kernel registry served to the browser; `Gguf::tensor_bytes` was added. Docs: `docs/gui.md`, `docs/browser-webgpu.md`, plans `PHASE-5A.md`, `PHASE-5B.md`.
+## Decisions already taken (do not re-litigate)
 
-Things to know: browser tests launch Chrome in its own process group and kill only that group (never `pkill`/`pgrep` by name: the machine also runs the user's own browsers); the group is ended with `kill -s TERM -- -<pgid>` through `common::terminate_group`, never a bare `kill -TERM -<pgid>` (procps-ng 4.0.4 turned that into `kill(-1)` for pids starting with 1 and logged the desktop out; CLAUDE.md rule 16); Chrome only offers real GPUs with `--use-gl=angle --use-angle=vulkan` (otherwise SwiftShader); `CLAUDE_JOB_DIR` is not set in the shell, use full paths; the GUI is loopback-only with no auth; run suites with `--test-threads 1` (concurrent GPU device opens can SIGSEGV a driver). Not done: tokenizer (Phase 6), CLI/server proper (Phase 6), training in the browser, Firefox/Safari/Windows/macOS browser runs.
-
-## Phase 6 (2026-11-11), branch `worktree-phase6`, NOT merged, NOT pushed
-
-6.1 to 6.5 done: crates `ferrum_gpu_cli` (binary `ferrum-gpu`, `device.rs` = the auto rule, `preflight.rs`) and `ferrum_gpu_server` (binary `ferrum-gpu-server`); both reuse `ferrum_gpu_gui` (engine, http, json, byte tokenizer). Tutorial with real output: `docs/cli.md`. Gate met (e2e green, GPU leg ran on the MX330). Not done: BPE, ferrum-cpu GGUF fixture, GPU-side scoring, VRAM discovery, full four-configuration suite and coverage after Phase 6 (only the new crates' tests, fmt, clippy and the independence tests were run). Next: merge to `main` (user decision), then Phase 7.
-
-## Goal
-
-`ferrum-gpu`: a GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) that trains, fine-tunes and
-runs small causal Transformers with GGUF in and out, mirroring ferrum-cpu **without depending on
-it** (code is copied in with provenance headers; ferrum-cpu is never modified). Plan index:
-`PLAN.md`; per-phase files `docs/plans/PHASE-0..7.md`. Reports: `docs/spike-matmul.md`,
-`docs/decode-crossover.md`, `docs/train-speed.md`, `docs/COVERAGE.md`.
-
-## State of the repo
-
-- At the end of the 2026-11-10 session the user asked for the worktree to be merged and pushed:
-  branch `plan/gpu-port` was fast-forwarded into `main` and `main` was pushed to origin, so
-  **Phases 0 to 4 and the rule-12 machinery are on `main`**. Verify with
-  `git fetch && git log origin/main -1` (the newest commit mentions NEXT-SESSION.md). The old
-  worktree `.claude/worktrees/gpu-port-plan` may still exist on disk and can be removed with
-  `git worktree remove` once nothing is uncommitted in it. Start new work in a new worktree.
-  Never push `main` again without a documented phase gate or an explicit user request.
-- Last verified state: fmt, clippy `-D warnings`, `cargo deny`, **265 tests pass in each of four
-  configurations** (MX330, no GPU, llvmpipe, Intel Xe), coverage **99.33% lines (53 missed)**,
-  `FLOOR=99 scripts/coverage.sh` passes. Start procedure and the full remaining plan are in
-  `NEXT-SESSION.md`.
-
-## Done
-
-- Phase 0 (spike), 1 (device runtime), 2 (forward kernels, tuned CPU baseline), 3 (GGUF, model
-  mapping, sampling, GPU decoder; **finding: single-stream decode is slower than one CPU
-  thread**, 0.02x to 0.93x), 4 (training: backward kernels, AdamW, loop, GGUF checkpoints,
-  micro-batching, **QAT**; **gate met: about 4x to 5x over an 8-thread CPU step**; 2.5x / 1.9x
-  ferrum-cpu's real trainer on the reference preset; QAT overhead 0.1% to 2.3%).
-- Modular layout (`train/`, `gpt2/` module directories) and rule-11 coverage tooling.
-- Rule 12 machinery: `.claude/settings.json` (tracked) runs `scripts/statusline.sh` as the status
-  line (records `.superpowers/context.json`, then delegates to the user's own
-  `~/.claude/statusline-command.sh`) and `scripts/handoff_check.sh` as `PostToolUse` and
-  `UserPromptSubmit` hooks; it injects "write HANDOFF.md now" the first time context use reaches
-  98%. Tested (`tests/tests/test_context_scripts.rs`) and dry-run end to end with the exact
-  settings commands. Caveats: the status line only refreshes after assistant messages, so a very
-  long tool-heavy turn can cross the threshold before the figure updates; headless (`-p`) runs may
-  not run the status line; auto-compaction may trigger before 98%, so keep this file current at
-  phase boundaries (threshold is `HANDOFF_AT`, default 98).
-
-## Next steps, in order
-
-1. If `git status` shows uncommitted work, run the verification commands below and commit it.
-2. **Phase 5** (`docs/plans/PHASE-5.md`): imported Llama/Qwen inference and fine-tuning (RMSNorm,
-   RoPE with host-built cos/sin tables for NORM and NEOX plus scaling, grouped-query attention,
-   SwiGLU; Q8_0/Q4_0 weights dequantised in-kernel). Copy in (with provenance headers, commit
-   `56a9d3a`) the llama tensor mapping from ferrum-cpu `ferrum_core/src/gguf/llama.rs`, `llm.rs`
-   and `llm_train/`; generate a tiny synthetic llama fixture with our own GGUF writer; a CPU
-   oracle in `ferrum_ref` first, then GPU kernels, each with parity tests and a fault sweep
-   (`Gpu::sweep_faults`). Every new file gets unit tests; keep files under ~500 non-test lines.
-3. **Phase 6**: our own CLI and server (`--device cpu|gpu|auto`, `--gpu-adapter`,
-   `--gpu-mem-mb`), the BPE tokenizer (moved here from Phase 3), the `auto` rule from
-   `docs/decode-crossover.md` and `docs/train-speed.md` (single-stream decode stays on the CPU;
-   training and batched work go to the GPU), and a real ferrum-cpu-produced GGUF stored as a
-   fixture (nothing has loaded one yet: cross-loading is so far verified only against ferrum-cpu's
-   source conventions).
-4. **Phase 7**: verification matrix `docs/DEVICES.md`, then flip the default to `auto` only for
-   device classes with a green row.
-5. Weight tying and dropout on the GPU remain open (Phase 4 open items).
-
-## Open questions / decisions already taken
-
-- Taken: wgpu + WGSL; f32 on device; determinism = bit-identical repeat runs on one adapter;
-  CPU-vs-GPU by tolerance (`ferrum_wgpu/src/tolerance.rs`: EXACT 1e-6, REDUCING 1e-5, BACKWARD
-  1e-5, FORWARD 1e-5, all calibrated against measured errors); default device stays `cpu` until
-  Phase 7; QAT snap is bit-exact with the GGUF Q8_0 encoder (the f16 scale uses integer bit
-  operations and a literal `+0.0` for zero, because Intel and Mesa compilers keep `-0.0`).
-- Not decided: whether to merge or push `main` after Phase 4 (ask only if the user has not said).
-- Known gaps: Apple Silicon, AMD and desktop NVIDIA never run; driver versions not recorded; no
-  full-length convergence run on real text; speedups vary about 20% run to run on this laptop.
+Commands stay "argv in, report out" (no second typed layer). One transport (HTTP) for the page and the app. Stop is
+cooperative; prepare, tokenize and the exports are not interruptible yet. No native file dialogs (the page has its
+own picker). The app crate stays outside the workspace with its own CI job (`studio` in `.github/workflows/ci.yml`,
+not required). New markdown files use lowercase kebab-case names (user's global rule); existing uppercase ones stay.
 
 ## Commands to run first
 
-```
-cd /home/thomas/Projects/ferrum/ferrum-gpu/.claude/worktrees/gpu-port-plan   # or EnterWorktree path=
-export CARGO_BUILD_JOBS=3
-cargo fmt --all -- --check && cargo clippy --workspace --all-targets -- -D warnings
-cargo test --workspace -- --test-threads 1                                    # MX330 (default)
-FERRUM_GPU_ADAPTER=no-such-adapter cargo test --workspace -- --test-threads 1 # no GPU: must pass
-FERRUM_GPU_ADAPTER=llvmpipe cargo test --workspace -- --test-threads 1
-FERRUM_GPU_ADAPTER="Iris(R) Xe Graphics (TGL GT2)" cargo test --workspace -- --test-threads 1
-FLOOR=99 scripts/coverage.sh
-cargo deny check
+```bash
+export CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
+cargo test --workspace -- --test-threads 1          # add FERRUM_GPU_ADAPTER=no-such-adapter for the no-GPU run
+(cd ferrum_gpu_studio && cargo test)                # the app (needs webkit2gtk-4.1, gtk3, libsoup3 on Linux)
+scripts/gate.sh                                     # the full gate, about 30 minutes; results in .gate/
+scripts/build-studio.sh --debug --run --device cpu  # start the desktop app
 ```
 
-## Gotchas
+## Gotchas learned
 
-- **The shell tool refuses "complex" commands inside the worktree** (compound commands with
-  pipes plus heredocs, `git -C`, multi-line `sed -i`). Put multi-step work in a script file under
-  `$CLAUDE_JOB_DIR/tmp` (`/home/thomas/.claude/jobs/0f74230f/tmp`) and run `bash that.sh`, or use
-  the Edit/Write tools. Never write scratch files outside the repo or that directory.
-- `cargo fmt --all` reflows code, which breaks later exact-match Edit anchors: re-read the region
-  after formatting. Test modules in `train/tests.rs` and `gpt2/tests.rs` are top-level (no `mod`).
-- Tests that need a GPU call `open_for_test()` and skip with a printed reason; adapter selection is
-  the `FERRUM_GPU_ADAPTER` name fragment. Test-only fault injection: `Gpu::fail_after`,
-  `Gpu::sweep_faults` (see `docs/COVERAGE.md`).
-- Adapters on the dev box: NVIDIA MX330 (discrete), Intel Iris Xe (Vulkan, integrated), llvmpipe,
-  plus Mesa Intel via GL. `ExitWorktree` / `EnterWorktree path=` is how to reach the main checkout.
-- Measurements and their caveats live in the `docs/*.md` reports; never quote a number that is not
-  in them or freshly measured. Key-bias weights legitimately differ between CPU and GPU (zero true
-  gradient, Adam amplifies noise): compare function-space outputs instead.
-- ferrum-cpu was run read-only for baselines (binary built into the scratch dir
-  `/home/thomas/.claude/jobs/0f74230f/tmp/cpu-target`); ferrum-cpu has an untracked
-  `.claude/worktrees/agent-*` from another session that is not ours.
-- The user's global `~/.claude/settings.json` was only read, never edited; the project-level
-  `.claude/settings.json` overrides the user's `statusLine` for this project and delegates to it.
+- **The harness refuses complex compound bash commands** ("too complex to verify that it stays inside the worktree"):
+  keep commands simple, do multi-file edits with the Edit tool or a small script file, and never chain `git` with
+  other commands in one line. Large inline heredocs of Python sometimes trip it too.
+- **The scratchpad directory is cleaned when the session restarts**: keep scripts in the repo (`scripts/`).
+- **Stale coverage data**: delete `target/llvm-cov-target` after files move, or coverage reports old paths at 0%.
+- **`cargo test` stops at the first failing binary**: a red step can hide later failures; rerun the whole gate.
+- **The no-unsafe guard is a text match** (`tests/tests/test_independence.rs`): a test must not contain the word
+  as a literal (the CSP test builds the strings with `concat!`).
+- **llama.cpp b11521 sometimes prints nothing or a prefix at `-t 1` under load**: the interop helper
+  `support/llama.rs::completion` retries (empty or strict prefix only, three tries). Used by the llama.cpp and LM
+  Studio tests.
+- **Tauri's setup hook runs on the first event-loop iteration**, not at `build()`; mock-runtime windows keep no title.
+- A first, all-in-one benchmark process reported false "out of memory" after a failed load: run one shape per process
+  (see `CAPABILITY.md`).
+- Never signal a process group with a bare negative pid (rule 16); jobs no longer spawn processes at all.
+- Apple Silicon, Windows and macOS bundles have not been run by hand; the docs say "not run" and must keep saying it
+  until a G5 report from real hardware exists.
