@@ -8,6 +8,7 @@ import { mountGtrain } from './tabs/gtrain.js';
 import { mountFinetune } from './tabs/finetune.js';
 import { mountEvaluate } from './tabs/evaluate.js';
 import { mountGenerate } from './tabs/generate.js';
+import { mountModels } from './tabs/models.js';
 
 mountPickers(document);
 mountDatasets(document);
@@ -16,5 +17,6 @@ mountGtrain(document);
 mountFinetune(document);
 mountEvaluate(document);
 mountGenerate(document);
+mountModels(document);
 
 export { showTab, currentMode };

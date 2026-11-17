@@ -38,6 +38,13 @@ fn the_studio_shell_passes_its_node_tests() {
 }
 
 #[test]
+fn the_models_tab_helpers_pass_their_node_tests() {
+    if let Some(out) = node("models.test.mjs") {
+        assert!(out.contains("OK "), "{out}");
+    }
+}
+
+#[test]
 fn the_flow_tabs_logic_passes_its_node_tests() {
     if let Some(out) = node("flow.test.mjs") {
         assert!(out.contains("OK "), "{out}");

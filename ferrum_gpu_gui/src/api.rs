@@ -350,6 +350,9 @@ pub fn route(app: &Arc<App>, req: &Request) -> Response {
     if crate::jobs::routes::handles(&req.path) {
         return crate::jobs::routes::route(app, req);
     }
+    if crate::modelsapi::handles(&req.path) {
+        return crate::modelsapi::route(req);
+    }
     if crate::fsapi::routes::handles(&req.path) {
         return crate::fsapi::routes::route(req);
     }

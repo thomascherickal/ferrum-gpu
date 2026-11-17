@@ -90,7 +90,7 @@ every command.
 |---|---|---|
 | 4 | **Train (GPT-2, BPE)** (done 2026-11-17) | BPE, tie, dropout, QAT, validation share and patience, checkpoint and resume, stop; live loss and validation chart; device, adapter and GPU memory fields |
 | 5 | **Fine-tune, Evaluate, Generate** (done 2026-11-17) | fine-tune a GGUF, loss and perplexity, streamed generation with top-k, top-p, repetition penalty |
-| 6 | **GGUF and Models** | inspect a GGUF in-process (header, metadata, tensors, quantisation), list models in a folder, load into the lab |
+| 6 | **GGUF and Models** (done 2026-11-17) | inspect a GGUF in-process (header, metadata, tensors, quantisation), list models in a folder, load into the lab |
 | 7 | **Export and Serve** | export GGUF (f32, int8, int4), Ollama, LM Studio with tool detection; run the server in-process with port, token and live log |
 | 8 | **System and Capable** | adapters, drivers, memory; what fits (the HARDWARE-CAPs.md formulas, implemented in Rust and tested against the script's tables) |
 | 9 | **GPU lab** | adapter picker, VRAM budget and live meters, CPU-versus-GPU check, precision comparison, the WebGPU self-test and benchmark, a benchmark report anyone can send back |

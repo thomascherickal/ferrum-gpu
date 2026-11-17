@@ -110,5 +110,8 @@ button.link { background: none; color: var(--accent); border: 0; padding: 2px 4p
 .job { margin-top: 8px; }
 body[data-mode="beginner"] .adv { display: none; }
 .result { font-size: 1.1rem; font-weight: 600; margin: 8px 0; }
+.tablewrap { max-height: 22rem; overflow: auto; border: 1px solid var(--line); border-radius: 6px; margin: 6px 0; }
+.tablewrap table { font-size: 0.85rem; }
+.tablewrap th { position: sticky; top: 0; background: var(--panel); }
 .joblog { max-height: 16rem; overflow: auto; font-size: 0.82rem; }
 .joblog:empty { display: none; }

@@ -24,6 +24,7 @@
   <button role="tab" id="tab-datasets" aria-controls="panel-datasets" aria-selected="true">Datasets</button>
   <button role="tab" id="tab-prepare" aria-controls="panel-prepare" aria-selected="false" data-adv="true">Prepare</button>
   <button role="tab" id="tab-gtrain" aria-controls="panel-gtrain" aria-selected="false">Train</button>
+  <button role="tab" id="tab-models" aria-controls="panel-models" aria-selected="false">Models</button>
   <button role="tab" id="tab-finetune" aria-controls="panel-finetune" aria-selected="false" data-adv="true">Fine-tune</button>
   <button role="tab" id="tab-evaluate" aria-controls="panel-evaluate" aria-selected="false">Evaluate</button>
   <button role="tab" id="tab-ggen" aria-controls="panel-ggen" aria-selected="false">Generate</button>
@@ -175,6 +176,42 @@
     <p id="gt-stats" class="muted" role="status" aria-live="polite"></p>
     <canvas id="gt-chart" role="img" aria-label="Training loss per step, with validation loss as dots" width="600" height="220"></canvas>
     <div class="job" id="gt-job"></div>
+  </section>
+
+  <section id="panel-models" role="tabpanel" aria-labelledby="tab-models" hidden>
+    <h2>Models</h2>
+    <p class="muted">Find the models you have saved and look inside one: its architecture, size, tensor types and every tensor. Only the start of the file is read, so a model of any size opens at once.</p>
+    <div class="picker" data-kind="dir">
+      <label>Folder to search for .gguf files <input id="md-dir" type="text" spellcheck="false" placeholder="/path/to/models"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row"><button id="md-scan" type="button">Find models</button></div>
+    <p id="md-scan-note" class="muted" role="status" aria-live="polite"></p>
+    <ul id="md-list" class="listing"></ul>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model file <input id="md-file" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <button id="md-inspect" type="button">Inspect</button>
+      <button id="md-use" type="button" disabled>Use for Fine-tune, Evaluate and Generate</button>
+    </div>
+    <p id="md-summary" class="result" role="status" aria-live="polite"></p>
+    <p id="md-kinds" class="muted"></p>
+    <h3>Tensors</h3>
+    <label>Filter by name or type <input id="md-filter" type="text" spellcheck="false" placeholder="for example blk.0 or Q8_0"></label>
+    <p id="md-more" class="muted"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">Name</th><th scope="col">Shape</th><th scope="col">Type</th><th scope="col">Bytes</th></tr></thead>
+      <tbody id="md-tensors"></tbody>
+    </table></div>
+    <h3>Metadata</h3>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">Key</th><th scope="col">Value</th></tr></thead>
+      <tbody id="md-meta"></tbody>
+    </table></div>
   </section>
 
   <section id="panel-finetune" role="tabpanel" aria-labelledby="tab-finetune" hidden>

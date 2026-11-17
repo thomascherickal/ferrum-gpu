@@ -172,6 +172,33 @@ export async function run(params) {
     check($('gg-output').textContent.includes('document'), `output: ${$('gg-output').textContent}`);
     check(!/^device:/m.test($('gg-output').textContent), 'status lines are kept out of the text box');
     steps.push('generate');
+
+    // Models: find the models the earlier steps saved, look inside one, filter its tensors, choose it
+    $('tab-models').click();
+    $('md-dir').value = params.get('dir');
+    $('md-scan').click();
+    await until(() => [...$('md-list').querySelectorAll('button')].some((b) => b.textContent === 'trained.gguf'), 'the model list');
+    check(/models? under/.test($('md-scan-note').textContent), $('md-scan-note').textContent);
+    [...$('md-list').querySelectorAll('button')].find((b) => b.textContent === 'trained.gguf').click();
+    await until(() => /parameters/.test($('md-summary').textContent), 'the inspection');
+    check(/^gpt2/.test($('md-summary').textContent), `summary: ${$('md-summary').textContent}`);
+    check($('md-file').value === `${params.get('dir')}/trained.gguf`, 'the file box follows the list');
+    check($('md-tensors').querySelectorAll('tr').length > 5, 'tensors are listed');
+    check($('md-meta').textContent.includes('general.architecture'), 'metadata is listed');
+    check(/Q8_0|F32/.test($('md-kinds').textContent), `kinds: ${$('md-kinds').textContent}`);
+    const all = $('md-tensors').querySelectorAll('tr').length;
+    $('md-filter').value = 'blk.0';
+    $('md-filter').dispatchEvent(new Event('input', { bubbles: true }));
+    const some = $('md-tensors').querySelectorAll('tr').length;
+    check(some > 0 && some < all, `the filter narrowed ${all} to ${some}`);
+    $('md-file').value = `${params.get('dir')}/tok.gguf`;
+    $('md-inspect').click();
+    await until(() => $('md-summary').textContent.length > 0 && $('md-summary').textContent !== 'reading…', 'the tokenizer file');
+    $('md-file').value = `${params.get('dir')}/corpus.txt`;
+    $('md-inspect').click();
+    await until(() => $('md-summary').className === 'bad', 'a refusal of a text file');
+    check(/magic/.test($('md-summary').textContent), `refusal: ${$('md-summary').textContent}`);
+    steps.push('models');
     return { kind: 'studio', pass: true, steps };
   } catch (e) {
     return { kind: 'studio', pass: false, steps, error: String(e.message || e) };

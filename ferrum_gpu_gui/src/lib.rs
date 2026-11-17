@@ -8,6 +8,7 @@ pub mod app;
 pub mod assets;
 pub mod fsapi;
 pub mod jobs;
+pub mod modelsapi;
 pub mod selftest;
 pub mod server;
 

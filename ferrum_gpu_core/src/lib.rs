@@ -21,6 +21,7 @@ pub mod fsapi;
 pub mod http;
 pub mod jobs;
 pub mod json;
+pub mod modelinfo;
 pub mod session;
 pub mod stop;
 pub mod tokenizer;
