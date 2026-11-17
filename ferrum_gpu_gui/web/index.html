@@ -31,6 +31,7 @@
   <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" data-adv="true">Export</button>
   <button role="tab" id="tab-serve" aria-controls="panel-serve" aria-selected="false" data-adv="true">Serve</button>
   <button role="tab" id="tab-capable" aria-controls="panel-capable" aria-selected="false">Capable</button>
+  <button role="tab" id="tab-gpulab" aria-controls="panel-gpulab" aria-selected="false">GPU lab</button>
   <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
   <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" data-adv="true">Lab: model</button>
   <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" data-adv="true">Lab: train</button>
@@ -408,6 +409,28 @@
     <div class="tablewrap"><table>
       <thead><tr><th scope="col">Adapter</th><th scope="col">Memory budget (estimate)</th><th scope="col">Largest inference model</th><th scope="col">Largest full fine-tune</th></tr></thead>
       <tbody id="cap-machine"></tbody>
+    </table></div>
+  </section>
+
+  <section id="panel-gpulab" role="tabpanel" aria-labelledby="tab-gpulab" hidden>
+    <h2>GPU lab</h2>
+    <p class="muted">Check that an adapter computes the same answers as the CPU reference and see how fast it is. The speeds use a small random-weight model, so they show launch cost more than memory bandwidth; they are not a large-model figure.</p>
+    <div class="row">
+      <label>Adapter <select id="gl-adapter"><option value="">default</option></select></label>
+      <label>Model size <select id="gl-size"><option value="small">small</option><option value="medium">medium</option></select></label>
+      <label>Repetitions <input id="gl-reps" type="number" min="1" max="200" step="1" placeholder="5"></label>
+      <label class="check"><input id="gl-parity" type="checkbox"> Parity only</label>
+      <button id="gl-run" type="button">Run lab report</button>
+      <button id="gl-json" type="button">Make JSON report</button>
+    </div>
+    <div class="job" id="gl-job"></div>
+    <p id="gl-summary" class="muted" role="status" aria-live="polite"></p>
+    <label>JSON report, to copy <textarea id="gl-report" rows="8" readonly spellcheck="false"></textarea></label>
+    <h3>Memory</h3>
+    <div class="row"><button id="gl-refresh" type="button">Refresh</button></div>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">Adapter</th><th scope="col">Free memory (as reported)</th><th scope="col">Budget (estimate)</th></tr></thead>
+      <tbody id="gl-meters"></tbody>
     </table></div>
   </section>
 

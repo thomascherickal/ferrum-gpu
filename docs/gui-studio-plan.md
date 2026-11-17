@@ -110,7 +110,7 @@ WebGPU, so the browser runner is unavailable there (generation then runs on the 
 | 6 | **GGUF and Models** (done 2026-11-17) | one Models tab: find the `.gguf` files in a folder; inspect any model from the first 64 MiB (type mix, every tensor, all metadata); a type the reader does not support is refused, not guessed; choose it for the other tabs |
 | 7 | **Export and Serve** (done 2026-11-17) | export GGUF (f32, int8, int4), Ollama, LM Studio with tool detection; run the server in-process with port, token and live log |
 | 8 | **System and Capable** (done 2026-11-17) | The Capable tab: what fits per precision and for a fine-tune, the decode-speed ceiling, and this machine's adapters with their memory budgets; the formulas of HARDWARE-CAPs.md in Rust, **compared by a test with the script's table**. System is the Device tab (features and budget per adapter) plus the machine table; there is no separate System tab |
-| 9 | **GPU lab** | adapter picker, VRAM budget and live meters, CPU-versus-GPU check, precision comparison, the WebGPU self-test and benchmark, a benchmark report anyone can send back |
+| 9 | **GPU lab** (done 2026-11-17; the report itself is `ferrum-gpu lab`, which G4 and G5 reuse) | adapter picker, VRAM budget and live meters, CPU-versus-GPU check, precision comparison, the WebGPU self-test and benchmark, a benchmark report anyone can send back |
 | 10 | **Polish and docs** | accessibility pass, empty and error states, `docs/gui.md` rewritten, README |
 
 **GPU scale (so a very powerful GPU is used, not just supported)**

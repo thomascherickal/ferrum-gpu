@@ -6,6 +6,8 @@
 //! | `GET /api/capable?memory_gb=16&unified=0&bandwidth=448&model_b=7` | the largest model per precision for that memory, and the decode-speed ceiling for a model of `model_b` billion weights at `bandwidth` GB/s (both optional) |
 //! | `GET /api/system` | this machine: OS, CPU threads, RAM, and for each adapter its memory budget and what that budget can hold |
 
+mod meter;
+
 use crate::app::App;
 use crate::http::{Request, Response};
 use crate::json::Json;
@@ -121,6 +123,7 @@ fn system(app: &App) -> Response {
                     )),
                 ),
                 ("fits", fits.unwrap_or(Json::Null)),
+                ("meter", meter::meter_json(&facts, a.kind)),
             ])
         })
         .collect();

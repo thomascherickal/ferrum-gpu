@@ -38,6 +38,13 @@ fn the_studio_shell_passes_its_node_tests() {
 }
 
 #[test]
+fn the_gpu_lab_helpers_pass_their_node_tests() {
+    if let Some(out) = node("gpulab.test.mjs") {
+        assert!(out.contains("OK "), "{out}");
+    }
+}
+
+#[test]
 fn the_capable_tab_helpers_pass_their_node_tests() {
     if let Some(out) = node("capable.test.mjs") {
         assert!(out.contains("OK "), "{out}");

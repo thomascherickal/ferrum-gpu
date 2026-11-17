@@ -231,8 +231,6 @@ impl Report {
 fn rate(v: f64) -> String {
     if !v.is_finite() || v < 0.0 {
         "n/a".into()
-    } else if v >= 100.0 {
-        format!("{v:.0}")
     } else if v >= 10.0 {
         format!("{v:.0}")
     } else {

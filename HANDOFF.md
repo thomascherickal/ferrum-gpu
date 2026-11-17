@@ -1,4 +1,4 @@
-# HANDOFF (written 2026-11-17; updated after Studio tabs 1 to 8, R1 to R5 and G1)
+# HANDOFF (written 2026-11-17; updated after G2 and Studio tab 9; G3, G4, G5 and tab 10 remain)
 
 > Not yet consumed. A fresh agent: read this first, then add a line here saying when you consumed it, and
 > read `CLAUDE.md` (the rules are binding: tests first, one feature per commit, the gate before every merge,
@@ -15,43 +15,53 @@ be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, i
 
 ## What is done
 
-**Merged to `main`** (at `d1860ff`): the shell, jobs, the core extraction (R1, R2), in-process jobs and the strict CSP (R3),
-the desktop app `ferrum_gpu_studio` (R4), G1 (adapter features and an honest memory budget), the Train tab and the
-Fine-tune / Evaluate / Generate tabs, `scripts/gate.sh`, and this hand-off's first version.
+**Merged to `main`** at `106bdfb`: R1 to R5, G1, Studio tabs 1 to 8 (Datasets, Prepare, Train, Fine-tune, Evaluate, Generate,
+Models, Export, Serve, Capable, Device), the desktop app, `scripts/build-apps.sh`, and the corrected plan.
 
-**Committed on `worktree-gui-studio`, gate not yet run on them** (run `scripts/gate.sh`, then fast-forward `main`):
-- **Models tab** (`modelinfo` in core: inspect any GGUF from its first 64 MiB, type mix, tensors, metadata; folder scan).
-- **R5:** the JSON server library moved into `ferrum_gpu_core::serving` (`boot` starts it from the server flags);
-  `ferrum_gpu_server` is a thin `main`; `ServeSlot` runs one server in-process.
-- **Export and Serve tabs** (jobs on the exports; tool detection through the exports' own `find_tool`; Serve starts and
-  stops the server in-process, refuses an open address without a token in the page and in the server).
-- **Capable tab** (`ferrum_gpu_core::capacity`: the HARDWARE-CAPs.md formulas in Rust, **a test compares them with
-  `scripts/capability-estimates.py`'s table**), `/api/capable`, `/api/system`.
-- Every tab is driven in real Chrome by `ferrum_gpu_gui/tests/browser_studio.rs` (`web/autotest/studio.js`): prepare,
-  tokenize, train, stop, fine-tune, evaluate, generate, models, export, serve, capable; each tab's pure logic has a node test
-  in `ferrum_gpu_gui/js_tests/`; help for every control is checked by `studio_help.rs`.
+**On branch `worktree-gui-studio`, gate run after these commits** (see `.gate/`; merge to `main` only when it says PASS):
+- **G2** (`cdae6da`): tensors larger than one binding are stored as blocks. `ferrum_wgpu/src/models/llama/{shard,embed,lin}.rs`:
+  `Lin::Sharded` (column blocks, outputs copied into place), `Embedding::Rows`, `GpuLlama::with_binding_limit` (a lowered limit
+  makes a small model shard, which is how it is tested), `plan_limited` and `preflight::decode_buffers_for` (the pre-flight
+  lists the blocks). Equality with the whole model is tested for f32, biased, tied, Q8_0, Q4_0, decode and prefill.
+  Not sharded: the KV cache, prefill logits and activations. Not run on a real tensor above 2 GiB.
+- **`ferrum-gpu lab`** (`06802f5`, `ferrum_gpu_core/src/commands/lab/{mod,parity,speed,report}.rs`): the report that tab 9, G4
+  and G5 share. Parity of the GPU against the CPU reference (f32 prefill, decode with KV cache, Q8_0, Q4_0, blocks), decode and
+  prefill speed per precision on a random-weight model (`--size small|medium`), adapter, driver (`ferrum_wgpu::device::drivers`),
+  features, memory budget, wgpu version (read from `Cargo.lock`), date. `--json` is the file to send back.
+- **Tab 9 GPU lab** (`ferrum_gpu_gui/web/tabs/{gpulab,lab_args}.js`, `capableapi/meter.rs`): runs `lab` as a job, JSON report box,
+  memory table with the source of each figure (no invented "used" number). Real-Chrome step `gpulab` passes.
 
-Earlier in the day (all merged): the details of R1 to R4 and G1 are in `docs/gui-studio-plan.md` ("Decisions taken while
-building") and in the commit messages. G1 corrected CAPABILITY.md finding 1 (the CLI had used total VRAM; the "fits"
-verdicts came from the benchmark).
+## Real numbers from `ferrum-gpu lab --size medium --reps 5` (2026-11-17, release build, wgpu 30.0.1, Linux x86_64)
+
+| adapter, driver | precision | model buffers | decode tok/s | prefill tok/s |
+|---|---|---|---|---|
+| Intel Iris Xe (TGL GT2), Vulkan, Mesa 25.2.8 | f32 | 99.1 MiB | 58 | 993 |
+| | Q8_0 | 31.5 MiB | 53 | 657 |
+| | Q4_0 | 19.8 MiB | 64 | 1018 |
+| NVIDIA MX330, Vulkan, 580.178.04 | f32 | 99.1 MiB | 98 | 1523 |
+| | Q8_0 | 31.5 MiB | 78 | 561 |
+| | Q4_0 | 19.8 MiB | 96 | 813 |
+
+CPU reference prefill, f32: 298 and 300 tokens/s. All five parity checks passed on both (errors 1.6e-6 to 3.1e-6 against 1e-5;
+blocks 0). **Findings for G4:** Q8_0 prefill is slower than f32 on both adapters (the in-kernel dequantising matmul is
+unoptimised); decode is far from bandwidth-bound (8 layers, about 100 dispatches per token). llvmpipe was not run for speed.
 
 ## In progress
 
 Nothing uncommitted except possibly this file. Branch `worktree-gui-studio`, worktree `.claude/worktrees/gui-studio`.
 
-## Next steps, in order (from the plan)
+## Next steps, in order
 
-1. **Run the gate and merge** the commits listed above as "gate not yet run".
-2. **G2** tensors larger than one binding (row-block sharding of a matrix or embedding across several buffers, kernels per
-   block; testable here by lowering the limit in `plan.check`). This is what lets 70B-class layers and big vocabularies
-   load on adapters with smaller binding limits. **Tab 9 GPU lab** (adapter picker, live memory meters, CPU-versus-GPU
-   check, precision comparison, the WebGPU self-test and benchmark moved here, a benchmark report to send back).
-   **G3** f16 weights, activations and KV cache (the Intel Xe reports f16; the MX330 does not). **G4** kernels (subgroup
-   matmul, fused attention, batched prefill and decode; keep a kernel only if its benchmark beats the old on a real
-   adapter; see CAPABILITY.md: decode is latency-bound today). **G5** a verification kit for hardware not available here
-   (Apple M-series). **Tab 10** polish and docs (accessibility pass, empty and error states, `docs/gui.md` rewrite).
-3. Windows: the desktop app's unit tests do not start there (a Tauri manifest issue, noted in `ci.yml`); fix with a manifest
-   for test executables if a Windows machine is available.
+1. Confirm the gate (`scripts/gate.sh`, results in `.gate/gate.txt`) says PASS, then fast-forward `main` and push (rule 15).
+2. **G3** f16. Start with f16 storage of weights and KV cache with f32 compute (least accuracy risk); gate on the detected
+   `shader-f16` feature, request it only when a kernel uses it, fall back to f32. Check what llvmpipe reports first. Xe reports
+   f16, the MX330 does not. Parity tests against f32 with stated tolerances; mark deferred f16 activations with `ponytail:`.
+3. **G4** kernels: baselines first (the table above is one), keep a kernel only if it beats the old one on a real adapter and
+   delete the loser with its numbers documented. Subgroups through `enable subgroups;` should be safe. Cooperative matrix: check
+   whether wgpu 30 needs an `unsafe` experimental opt-in (rule 4 forbids it: then record "not done: requires unsafe").
+4. **G5** is mostly `lab` plus `docs/verification-kit.md` (how an owner of an M5 Max or other machine runs it and sends the
+   file back); Apple rows stay "not run".
+5. **Tab 10** polish and docs (accessibility pass, empty and error states, `docs/gui.md` rewrite, README GUI section), last.
 
 ## Decisions already taken (do not re-litigate)
 

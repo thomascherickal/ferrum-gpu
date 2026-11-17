@@ -12,6 +12,7 @@ import { mountModels } from './tabs/models.js';
 import { mountExport } from './tabs/export.js';
 import { mountServe } from './tabs/serve.js';
 import { mountCapable } from './tabs/capable.js';
+import { mountGpuLab } from './tabs/gpulab.js';
 
 mountPickers(document);
 mountDatasets(document);
@@ -24,5 +25,6 @@ mountModels(document);
 mountExport(document);
 mountServe(document);
 mountCapable(document);
+mountGpuLab(document);
 
 export { showTab, currentMode };

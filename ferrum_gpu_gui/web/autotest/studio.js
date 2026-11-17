@@ -248,6 +248,21 @@ export async function run(params) {
     await until(() => /CPU threads/.test($('cap-system').textContent), 'the machine line');
     check($('cap-machine').querySelectorAll('tr').length >= 1, 'the adapter table has rows');
     steps.push('capable');
+
+    // GPU lab: a parity-only JSON report on the CPU-or-GPU the machine has, and the memory table
+    $('tab-gpulab').click();
+    $('gl-parity').checked = true; $('gl-reps').value = 1;
+    $('gl-json').click();
+    await until(() => /PASS|FAIL/.test($('gl-summary').textContent) || /error|failed/.test(document.querySelector('#gl-job [role=status]').textContent), 'the lab report', 120000);
+    const labState = document.querySelector('#gl-job [role=status]').textContent;
+    if (/no usable|needs a GPU/.test(labState)) {
+      steps.push('gpulab:no-adapter');
+    } else {
+      check(/PASS: 5 of 5 parity checks passed/.test($('gl-summary').textContent), `lab summary: ${$('gl-summary').textContent} / ${labState}`);
+      check(JSON.parse($('gl-report').value).format === 1, 'the JSON report is in the box');
+      steps.push('gpulab');
+    }
+    await until(() => $('gl-meters').querySelectorAll('tr').length >= 1, 'the memory table');
     return { kind: 'studio', pass: true, steps };
   } catch (e) {
     return { kind: 'studio', pass: false, steps, error: String(e.message || e) };

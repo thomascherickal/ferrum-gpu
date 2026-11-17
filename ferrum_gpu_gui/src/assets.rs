@@ -59,6 +59,8 @@ pub const MODULES: &[(&str, &str)] = &[
     ("tabs/export.js", include_str!("../web/tabs/export.js")),
     ("tabs/serve.js", include_str!("../web/tabs/serve.js")),
     ("tabs/capable.js", include_str!("../web/tabs/capable.js")),
+    ("tabs/gpulab.js", include_str!("../web/tabs/gpulab.js")),
+    ("tabs/lab_args.js", include_str!("../web/tabs/lab_args.js")),
     (
         "tabs/capable_view.js",
         include_str!("../web/tabs/capable_view.js"),
