@@ -11,6 +11,7 @@ import { mountGenerate } from './tabs/generate.js';
 import { mountModels } from './tabs/models.js';
 import { mountExport } from './tabs/export.js';
 import { mountServe } from './tabs/serve.js';
+import { mountCapable } from './tabs/capable.js';
 
 mountPickers(document);
 mountDatasets(document);
@@ -22,5 +23,6 @@ mountGenerate(document);
 mountModels(document);
 mountExport(document);
 mountServe(document);
+mountCapable(document);
 
 export { showTab, currentMode };

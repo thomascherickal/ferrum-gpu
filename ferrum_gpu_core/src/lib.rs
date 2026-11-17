@@ -17,6 +17,7 @@
 //!   path use.
 
 pub mod cancel;
+pub mod capacity;
 pub mod commands;
 pub mod engine;
 pub mod fsapi;

@@ -30,6 +30,7 @@
   <button role="tab" id="tab-ggen" aria-controls="panel-ggen" aria-selected="false">Generate</button>
   <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" data-adv="true">Export</button>
   <button role="tab" id="tab-serve" aria-controls="panel-serve" aria-selected="false" data-adv="true">Serve</button>
+  <button role="tab" id="tab-capable" aria-controls="panel-capable" aria-selected="false">Capable</button>
   <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
   <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" data-adv="true">Lab: model</button>
   <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" data-adv="true">Lab: train</button>
@@ -384,6 +385,30 @@
     </div>
     <p id="sv-status" class="muted" role="status" aria-live="polite">not running</p>
     <pre id="sv-log" aria-label="Server messages"></pre>
+  </section>
+
+  <section id="panel-capable" role="tabpanel" aria-labelledby="tab-capable" hidden>
+    <h2>Capable</h2>
+    <p class="muted">How large a model fits in a given memory, and how fast it could decode. These are estimates from stated formulas (see HARDWARE-CAPs.md), not measurements of your computer, except the last table, which uses this computer's own memory figures.</p>
+    <div class="row">
+      <label>Memory (GB) <input id="cap-memory" type="number" step="any" min="0.1" value="8"></label>
+      <label class="check"><input id="cap-unified" type="checkbox"> Unified memory</label>
+      <label>Memory bandwidth (GB/s) <input id="cap-bandwidth" type="number" step="any" min="1" placeholder="optional"></label>
+      <label>Model size (billions) <input id="cap-model" type="number" step="any" min="0.01" placeholder="optional"></label>
+      <button id="cap-run" type="button">Estimate</button>
+    </div>
+    <p id="cap-note" class="muted" role="status" aria-live="polite"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">What</th><th scope="col">Largest model that fits</th></tr></thead>
+      <tbody id="cap-result"></tbody>
+    </table></div>
+    <p id="cap-ceiling" class="muted" aria-live="polite"></p>
+    <h3>This computer</h3>
+    <p id="cap-system" class="muted"></p>
+    <div class="tablewrap"><table>
+      <thead><tr><th scope="col">Adapter</th><th scope="col">Memory budget (estimate)</th><th scope="col">Largest inference model</th><th scope="col">Largest full fine-tune</th></tr></thead>
+      <tbody id="cap-machine"></tbody>
+    </table></div>
   </section>
 
   <section id="panel-device" role="tabpanel" aria-labelledby="tab-device" hidden>

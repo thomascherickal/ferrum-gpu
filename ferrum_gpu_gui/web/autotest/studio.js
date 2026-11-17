@@ -234,6 +234,20 @@ export async function run(params) {
     check(/needs a token/.test($('sv-status').textContent), `an open address without a token is refused: ${$('sv-status').textContent}`);
     $('sv-host').value = '';
     steps.push('serve');
+
+    // Capable: the documented answer for 16 GB, a speed ceiling, a refusal, and this machine's table
+    $('tab-capable').click();
+    $('cap-memory').value = 16; $('cap-bandwidth').value = 936; $('cap-model').value = 7;
+    $('cap-run').click();
+    await until(() => $('cap-result').querySelectorAll('tr').length === 4, 'the capacity table');
+    check($('cap-result').textContent.includes('22.8B') && $('cap-result').textContent.includes('816M'), `capacity: ${$('cap-result').textContent}`);
+    await until(() => /Q4_0 238 tokens\/s/.test($('cap-ceiling').textContent), `the ceiling (${$('cap-ceiling').textContent})`);
+    $('cap-bandwidth').value = '';
+    $('cap-run').click();
+    check(/both/.test($('cap-note').textContent) && $('cap-note').className === 'bad', `a half-filled speed is refused: ${$('cap-note').textContent}`);
+    await until(() => /CPU threads/.test($('cap-system').textContent), 'the machine line');
+    check($('cap-machine').querySelectorAll('tr').length >= 1, 'the adapter table has rows');
+    steps.push('capable');
     return { kind: 'studio', pass: true, steps };
   } catch (e) {
     return { kind: 'studio', pass: false, steps, error: String(e.message || e) };

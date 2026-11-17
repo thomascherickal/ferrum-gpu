@@ -6,6 +6,7 @@
 pub mod api;
 pub mod app;
 pub mod assets;
+pub mod capableapi;
 pub mod fsapi;
 pub mod jobs;
 pub mod modelsapi;
