@@ -24,39 +24,55 @@ every command.
   Datasets and Prepare tabs. The subprocess runner is the part this plan replaces; the jobs API shape (start, poll with
   `since`, stop; output lines with progress events) and all the page code stay.
 
-## Target architecture
+## Architecture as built
 
 ```
-  ferrum_gpu_studio (Tauri 2 app, excluded from the workspace)      ferrum-gpu (CLI)     ferrum-gpu-server
-        |  #[tauri::command] = thin calls                              |  flags -> options      |
-        |                                                              |                        |
-  ferrum_gpu_gui (the browser/headless front end: std HTTP + the same page)                     |
-        |                                                                                       |
-        +-------------------------------+---------------------------------+---------------------+
-                                        |
-                              ferrum_gpu_core   (new library)
-                 commands (typed options, Reporter, CancelToken) · Backend engine layer ·
-                 Studio API (jobs, files, device info, estimates, GGUF inspection) · hardware & memory budget
-                                        |
-                  ferrum_wgpu · ferrum_ref · ferrum_model · ferrum_gguf · ferrum_tok
+  ferrum_gpu_studio                 ferrum-gpu (CLI)          ferrum-gpu-server
+  (Tauri 2 desktop app,             a thin main               a thin main
+   its own workspace)               over commands::run        over serving::boot::boot
+        |                                  |                          |
+        | starts the GUI's loopback        |                          |
+        | server in-process and            |                          |
+        | shows it in a native window      |                          |
+        v                                  |                          |
+  ferrum_gpu_gui (HTTP routes + the page, embedded)                   |
+        |                                  |                          |
+        +----------------------------------+--------------------------+
+                                           |
+                                  ferrum_gpu_core
+     commands (argument list in, report out) · jobs (a thread per job, a cancel flag) ·
+     serving (the JSON server: routes, auth, decoders, boot, an in-process host) ·
+     engine (Backend: CPU and GPU) · session (device choice) · modelinfo (GGUF inspection) ·
+     capacity (what fits) · fsapi (read-only file browser) · http, json, cancel, stop, tokenizer
+                                           |
+              ferrum_wgpu · ferrum_ref · ferrum_model · ferrum_gguf · ferrum_tok
 ```
 
-- **`ferrum_gpu_core`** (new): everything that does work. Each command is a function taking a typed options struct,
-  a `Reporter` (log lines and progress events) and a `CancelToken`, and returning a typed result. The CLI parses flags
-  into the same structs, so the CLI's behaviour and tests are unchanged; the Studio fills them from forms.
-- **Jobs run as threads in-process.** A device fault is an `Err` (the engine already reports out-of-memory and lost
-  devices as values) or a caught panic; either ends the job, not the app. The `.stop` file stays for the CLI; the app
-  uses the `CancelToken`.
-- **Two transports, one page.** The Tauri app and the HTTP front end both call the same `Studio` object. The page talks
-  through `rpc.js`: Tauri `invoke` when it runs in the app, `fetch` to `/api/...` in a browser. Jobs are polled in both
-  (one code path, testable under node).
-- **`ferrum_gpu_studio`** is a separate crate with its own `Cargo.lock`, like ferrum-cpu's, so the Tauri dependency tree
-  and its system libraries (webkit2gtk and friends) stay out of the main workspace and its `cargo deny`. It gets its own
-  CI job and its own `cargo deny` run.
-- **The page** moves to a single `ui/` tree with relative imports (it works under any base URL, which the Tauri asset
-  protocol needs) and a strict CSP. The HTTP front end serves the same files.
-- **Kept:** the HTTP front end (headless use over an SSH tunnel, the Chrome-driven tests, the in-browser WebGPU
-  runtime). Not planned: a mobile build, auto-update, code signing (documented as steps for the owner).
+- **`ferrum_gpu_core`** does the work. Every command is a function from an argument list and a `Write` to a result, so the
+  command line, the server and the Studio run the same code; a test checks that no front end depends on another.
+- **Jobs run as threads in-process.** A command that fails returns an error and one that panics is caught, so a device
+  fault ends the job, not the application. Stop raises the job's cancel flag, which training and generation poll; the `.stop`
+  file stays for the command line.
+- **One transport.** The page talks to the loopback HTTP server (Host and Origin guard, strict Content-Security-Policy). The
+  desktop app runs that server inside its own process and shows it in a native window; the same page also runs in an
+  ordinary browser, which is how it is tested in real Chrome.
+- **`ferrum_gpu_studio`** is its own Cargo workspace with its own lockfile, so Tauri and its system libraries (webkit2gtk
+  and friends) stay out of the main workspace and its `cargo deny`; it has its own CI job.
+- **The page** lives in `ferrum_gpu_gui/web/` (one module per tab under `web/tabs/`) and is embedded in the binary.
+- Not planned: a mobile build, auto-update, code signing (steps for the owner).
+
+## Is a desktop app better than a web app for performance?
+
+The computation never ran in the page. Training, decoding and the exports run **natively in Rust** (wgpu on the GPU, or the
+CPU reference) inside the application process, in both the browser case and the desktop case. The page only draws forms,
+tables and the loss chart, and polls for text every few hundred milliseconds. So the limits of a *web app* (the browser's
+WebGPU limits, its memory caps, its sandbox) apply only to the optional "this browser (WebGPU)" runner of the Lab tabs, not
+to the Studio. The desktop window therefore does not change engine speed; what it changes is packaging (an application you
+launch, with no browser to start and no open tab). **Not measured:** the cost of the window itself (webview start-up, loopback
+polling, drawing very long charts); at the volumes here it is small, but it has no number. A fully native interface (egui or
+iced) would remove the webview at the price of rewriting the tested page, and is worth doing only if a measurement shows the
+interface, not the engine, is the bottleneck. Note one practical difference: the Linux window is WebKitGTK, which has no
+WebGPU, so the browser runner is unavailable there (generation then runs on the server side of the application).
 
 ## Decisions taken while building (2026-11-17)
 
@@ -80,9 +96,10 @@ every command.
 | # | Phase | Deliverable | Tests |
 |---|---|---|---|
 | R1 | **Extract `ferrum_gpu_core`** (done) | Move the engine layer, JSON, tokenizer, cancel and stop helpers out of the GUI crate into the new library; the GUI, CLI and server depend on it | the moved code's tests move with it; workspace stays green; dependency-direction test |
-| R2 | **Commands as library functions** (done) | One command at a time (info, prepare, tokenize, train, finetune, eval, generate, export-*): typed options, `Reporter`, `CancelToken`; the CLI becomes flag parsing plus a call | CLI test suite unchanged and green after each command; new unit tests on the options and on cancellation |
-| R3 | **The Studio API and the in-process jobs** (done) | `core::studio` with jobs (threads), files, device info; the HTTP front end becomes a thin transport; the subprocess runner is deleted; `rpc.js` transport abstraction; `ui/` layout, relative imports, CSP | jobs tests re-pointed at in-process commands; node tests for `rpc.js`; the Chrome tests still pass |
-| R4 | **The desktop app** (done) | `ferrum_gpu_studio`: Tauri 2 window, commands, native file dialogs, icons, bundle config, CSP; CI job per OS; `cargo deny` for it | app launches headless under a virtual display in a test where possible; command wiring unit-tested without a window |
+| R2 | **Commands as library functions** (done) | The whole command layer moved into `ferrum_gpu_core::commands` (argument list in, report out); the CLI is a three-line `main` | the CLI's tests moved with the code and stayed green; a dependency-direction test |
+| R3 | **In-process jobs** (done) | `core::jobs` (a thread per job, a line sink, a per-job cancel flag, device-using commands take turns), the file browser in core, the subprocess runner deleted, a strict Content-Security-Policy on every page | fake-runner tests; the real commands in-process; cancellation of a real training; `csp.rs`; the Chrome tests |
+| R4 | **The desktop app** (done) | `ferrum_gpu_studio`: Tauri 2 window around the in-process loopback server, icons, bundle config; CI job per OS (Windows builds but its unit tests do not start, see `ci.yml`); `cargo deny` for it | mock-runtime tests (no display); one real launch checked by hand: the window opened at 1320 by 880 |
+| R5 | **The JSON server into the core** (done) | `ferrum_gpu_core::serving` (routes, auth, decoders, `boot`, an in-process `ServeSlot`); `ferrum_gpu_server` is a thin `main` | the 244 core tests include the moved ones; the 7 end-to-end tests drive the real binary; the Serve tab starts and stops it in a real browser |
 
 **Tabs (on the in-process core)**
 
@@ -90,9 +107,9 @@ every command.
 |---|---|---|
 | 4 | **Train (GPT-2, BPE)** (done 2026-11-17) | BPE, tie, dropout, QAT, validation share and patience, checkpoint and resume, stop; live loss and validation chart; device, adapter and GPU memory fields |
 | 5 | **Fine-tune, Evaluate, Generate** (done 2026-11-17) | fine-tune a GGUF, loss and perplexity, streamed generation with top-k, top-p, repetition penalty |
-| 6 | **GGUF and Models** (done 2026-11-17) | inspect a GGUF in-process (header, metadata, tensors, quantisation), list models in a folder, load into the lab |
+| 6 | **GGUF and Models** (done 2026-11-17) | one Models tab: find the `.gguf` files in a folder; inspect any model from the first 64 MiB (type mix, every tensor, all metadata); a type the reader does not support is refused, not guessed; choose it for the other tabs |
 | 7 | **Export and Serve** (done 2026-11-17) | export GGUF (f32, int8, int4), Ollama, LM Studio with tool detection; run the server in-process with port, token and live log |
-| 8 | **System and Capable** (done 2026-11-17; System is the Device tab plus the machine table in Capable) | adapters, drivers, memory; what fits (the HARDWARE-CAPs.md formulas, implemented in Rust and tested against the script's tables) |
+| 8 | **System and Capable** (done 2026-11-17) | The Capable tab: what fits per precision and for a fine-tune, the decode-speed ceiling, and this machine's adapters with their memory budgets; the formulas of HARDWARE-CAPs.md in Rust, **compared by a test with the script's table**. System is the Device tab (features and budget per adapter) plus the machine table; there is no separate System tab |
 | 9 | **GPU lab** | adapter picker, VRAM budget and live meters, CPU-versus-GPU check, precision comparison, the WebGPU self-test and benchmark, a benchmark report anyone can send back |
 | 10 | **Polish and docs** | accessibility pass, empty and error states, `docs/gui.md` rewritten, README |
 
@@ -106,9 +123,9 @@ every command.
 | G4 | **Kernels that use the hardware** | Tiled matmul with subgroup or cooperative-matrix paths chosen per adapter, fused attention that does not materialise the score matrix, batched prefill and batched decode (decode is latency-bound today, see CAPABILITY.md); each kernel kept only if its benchmark beats the old one on a real adapter |
 | G5 | **Verification kit for hardware this machine does not have** | A one-click report (adapter, limits, features, parity tests, decode and prefill speed per precision, largest model that loads) that an owner of an M5 Max or any other machine can run and send back; the rows stay "not run" in the docs until a report exists |
 
-Order: R1, R2, R3, R4, then G1 (the tabs need real capabilities and memory figures), then tabs 4 to 8, G2, tab 9, G3, G4, G5,
+Order: R1 to R5, then G1 (the tabs need real capabilities and memory figures), then tabs 4 to 8, G2, tab 9, G3, G4, G5,
 tab 10. Merges to `main` follow the gate (fmt, clippy, four test configurations, time limits, coverage floor, `cargo deny`)
-after R1, R3, R4, and after each group of tabs.
+after R1, R3, R4, and after each group of tabs (tabs 6 to 8 with R5 were gated together).
 
 ## What cannot be verified here, said plainly
 
