@@ -1,57 +1,115 @@
-# GUI Studio plan: parity with ferrum-cpu's Studio, plus GPU-specific tabs
+# Studio plan (version 2, 2026-11-17): a self-contained desktop app, built for small and for very large GPUs
 
-Written 2026-11-17. The goal: the ferrum-gpu web GUI offers what ferrum-cpu's Studio offers (read from
-`ferrum-cpu/ferrum_gui`, never modified) and adds what only a GPU engine can. Execution is autonomous;
-each phase is one commit on `worktree-gui-studio` with tests, and the branch is merged to `main` at
-the milestones below after the full gate (fmt, clippy, four test configurations, time limits,
-coverage floor, `cargo deny`).
+Version 1 of this plan had the GUI run `ferrum-gpu` as a child process. The direction changed the same day:
+**the Studio must be self-contained, a desktop application like ferrum-cpu's "SLM Studio", with the changes a GPU
+engine needs, and designed to run on very powerful GPUs such as an Apple M5 Max.** This version replaces version 1;
+phases 1 to 3 of version 1 are done and kept (they are the page, not the plumbing).
 
-## What ferrum-cpu's Studio has (the parity target)
+## What ferrum-cpu's Studio is (read from `ferrum-cpu/ferrum_gui`, never modified)
 
-Twelve tabs: **Datasets, Prepare, Train, Generate, Evaluate, Models, GGUF, Fine-tune, Export, Serve,
-System, Capable**; a Beginner/Expert mode (advanced tabs hidden for beginners); a tool-tip on every control
-(at least 30 words, mode-aware); live time and memory estimates; settings that persist; keyboard-operable
-tabs and ARIA roles; streamed progress, logs and generated text; cancel with a clean stop.
+A **Tauri 2** desktop app (`tauri`, `tauri-plugin-dialog`), in its own crate outside the main workspace with its own
+lockfile, whose Rust side links the engine **in-process** (no child processes) and exposes it as `#[tauri::command]`
+functions; the page is vanilla HTML/CSS/JS under `ui/`, with a strict CSP (`script-src 'self'`, no inline script or
+style), twelve tabs, Beginner/Expert mode, a tool-tip on every control, live estimates, native file dialogs, and
+progress streamed to the page. Its CLI crate is also a library that the app calls, so there is one implementation of
+every command.
 
-What ferrum-gpu has today: four tabs (Device, Model, Train, Generate) for the byte-level Llama-style
-model only. The GPT-2 path (BPE tokenizer, `--tie`, `--dropout`, validation with early stopping,
-fine-tuning, eval, tokenize, exports) exists only in the CLI.
+## What this repository has now, and what is wrong with it for that goal
 
-## Architecture decision: the GUI drives the CLI as jobs
+- `ferrum_gpu_cli` holds the commands (train, finetune, eval, generate, prepare, tokenize, exports) behind a flag
+  parser, and **depends on** `ferrum_gpu_gui` for the engine layer. The GUI therefore cannot call the commands.
+- `ferrum_gpu_gui` holds the engine layer (`Backend`, `CpuBackend`, `GpuBackend`), a std-only HTTP server, JSON, and the
+  page embedded with `include_str!`. It trains and generates a byte-level Llama-style model only.
+- Phases 1 to 3 added the tabbed shell, a jobs API that runs the CLI as a **subprocess**, a read-only file browser, and the
+  Datasets and Prepare tabs. The subprocess runner is the part this plan replaces; the jobs API shape (start, poll with
+  `since`, stop; output lines with progress events) and all the page code stay.
 
-`ferrum_gpu_cli` depends on `ferrum_gpu_gui` (for the engine layer), so the GUI cannot call the CLI's
-code. Rather than move 3,000 lines between crates, the GUI server runs `ferrum-gpu` and
-`ferrum-gpu-server` as **child processes ("jobs")**: it streams their output to the page, parses the
-`--verbose` progress lines, and stops them cleanly (the `<out>.stop` file, then `Child::kill` on a
-positive pid; rule 16). One source of truth for every command, and a GPU fault ends the job, not the GUI.
-Costs: a binary must be found (next to the GUI executable, `--cli PATH`, or `PATH`), and the progress
-format is a contract (tested with a stub CLI). Read-only work that needs no engine run (GGUF inspection,
-memory estimates, the device table, the hardware formulas) is done in-process by the GUI crate.
+## Target architecture
+
+```
+  ferrum_gpu_studio (Tauri 2 app, excluded from the workspace)      ferrum-gpu (CLI)     ferrum-gpu-server
+        |  #[tauri::command] = thin calls                              |  flags -> options      |
+        |                                                              |                        |
+  ferrum_gpu_gui (the browser/headless front end: std HTTP + the same page)                     |
+        |                                                                                       |
+        +-------------------------------+---------------------------------+---------------------+
+                                        |
+                              ferrum_gpu_core   (new library)
+                 commands (typed options, Reporter, CancelToken) · Backend engine layer ·
+                 Studio API (jobs, files, device info, estimates, GGUF inspection) · hardware & memory budget
+                                        |
+                  ferrum_wgpu · ferrum_ref · ferrum_model · ferrum_gguf · ferrum_tok
+```
+
+- **`ferrum_gpu_core`** (new): everything that does work. Each command is a function taking a typed options struct,
+  a `Reporter` (log lines and progress events) and a `CancelToken`, and returning a typed result. The CLI parses flags
+  into the same structs, so the CLI's behaviour and tests are unchanged; the Studio fills them from forms.
+- **Jobs run as threads in-process.** A device fault is an `Err` (the engine already reports out-of-memory and lost
+  devices as values) or a caught panic; either ends the job, not the app. The `.stop` file stays for the CLI; the app
+  uses the `CancelToken`.
+- **Two transports, one page.** The Tauri app and the HTTP front end both call the same `Studio` object. The page talks
+  through `rpc.js`: Tauri `invoke` when it runs in the app, `fetch` to `/api/...` in a browser. Jobs are polled in both
+  (one code path, testable under node).
+- **`ferrum_gpu_studio`** is a separate crate with its own `Cargo.lock`, like ferrum-cpu's, so the Tauri dependency tree
+  and its system libraries (webkit2gtk and friends) stay out of the main workspace and its `cargo deny`. It gets its own
+  CI job and its own `cargo deny` run.
+- **The page** moves to a single `ui/` tree with relative imports (it works under any base URL, which the Tauri asset
+  protocol needs) and a strict CSP. The HTTP front end serves the same files.
+- **Kept:** the HTTP front end (headless use over an SSH tunnel, the Chrome-driven tests, the in-browser WebGPU
+  runtime). Not planned: a mobile build, auto-update, code signing (documented as steps for the owner).
 
 ## Phases
 
+**Refactor (required first)**
+
 | # | Phase | Deliverable | Tests |
 |---|---|---|---|
-| 1 | **Studio shell** (done) | ARIA tablist with arrow/Home/End keys that skips hidden tabs, Beginner/Expert mode (advanced tabs hide for beginners), theme, persisted settings, mode-aware tool-tips with a help entry per control (expert text 25+ words, beginner 15+); the existing four tabs run inside it, and each later phase adds its tab, its help entries and its `data-adv` mark | 66 node checks; Rust: every control has help, none is stale, texts are real, modules are served; the Chrome UI test still passes |
-| 2 | **Jobs backend** (done) | `/api/jobs` start, poll (`since`), stop, list; CLI discovery; line streaming; progress parsing; no arbitrary commands (an allow-list of subcommands and flags) | stub-CLI unit tests; integration with the real binary when built |
-| 3 | **Datasets, Prepare, Tokenize** (done) | Browse server-side folders (read-only listing), prepare a corpus, tokenize with a tokenizer file, token and byte counts | listing refusals, path handling, stub jobs |
-| 4 | **GPT-2 Train** | BPE training with vocab, tie, dropout, QAT, validation share and patience, checkpoint and resume, stop; live loss and validation chart from the job's progress lines; device, adapter and GPU budget fields | parse tests, stub run, real tiny run |
-| 5 | **Fine-tune, Evaluate, Generate** | `finetune-gguf`, `eval` (loss and perplexity), `generate` for GPT-2 files with top-k, top-p, repetition penalty, streamed text | stub and real runs |
-| 6 | **GGUF and Models** | Inspect a GGUF in-process (header, metadata, tensors, shapes, quantisation, size), list models in a folder with shape and parameter count, load into the Model tab | fixtures, hostile files |
-| 7 | **Export and Serve** | `export-gguf` (f32, int8, int4), `export-ollama`, `export-lmstudio` with tool detection; start and stop `ferrum-gpu-server` with port and token, live log | stub tools, real server start |
-| 8 | **System and Capable** | Adapters, drivers, RAM; what fits: pick memory and precision, see the largest model (the formulas of HARDWARE-CAPs.md, implemented in Rust and tested against the script's table) | table equality test |
-| 9 | **GPU lab (GPU-specific)** | Adapter picker with notes, **VRAM budget** (planned memory against the card's free memory, read through an injected `nvidia-smi` reader; fixes the pre-flight finding in CAPABILITY.md), CPU-vs-GPU speed check, precision comparison (f32, Q8_0, Q4_0 size and tokens/s), the WebGPU self-test and benchmark moved here | injected readers, plan arithmetic, fake adapter lists |
-| 10 | **Polish and docs** | Accessibility pass, empty and error states, `docs/gui.md` rewritten, README GUI section, coverage numbers | a11y contract test, docs-versus-routes test |
+| R1 | **Extract `ferrum_gpu_core`** | Move the engine layer, JSON, tokenizer, cancel and stop helpers out of the GUI crate into the new library; the GUI, CLI and server depend on it | the moved code's tests move with it; workspace stays green; dependency-direction test |
+| R2 | **Commands as library functions** | One command at a time (info, prepare, tokenize, train, finetune, eval, generate, export-*): typed options, `Reporter`, `CancelToken`; the CLI becomes flag parsing plus a call | CLI test suite unchanged and green after each command; new unit tests on the options and on cancellation |
+| R3 | **The Studio API and the in-process jobs** | `core::studio` with jobs (threads), files, device info; the HTTP front end becomes a thin transport; the subprocess runner is deleted; `rpc.js` transport abstraction; `ui/` layout, relative imports, CSP | jobs tests re-pointed at in-process commands; node tests for `rpc.js`; the Chrome tests still pass |
+| R4 | **The desktop app** | `ferrum_gpu_studio`: Tauri 2 window, commands, native file dialogs, icons, bundle config, CSP; CI job per OS; `cargo deny` for it | app launches headless under a virtual display in a test where possible; command wiring unit-tested without a window |
 
-Milestones (merge to `main`): after phase 3 (shell, jobs, data), after phase 7 (train through serve), after
-phase 10 (everything).
+**Tabs (on the in-process core)**
+
+| # | Phase | Deliverable |
+|---|---|---|
+| 4 | **Train (GPT-2, BPE)** | BPE, tie, dropout, QAT, validation share and patience, checkpoint and resume, stop; live loss and validation chart; device, adapter and GPU memory fields |
+| 5 | **Fine-tune, Evaluate, Generate** | fine-tune a GGUF, loss and perplexity, streamed generation with top-k, top-p, repetition penalty |
+| 6 | **GGUF and Models** | inspect a GGUF in-process (header, metadata, tensors, quantisation), list models in a folder, load into the lab |
+| 7 | **Export and Serve** | export GGUF (f32, int8, int4), Ollama, LM Studio with tool detection; run the server in-process with port, token and live log |
+| 8 | **System and Capable** | adapters, drivers, memory; what fits (the HARDWARE-CAPs.md formulas, implemented in Rust and tested against the script's tables) |
+| 9 | **GPU lab** | adapter picker, VRAM budget and live meters, CPU-versus-GPU check, precision comparison, the WebGPU self-test and benchmark, a benchmark report anyone can send back |
+| 10 | **Polish and docs** | accessibility pass, empty and error states, `docs/gui.md` rewritten, README |
+
+**GPU scale (so a very powerful GPU is used, not just supported)**
+
+| # | Phase | Why and what |
+|---|---|---|
+| G1 | **Limits, features and the memory budget** | Request the adapter's real limits (today buffers are capped near 2 GiB) and features (f16, subgroups, cooperative matrix where `wgpu` exposes them); read memory honestly: unified memory from the operating system (a stated fraction is usable), discrete from the driver where it can be read, always shown as an estimate; the pre-flight uses it, which fixes the finding in CAPABILITY.md that a 4 GB plan "fit" a 2 GB card |
+| G2 | **Tensors larger than one binding** | A matrix or embedding bigger than the binding limit is stored as row blocks in several buffers and the kernels run per block (or take several bindings); needed for 70B-class layers and big vocabularies on adapters with smaller limits, and testable here by lowering the limit |
+| G3 | **f16 weights, activations and KV cache** | Halves memory and bandwidth where the adapter has f16; the f32 path stays the reference; parity tests against it with stated tolerances |
+| G4 | **Kernels that use the hardware** | Tiled matmul with subgroup or cooperative-matrix paths chosen per adapter, fused attention that does not materialise the score matrix, batched prefill and batched decode (decode is latency-bound today, see CAPABILITY.md); each kernel kept only if its benchmark beats the old one on a real adapter |
+| G5 | **Verification kit for hardware this machine does not have** | A one-click report (adapter, limits, features, parity tests, decode and prefill speed per precision, largest model that loads) that an owner of an M5 Max or any other machine can run and send back; the rows stay "not run" in the docs until a report exists |
+
+Order: R1, R2, R3, R4, then G1 (the tabs need real capabilities and memory figures), then tabs 4 to 8, G2, tab 9, G3, G4, G5,
+tab 10. Merges to `main` follow the gate (fmt, clippy, four test configurations, time limits, coverage floor, `cargo deny`)
+after R1, R3, R4, and after each group of tabs.
+
+## What cannot be verified here, said plainly
+
+- **Apple Silicon** (M5 Max or any M-series): this machine is Linux with an NVIDIA MX330 (2 GB) and an Intel Xe. The macOS
+  CI runner has a paravirtual GPU that already disagrees with the CPU in one test. Everything for Apple is built to be
+  correct by construction and by parity tests against the CPU reference on the adapters available, and carries "not run on
+  Apple Silicon" until a G5 report from real hardware exists. Speed and memory figures for such machines stay estimates.
+- **Desktop bundles on macOS and Windows** (signing, notarisation, installers): configured, built in CI where the hosted
+  runners allow, not tested by hand.
+- **Very large models**: no model above 1.5B parameters is downloaded (project rule); large-model behaviour is tested with
+  random-weight shapes, as in CAPABILITY.md, and with limits lowered artificially.
 
 ## Rules that apply throughout
 
-- Tests first, one concern per file, a `tests/` sibling per module (rule 11); the suite passes with no GPU
-  and without `node`, `nvidia-smi`, `ollama`, `lms` (those tests skip with a printed reason).
-- No unsafe, no outside dependencies; JavaScript is vanilla and loaded from the embedded `/web/` tree.
-- The server stays loopback-only; job commands come from an allow-list, never from a free-form string; paths
-  are passed as arguments, never through a shell.
-- Every number shown in the UI that is an estimate says so; no invented figures in docs.
-- Not in scope: multi-user access, authentication on the GUI, a Tauri desktop wrapper.
+- Tests first, one concern per file, a `tests/` sibling per module; the suite passes with no GPU, no Chrome, no node.
+- No unsafe, no dependency outside this repository except the registry crates the app needs (Tauri and its plugin, in the
+  app crate only). Jobs run only the fixed list of commands; paths are values, never shell strings.
+- Estimates in the UI say they are estimates; no invented figures in the docs.
+- The CLI keeps working exactly as before at every step.
