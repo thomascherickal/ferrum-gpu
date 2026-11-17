@@ -45,6 +45,22 @@ pub fn block_on<F: Future>(fut: F) -> F::Output {
     }
 }
 
+/// The driver name and version text wgpu reports for each adapter, as `(adapter name, driver)`.
+/// Empty text where the driver reports nothing.
+pub fn drivers() -> Vec<(String, String)> {
+    let inst = wgpu::Instance::default();
+    block_on(inst.enumerate_adapters(wgpu::Backends::all()))
+        .iter()
+        .map(|a| {
+            let i = a.get_info();
+            (
+                i.name,
+                format!("{} {}", i.driver, i.driver_info).trim().to_string(),
+            )
+        })
+        .collect()
+}
+
 fn kind_of(t: wgpu::DeviceType) -> Kind {
     match t {
         wgpu::DeviceType::DiscreteGpu => Kind::Discrete,

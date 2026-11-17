@@ -19,6 +19,7 @@ pub const COMMANDS: &[&str] = &[
     "export-lmstudio",
     "export-gguf",
     "eval",
+    "lab",
 ];
 
 /// Most arguments in one request.
@@ -65,6 +66,6 @@ pub fn validate(cmd: &str, args: &[String]) -> Result<(), String> {
 pub fn uses_device(cmd: &str) -> bool {
     matches!(
         cmd,
-        "info" | "train" | "finetune-gguf" | "run" | "generate" | "run-gguf"
+        "info" | "train" | "finetune-gguf" | "run" | "generate" | "run-gguf" | "lab"
     )
 }
