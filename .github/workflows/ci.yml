@@ -103,7 +103,16 @@ jobs:
       - run: cargo fmt --check
       - run: cargo clippy --all-targets --locked -- -D warnings
       - name: Tests (no GPU adapter)
+        if: runner.os != 'Windows'
         env:
           FERRUM_GPU_ADAPTER: no-such-adapter
         run: cargo test --locked -- --test-threads 1
+        timeout-minutes: 30
+      # Windows: the unit-test executable of a Tauri crate does not start (STATUS_ENTRYPOINT_NOT_FOUND, 0xc0000139,
+      # seen 2026-11-17): test executables lack the application manifest (Common Controls v6) that the app binary
+      # gets from tauri-build. Not fixed (no Windows machine to verify a manifest change on), so Windows builds the
+      # app and lints it but its tests run on Linux and macOS only.
+      - name: Build (Windows; the tests do not start there, see above)
+        if: runner.os == 'Windows'
+        run: cargo build --locked --all-targets
         timeout-minutes: 30

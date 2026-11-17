@@ -152,7 +152,7 @@ non-loopback host is refused unless a token is set. Limits are checked before an
 `scripts/build-studio.sh --run` builds and starts **Ferrum GPU Studio**, a native window (Tauri 2) around the GUI below,
 self-contained: the engine and every command run inside the app, with no other binary to find. It has its own
 Cargo workspace (`ferrum_gpu_studio`), so the Tauri dependency tree stays out of the main workspace. Run on
-Linux so far; macOS, Windows and installers are configured in CI but not run by hand. See [docs/gui.md](docs/gui.md).
+Linux so far; macOS and Windows builds and installers are configured in CI but not run by hand (on Windows the app builds in CI but its unit tests do not start, a known Tauri manifest issue). See [docs/gui.md](docs/gui.md).
 
 ## The GUI
 
