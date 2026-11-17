@@ -276,7 +276,7 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 | [`ferrum_gpu_core`](ferrum_gpu_core) | The shared core under every front end: the commands (train, finetune, eval, generate, prepare, tokenize, exports), the `auto` device rule and memory pre-flight, the engine layer (CPU and GPU backends), jobs, cancel, std-only HTTP and JSON helpers |
 | [`ferrum_wgpu`](ferrum_wgpu) | The GPU engine: device runtime, WGSL kernels, resident models, trainers, benchmarks |
 | [`ferrum_gpu_cli`](ferrum_gpu_cli) | The `ferrum-gpu` binary (a thin `main` over the core's commands) and the interoperability tests |
-| [`ferrum_gpu_server`](ferrum_gpu_server) | The `ferrum-gpu-server` JSON API |
+| [`ferrum_gpu_server`](ferrum_gpu_server) | The `ferrum-gpu-server` binary (a thin `main` over `ferrum_gpu_core::serving::boot`); the server itself is in the core, where the Studio runs it in-process |
 | [`ferrum_gpu_gui`](ferrum_gpu_gui) | Local web GUI, std-only HTTP server, in-browser WebGPU runtime |
 | [`ferrum_gpu_studio`](ferrum_gpu_studio) | The desktop app (Tauri 2), its own workspace: a native window around the GUI with the engine in-process |
 | [`tests`](tests) | Cross-crate guards (independence from ferrum-cpu, the context-window scripts, the capability tables) |

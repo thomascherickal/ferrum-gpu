@@ -8,11 +8,11 @@
 //! - `POST /v1/generate` `{"requests":[{"prompt","max_tokens","stop","temperature","top_k","top_p",
 //!   "seed","repetition_penalty"}]}` gives `{"results":[{"text","n_tokens"}]}`.
 
-use crate::decoder::{Decoder, GenReq};
-use crate::limits::{Limits, DEFAULT_MAX_TOKENS, MAX_STOPS, MAX_STOP_BYTES};
-use crate::score::{pair, rolling};
-use ferrum_gpu_core::http::{Request, Response};
-use ferrum_gpu_core::json::Json;
+use crate::http::{Request, Response};
+use crate::json::Json;
+use crate::serving::decoder::{Decoder, GenReq};
+use crate::serving::limits::{Limits, DEFAULT_MAX_TOKENS, MAX_STOPS, MAX_STOP_BYTES};
+use crate::serving::score::{pair, rolling};
 
 fn num(n: usize) -> Json {
     Json::Num(n as f64)
@@ -125,7 +125,7 @@ fn results(items: Vec<Json>) -> Response {
     Response::json(200, &Json::obj([("results", Json::Arr(items))]))
 }
 
-fn scored(s: crate::score::Score, with_greedy: bool) -> Json {
+fn scored(s: crate::serving::score::Score, with_greedy: bool) -> Json {
     let mut kv = vec![
         ("logprob", Json::Num(s.logprob)),
         ("n_tokens", num(s.n_tokens)),

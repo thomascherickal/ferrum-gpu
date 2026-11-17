@@ -199,6 +199,41 @@ export async function run(params) {
     await until(() => $('md-summary').className === 'bad', 'a refusal of a text file');
     check(/magic/.test($('md-summary').textContent), `refusal: ${$('md-summary').textContent}`);
     steps.push('models');
+
+    // Export: the installed tools are listed; another precision is written; an Ollama Modelfile is
+    // written without Ollama; a bad LM Studio name is refused in the page
+    $('tab-export').click();
+    await until(() => /ollama:/.test($('ex-tools').textContent) && /lms:/.test($('ex-tools').textContent), 'the tool list');
+    $('ex-model').value = params.get('ftout');
+    $('exg-out').value = params.get('exgout'); $('exg-quant').value = 'int4';
+    $('exg-run').click();
+    await until(() => finished('exg-job'), 'the GGUF export');
+    check(st('exg-job') === 'done', `export-gguf: ${st('exg-job')} ${$('exg-job').textContent.slice(-300)}`);
+    $('exo-modelfile').value = params.get('exomf');
+    $('exo-run').click();
+    await until(() => finished('exo-job'), 'the Modelfile export');
+    check(st('exo-job') === 'done', `export-ollama: ${st('exo-job')} ${$('exo-job').textContent.slice(-300)}`);
+    $('exl-repo').value = 'not a valid name';
+    $('exl-run').click();
+    check(/publisher\/name/.test(st('exl-job')), `a bad LM Studio name is refused: ${st('exl-job')}`);
+    steps.push('export');
+
+    // Serve: start from the page, see it running, refuse an open address without a token, stop
+    $('tab-serve').click();
+    $('sv-model').value = params.get('ftout');
+    $('sv-port').value = 0; $('sv-device').value = 'cpu'; $('sv-threads').value = 1;
+    $('sv-start').click();
+    await until(() => /^running at http:\/\/127\.0\.0\.1:\d+\//.test($('sv-status').textContent), `the server to run (${$('sv-status').textContent})`);
+    check(/ferrum-gpu server: http:\/\//.test($('sv-log').textContent), `log: ${$('sv-log').textContent}`);
+    check($('sv-start').disabled === true && $('sv-stop').disabled === false, 'the buttons follow the state');
+    $('sv-stop').click();
+    await until(() => $('sv-status').textContent === 'not running', 'the server to stop');
+    check($('sv-start').disabled === false, 'it can be started again');
+    $('sv-host').value = '0.0.0.0';
+    $('sv-start').click();
+    check(/needs a token/.test($('sv-status').textContent), `an open address without a token is refused: ${$('sv-status').textContent}`);
+    $('sv-host').value = '';
+    steps.push('serve');
     return { kind: 'studio', pass: true, steps };
   } catch (e) {
     return { kind: 'studio', pass: false, steps, error: String(e.message || e) };

@@ -92,9 +92,11 @@ fn the_new_tabs_work_in_a_real_browser_with_the_real_commands() {
     let gtout = dir.join("trained.gguf");
     let gtstop = dir.join("stopped.gguf");
     let ftout = dir.join("tuned.gguf");
+    let exgout = dir.join("tuned-int4.gguf");
+    let exomf = dir.join("Modelfile");
     let q = |k: &str, v: &Path| format!("{k}={}", v.display());
     let url = format!(
-        "http://127.0.0.1:{port}/?autotest=studio&{}&{}&{}&{}&{}&{}&{}&{}&{}",
+        "http://127.0.0.1:{port}/?autotest=studio&{}&{}&{}&{}&{}&{}&{}&{}&{}&{}&{}",
         q("file", &dir.join("corpus.txt")),
         q("dir", &dir),
         format_args!("inputs={inputs}"),
@@ -104,6 +106,8 @@ fn the_new_tabs_work_in_a_real_browser_with_the_real_commands() {
         q("gtout", &gtout),
         q("gtstop", &gtstop),
         q("ftout", &ftout),
+        q("exgout", &exgout),
+        q("exomf", &exomf),
     );
     let browser = common::Browser::open(&chrome, &url, "studio", 240);
     let Some(result) = common::wait_for(Duration::from_secs(150), || fetch_result(port)) else {
@@ -134,6 +138,14 @@ fn the_new_tabs_work_in_a_real_browser_with_the_real_commands() {
     assert!(
         ftout.metadata().unwrap().len() > 0,
         "the Fine-tune tab saved a model"
+    );
+    assert!(
+        exgout.metadata().unwrap().len() < ftout.metadata().unwrap().len(),
+        "the int4 export is smaller than the int8 model"
+    );
+    assert!(
+        std::fs::read_to_string(&exomf).unwrap().contains("FROM "),
+        "the Modelfile names the model"
     );
     server.stop();
 }

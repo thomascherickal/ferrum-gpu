@@ -1,6 +1,6 @@
 //! Bearer-token gate: every route except `GET /health` needs `Authorization: Bearer <token>`.
 
-use ferrum_gpu_core::http::{Request, Response};
+use crate::http::{Request, Response};
 
 /// Compare without an early exit, so the time does not depend on how much of the token matched.
 fn same(a: &[u8], b: &[u8]) -> bool {

@@ -1,5 +1,5 @@
 use super::*;
-use ferrum_gpu_core::engine::{fresh_model, CpuBackend};
+use crate::engine::{fresh_model, CpuBackend};
 use ferrum_model::gpt2_gguf::{from_gguf, to_gguf_with, Quant};
 use ferrum_ref::gpt2::Config;
 

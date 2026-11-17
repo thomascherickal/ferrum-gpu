@@ -1,10 +1,10 @@
 //! Start the server around any [`Decoder`]: bind, optional bearer token, in-flight cap.
 
-use crate::auth;
-use crate::decoder::Decoder;
-use crate::limits::{Limits, MAX_INFLIGHT};
-use crate::routes::route;
-use ferrum_gpu_core::http::{serve_with, Handler, Response};
+use crate::http::{serve_with, Handler, Response};
+use crate::serving::auth;
+use crate::serving::decoder::Decoder;
+use crate::serving::limits::{Limits, MAX_INFLIGHT};
+use crate::serving::routes::route;
 use std::net::{IpAddr, SocketAddr, TcpListener};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;

@@ -59,6 +59,8 @@ pub struct App {
     pub selftest: Mutex<Option<String>>,
     /// `ferrum-gpu` commands run as in-process jobs (the Studio tabs).
     pub jobs: crate::jobs::Jobs,
+    /// The JSON server the Serve tab can run in this process.
+    pub serve: ferrum_gpu_core::serving::host::ServeSlot,
 }
 
 /// Lock, recovering the data if a worker panicked while holding the lock.
@@ -118,6 +120,7 @@ impl App {
             }),
             selftest: Mutex::new(None),
             jobs: crate::jobs::Jobs::default(),
+            serve: ferrum_gpu_core::serving::host::ServeSlot::new(),
         }
     }
 

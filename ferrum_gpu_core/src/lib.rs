@@ -9,6 +9,8 @@
 //! - [`commands`]: every `ferrum-gpu` command (train, finetune, eval, generate, prepare, tokenize, the
 //!   exports), driven by an argument list and writing its report to any `Write`; the CLI is a thin
 //!   `main` over [`commands::run`], and the Studio runs the same functions in-process.
+//! - [`serving`]: the JSON server as a library (routes, limits, auth, decoders, `boot`), started by the
+//!   `ferrum-gpu-server` binary and, in-process, by the Studio.
 //! - [`session`]: choosing a device (`cpu`, `gpu`, `auto`) and holding the backend that was opened.
 //! - [`cancel`]: one cooperative cancel flag (Ctrl-C in a terminal, Stop in a window).
 //! - [`json`], [`http`], [`stop`], [`tokenizer`]: the std-only helpers the servers and the byte-level
@@ -22,6 +24,7 @@ pub mod http;
 pub mod jobs;
 pub mod json;
 pub mod modelinfo;
+pub mod serving;
 pub mod session;
 pub mod stop;
 pub mod tokenizer;

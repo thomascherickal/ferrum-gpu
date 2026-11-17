@@ -7,13 +7,14 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+ferrum_gpu_core = { path = "../ferrum_gpu_core" }
+
+[dev-dependencies]
 ferrum_gguf = { path = "../ferrum_gguf" }
+ferrum_model = { path = "../ferrum_model" }
 ferrum_ref = { path = "../ferrum_ref" }
 ferrum_tok = { path = "../ferrum_tok" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
-ferrum_model = { path = "../ferrum_model" }
-# The shared core holds the HTTP server, JSON, backends, tokenizer and the commands.
-ferrum_gpu_core = { path = "../ferrum_gpu_core" }
 
 [[bin]]
 name = "ferrum-gpu-server"

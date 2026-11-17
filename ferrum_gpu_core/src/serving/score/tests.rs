@@ -1,5 +1,5 @@
 use super::*;
-use crate::decoder::{GenReq, Info};
+use crate::serving::decoder::{GenReq, Info};
 
 /// Bytes as tokens, context `ctx`, and a score that depends only on the target token, so the
 /// expected sums are easy to write down: log-prob `-(1 + t % 3)`, argmax when `t` is even.

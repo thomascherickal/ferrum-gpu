@@ -1,5 +1,5 @@
 use super::*;
-use crate::decoder::StubDecoder;
+use crate::serving::decoder::StubDecoder;
 
 fn req(method: &str, path: &str, body: &str) -> Request {
     Request {
@@ -311,7 +311,7 @@ fn bad_requests_get_clear_errors() {
 fn model_errors_are_422() {
     struct Broken;
     impl Decoder for Broken {
-        fn info(&self) -> crate::decoder::Info {
+        fn info(&self) -> crate::serving::decoder::Info {
             StubDecoder.info()
         }
         fn encode(&self, t: &str) -> Result<Vec<usize>, String> {

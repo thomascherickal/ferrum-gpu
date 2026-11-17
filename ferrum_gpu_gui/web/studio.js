@@ -9,6 +9,8 @@ import { mountFinetune } from './tabs/finetune.js';
 import { mountEvaluate } from './tabs/evaluate.js';
 import { mountGenerate } from './tabs/generate.js';
 import { mountModels } from './tabs/models.js';
+import { mountExport } from './tabs/export.js';
+import { mountServe } from './tabs/serve.js';
 
 mountPickers(document);
 mountDatasets(document);
@@ -18,5 +20,7 @@ mountFinetune(document);
 mountEvaluate(document);
 mountGenerate(document);
 mountModels(document);
+mountExport(document);
+mountServe(document);
 
 export { showTab, currentMode };

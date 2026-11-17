@@ -1,5 +1,5 @@
 use super::*;
-use crate::decoder::StubDecoder;
+use crate::serving::decoder::StubDecoder;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
@@ -149,7 +149,7 @@ struct SlowDecoder {
 }
 
 impl Decoder for SlowDecoder {
-    fn info(&self) -> crate::decoder::Info {
+    fn info(&self) -> crate::serving::decoder::Info {
         StubDecoder.info()
     }
     fn encode(&self, text: &str) -> Result<Vec<usize>, String> {
@@ -161,10 +161,10 @@ impl Decoder for SlowDecoder {
     fn complete(
         &self,
         _prompt: &str,
-        _r: &crate::decoder::GenReq,
+        _r: &crate::serving::decoder::GenReq,
     ) -> Result<(String, usize), String> {
         for _ in 0..4000 {
-            if let Err(e) = ferrum_gpu_core::cancel::check() {
+            if let Err(e) = crate::cancel::check() {
                 self.cancelled.store(true, Ordering::SeqCst);
                 return Err(e);
             }

@@ -3,7 +3,7 @@
 //! and long texts are scored in sliding windows so every target is scored once with at least
 //! half a window of history.
 
-use crate::decoder::Decoder;
+use crate::serving::decoder::Decoder;
 
 /// A summed log-probability.
 #[derive(Clone, Copy, Debug, PartialEq)]

@@ -24,7 +24,7 @@ Dependency direction (each arrow is a Cargo dependency, nothing points back up):
 `ferrum_gguf` <- `ferrum_ref` <- `ferrum_model`; `ferrum_wgpu` depends on `ferrum_ref` and `ferrum_gguf`
 (and on `ferrum_model` only in tests); **`ferrum_gpu_core`** (2026-11-17) sits on those engine crates and holds
 the engine layer (`Backend`, `CpuBackend`, `GpuBackend`), device selection (`Session`), cancel, and the std-only
-HTTP, JSON, stop-string and byte-tokenizer helpers; `ferrum_gpu_cli`, `ferrum_gpu_server` and `ferrum_gpu_gui`
+HTTP, JSON, stop-string and byte-tokenizer helpers, the commands, the jobs, and the JSON server as a library (`serving`: routes, limits, auth, decoders and `boot`); `ferrum_gpu_cli`, `ferrum_gpu_server` and `ferrum_gpu_gui`
 each depend on the core and no front end depends on another (`tests/tests/test_architecture.rs` checks the
 manifests). The server also uses the CLI crate for the commands. The GUI crate keeps the web page, its HTTP
 routes and the browser self-test, and re-exports the core modules under their old paths.

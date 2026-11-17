@@ -28,6 +28,8 @@
   <button role="tab" id="tab-finetune" aria-controls="panel-finetune" aria-selected="false" data-adv="true">Fine-tune</button>
   <button role="tab" id="tab-evaluate" aria-controls="panel-evaluate" aria-selected="false">Evaluate</button>
   <button role="tab" id="tab-ggen" aria-controls="panel-ggen" aria-selected="false">Generate</button>
+  <button role="tab" id="tab-export" aria-controls="panel-export" aria-selected="false" data-adv="true">Export</button>
+  <button role="tab" id="tab-serve" aria-controls="panel-serve" aria-selected="false" data-adv="true">Serve</button>
   <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
   <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" data-adv="true">Lab: model</button>
   <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" data-adv="true">Lab: train</button>
@@ -316,6 +318,72 @@
     </div>
     <pre id="gg-output" aria-live="polite" aria-label="Generated text"></pre>
     <div class="job" id="gg-job"></div>
+  </section>
+
+  <section id="panel-export" role="tabpanel" aria-labelledby="tab-export" hidden>
+    <h2>Export</h2>
+    <p class="muted">Hand a saved model to other tools: write it in another precision, register it with Ollama, or import it into LM Studio. Ollama and LM Studio take GPT-2 models, which is what Train writes.</p>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model to export <input id="ex-model" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <p id="ex-tools" class="muted" role="status"></p>
+    <h3>Another precision</h3>
+    <div class="row">
+      <label>Write to <input id="exg-out" type="text" spellcheck="false" placeholder="my-model-int4.gguf"></label>
+      <label>Precision
+        <select id="exg-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+      </label>
+      <button id="exg-run" type="button">Export GGUF</button>
+    </div>
+    <div class="job" id="exg-job"></div>
+    <h3>Ollama</h3>
+    <div class="row">
+      <label>Name in Ollama <input id="exo-name" type="text" spellcheck="false" placeholder="my-model"></label>
+      <label>Or only write the Modelfile to <input id="exo-modelfile" type="text" spellcheck="false" placeholder="Modelfile"></label>
+      <label>ollama program (optional) <input id="exo-bin" type="text" spellcheck="false" placeholder="found automatically"></label>
+      <button id="exo-run" type="button">Register with Ollama</button>
+    </div>
+    <div class="job" id="exo-job"></div>
+    <h3>LM Studio</h3>
+    <div class="row">
+      <label>Name in LM Studio (publisher/name) <input id="exl-repo" type="text" spellcheck="false" placeholder="me/my-model"></label>
+      <label>lms program (optional) <input id="exl-bin" type="text" spellcheck="false" placeholder="found automatically"></label>
+      <button id="exl-run" type="button">Import into LM Studio</button>
+    </div>
+    <div class="job" id="exl-job"></div>
+  </section>
+
+  <section id="panel-serve" role="tabpanel" aria-labelledby="tab-serve" hidden>
+    <h2>Serve</h2>
+    <p class="muted">Run a model as a small web service inside this application (the same server as <code>ferrum-gpu-server</code>): other programs can send it prompts over HTTP.</p>
+    <div class="picker" data-kind="file" data-ext=".gguf">
+      <label>Model to serve <input id="sv-model" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+      <button type="button" class="browse">Browse…</button>
+      <div class="picker-panel" hidden></div>
+    </div>
+    <div class="row">
+      <label>Address <input id="sv-host" type="text" spellcheck="false" placeholder="127.0.0.1"></label>
+      <label>Port <input id="sv-port" type="number" min="0" max="65535" placeholder="8080"></label>
+      <label>Token <input id="sv-token" type="password" autocomplete="off" placeholder="none"></label>
+    </div>
+    <div class="adv">
+      <div class="row">
+        <label>Run on
+          <select id="sv-device"><option value="auto">automatic</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select>
+        </label>
+        <label>GPU adapter <select id="sv-adapter"></select></label>
+        <label>GPU memory budget (MiB) <input id="sv-gpumem" type="number" min="1" placeholder="automatic"></label>
+        <label>CPU threads <input id="sv-threads" type="number" min="1" placeholder="all"></label>
+      </div>
+    </div>
+    <div class="row">
+      <button id="sv-start" type="button">Start the server</button>
+      <button id="sv-stop" type="button" disabled>Stop the server</button>
+    </div>
+    <p id="sv-status" class="muted" role="status" aria-live="polite">not running</p>
+    <pre id="sv-log" aria-label="Server messages"></pre>
   </section>
 
   <section id="panel-device" role="tabpanel" aria-labelledby="tab-device" hidden>

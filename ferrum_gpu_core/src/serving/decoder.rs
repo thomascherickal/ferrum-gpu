@@ -1,9 +1,9 @@
 //! The decoders the routes talk to: a stub for tests, a Llama-style byte model, and a GPT-2
 //! model with its BPE tokenizer.
 
-use ferrum_gpu_core::commands::gpt2::gen::{run, Loaded, Opts};
-use ferrum_gpu_core::engine::{Backend, GenOpts};
-use ferrum_gpu_core::tokenizer::{decode as bytes_to_text, encode as text_to_bytes};
+use crate::commands::gpt2::gen::{run, Loaded, Opts};
+use crate::engine::{Backend, GenOpts};
+use crate::tokenizer::{decode as bytes_to_text, encode as text_to_bytes};
 use ferrum_model::sampling::Params;
 use ferrum_ref::gpt2::Gpt2;
 use ferrum_ref::llama::Llama;
@@ -63,7 +63,7 @@ pub trait Decoder: Send + Sync {
 }
 
 /// Cut `text` before the first of `stops` (shared with the GUI).
-pub use ferrum_gpu_core::stop::cut_at_stop;
+pub use crate::stop::cut_at_stop;
 
 /// Per-token `(log-probability, was argmax)` of `ids[1..]` from `[len, vocab]` logits.
 pub fn logprobs(logits: &[f32], vocab: usize, ids: &[usize]) -> Vec<(f32, bool)> {
