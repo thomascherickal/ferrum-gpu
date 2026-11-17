@@ -23,10 +23,11 @@
 <nav role="tablist" aria-label="Sections">
   <button role="tab" id="tab-datasets" aria-controls="panel-datasets" aria-selected="true">Datasets</button>
   <button role="tab" id="tab-prepare" aria-controls="panel-prepare" aria-selected="false" data-adv="true">Prepare</button>
+  <button role="tab" id="tab-gtrain" aria-controls="panel-gtrain" aria-selected="false">Train</button>
   <button role="tab" id="tab-device" aria-controls="panel-device" aria-selected="false">Device</button>
-  <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false">Model</button>
-  <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false">Train</button>
-  <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false">Generate</button>
+  <button role="tab" id="tab-model" aria-controls="panel-model" aria-selected="false" data-adv="true">Lab: model</button>
+  <button role="tab" id="tab-train" aria-controls="panel-train" aria-selected="false" data-adv="true">Lab: train</button>
+  <button role="tab" id="tab-generate" aria-controls="panel-generate" aria-selected="false" data-adv="true">Lab: generate</button>
 </nav>
 
 <main>
@@ -100,6 +101,77 @@
       <button id="tk-run" type="button">Tokenize</button>
     </div>
     <div class="job" id="tk-job"></div>
+  </section>
+
+  <section id="panel-gtrain" role="tabpanel" aria-labelledby="tab-gtrain" hidden>
+    <h2>Train</h2>
+    <p class="muted">Train a GPT-2 style model with its own tokenizer on your text, then save it as a GGUF file that llama.cpp, Ollama and LM Studio can load.</p>
+      <div class="picker" data-kind="any">
+        <label>Training text (file, folder or token file) <input id="gt-data" type="text" spellcheck="false" placeholder="/path/to/corpus.txt"></label>
+        <button type="button" class="browse">Browse…</button>
+        <div class="picker-panel" hidden></div>
+      </div>
+      <label class="block">Save the model as <input id="gt-out" type="text" spellcheck="false" placeholder="my-model.gguf"></label>
+    <div class="row">
+      <label>Size
+        <select id="gt-preset"><option value="">preset default (tiny)</option><option value="tiny">tiny (about 0.2M)</option><option value="small">small (about 1.5M)</option><option value="medium">medium (about 7M)</option></select>
+      </label>
+      <label>Run for
+        <select id="gt-lengthkind"><option value="epochs">epochs</option><option value="steps">steps</option><option value="tokens">tokens</option></select>
+      </label>
+      <label>How many <input id="gt-length" type="number" min="1" value="30"></label>
+      <label>Batch <input id="gt-batch" type="number" min="1" max="256" value="16"></label>
+      <label>Context <input id="gt-context" type="number" min="1" placeholder="preset"></label>
+      <label>Learning rate <input id="gt-lr" type="number" step="any" min="0.000001" max="1" placeholder="preset"></label>
+      <label>Vocabulary <input id="gt-vocab" type="number" min="0" value="300"></label>
+      <label>Seed <input id="gt-seed" type="number" min="0" placeholder="1337"></label>
+    </div>
+    <div class="adv">
+      <div class="picker" data-kind="file" data-ext=".gguf">
+        <label>Tokenizer file (optional: loaded if it exists, else trained and saved here) <input id="gt-tokenizer" type="text" spellcheck="false" placeholder="tokenizer.gguf"></label>
+        <button type="button" class="browse">Browse…</button>
+        <div class="picker-panel" hidden></div>
+      </div>
+      <h3>Optimiser</h3>
+      <div class="row">
+        <label>Weight decay <input id="gt-wd" type="number" step="any" min="0" max="1" placeholder="0"></label>
+        <label>Gradient clip <input id="gt-clip" type="number" step="any" min="0" placeholder="off"></label>
+        <label class="check"><input id="gt-cosine" type="checkbox"> Cosine schedule</label>
+        <label>Warm-up steps <input id="gt-warmup" type="number" min="0"></label>
+        <label class="check"><input id="gt-tie" type="checkbox"> Tie the output head</label>
+        <label>Dropout <input id="gt-dropout" type="number" step="any" min="0" max="0.99" placeholder="0"></label>
+        <label class="check"><input id="gt-qat" type="checkbox" checked> Quantisation-aware training</label>
+        <label>Save as
+          <select id="gt-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+        </label>
+      </div>
+      <h3>Validation and stopping</h3>
+      <div class="row">
+        <label>Validation share <input id="gt-val" type="number" step="any" min="0" max="0.99" placeholder="0.1"></label>
+        <label>Patience (epochs) <input id="gt-patience" type="number" min="1"></label>
+        <label>Time limit (seconds) <input id="gt-maxsec" type="number" step="any" min="1"></label>
+        <label class="check"><input id="gt-sample" type="checkbox"> Print a sample at the end</label>
+      </div>
+      <h3>Checkpoints</h3>
+      <div class="row">
+        <label>Checkpoint file <input id="gt-checkpoint" type="text" spellcheck="false" placeholder="run.ckpt"></label>
+        <label>Every (epochs) <input id="gt-ckevery" type="number" min="1"></label>
+        <label>Resume from <input id="gt-resume" type="text" spellcheck="false" placeholder="run.ckpt"></label>
+      </div>
+      <h3>Device</h3>
+      <div class="row">
+        <label>Run on
+          <select id="gt-device"><option value="auto">automatic</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
+        </label>
+        <label>GPU adapter <select id="gt-adapter"></select></label>
+        <label>GPU memory budget (MiB) <input id="gt-gpumem" type="number" min="1" placeholder="automatic"></label>
+        <label>CPU threads <input id="gt-threads" type="number" min="1" placeholder="all"></label>
+      </div>
+    </div>
+    <div class="row"><button id="gt-start" type="button">Start training</button></div>
+    <p id="gt-stats" class="muted" role="status" aria-live="polite"></p>
+    <canvas id="gt-chart" role="img" aria-label="Training loss per step, with validation loss as dots" width="600" height="220"></canvas>
+    <div class="job" id="gt-job"></div>
   </section>
 
   <section id="panel-device" role="tabpanel" aria-labelledby="tab-device" hidden>

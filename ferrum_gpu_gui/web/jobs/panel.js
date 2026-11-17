@@ -58,7 +58,10 @@ export function mountJobPanel(root, doc = document, env = {}) {
     }
     current = id;
     tracker = follow(id, {
-      onLines: append,
+      onLines(lines) {
+        append(lines);
+        hooks.onLines?.(lines);
+      },
       onState(p) {
         status.textContent = statusText(p);
         if (p.step) { bar.hidden = false; bar.max = p.step.total || 1; bar.value = p.step.step; }
