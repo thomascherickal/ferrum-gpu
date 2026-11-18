@@ -128,6 +128,9 @@ class Cli(unittest.TestCase):
             text = open(out).read()
             self.assertIn("93.00%", text)
             self.assertIn("| fmt | pass | 1m 00s |", text)
+            # a recorded run can name the commit and time it measured
+            m.main(["--root", d, "--coverage", f"{d}/cov.txt", "--commit", "74190dc", "--when", "2026-11-18 13:42 UTC"])
+            self.assertIn("2026-11-18 13:42 UTC on commit `74190dc`", open(out).read())
             # a plain run afterwards keeps both
             m.main(["--root", d])
             again = open(out).read()

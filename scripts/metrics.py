@@ -212,12 +212,14 @@ def main(argv=None):
     ap.add_argument("--floor", default=os.environ.get("FLOOR", "-"))
     ap.add_argument("--gate", metavar="GATE_TXT")
     ap.add_argument("--verdict", default="", help="PASS or FAIL for --gate")
+    ap.add_argument("--commit", default=None, help="the commit a --coverage run measured (default: HEAD)")
+    ap.add_argument("--when", default=None, help="when a --coverage run was made (default: now)")
     a = ap.parse_args(argv)
     out_path = a.output or os.path.join(a.root, "metrics.md")
     old = open(out_path, encoding="utf-8").read() if os.path.exists(out_path) else ""
     keep = {"gate": get_block(old, GATE_MARK), "coverage": get_block(old, COVERAGE_MARK)}
-    commit = mc.git(a.root, "rev-parse", "--short", "HEAD").strip() or "-"
-    now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    commit = a.commit or mc.git(a.root, "rev-parse", "--short", "HEAD").strip() or "-"
+    now = a.when or datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     if a.coverage:
         keep["coverage"] = coverage_block(open(a.coverage, encoding="utf-8").read(), a.floor, commit, now, a.root)
     if a.gate:
