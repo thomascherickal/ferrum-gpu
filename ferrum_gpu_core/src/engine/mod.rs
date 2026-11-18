@@ -141,6 +141,13 @@ pub fn make_batch(
 pub type StepFn<'a> =
     dyn FnMut(&[usize], &[usize], usize, &StepConfig) -> Result<StepStats, String> + 'a;
 
+/// The progress record, recovered if a panicking thread poisoned the lock (it is plain counters).
+fn lock(progress: &Arc<Mutex<Progress>>) -> std::sync::MutexGuard<'_, Progress> {
+    progress
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
+}
+
 /// The training loop both backends share: warmup + cosine learning rate, global-norm clip 1.0,
 /// AdamW, progress after every step, early stop. `step` runs one optimizer step.
 pub fn run_training(
@@ -154,9 +161,9 @@ pub fn run_training(
         total: spec.steps as u64,
     };
     let mut rng = Rng::new(spec.seed);
-    progress.lock().map_err(|_| "progress lock poisoned")?.total = spec.steps;
+    lock(progress).total = spec.steps;
     for i in 1..=spec.steps {
-        let mut p = progress.lock().map_err(|_| "progress lock poisoned")?;
+        let mut p = lock(progress);
         if crate::cancel::requested() {
             p.stop = true;
         }
@@ -179,7 +186,7 @@ pub fn run_training(
                 stats.loss
             ));
         }
-        let mut p = progress.lock().map_err(|_| "progress lock poisoned")?;
+        let mut p = lock(progress);
         p.step = i;
         p.losses.push(stats.loss);
     }

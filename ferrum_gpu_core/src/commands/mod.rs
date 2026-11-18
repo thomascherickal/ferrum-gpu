@@ -305,30 +305,34 @@ fn shape(m: &Llama) -> String {
     )
 }
 
+/// What `info` prints about one adapter: its identity, its features and largest buffer, and the memory
+/// budget with where it came from.
+fn adapter_lines(ad: &ferrum_wgpu::select::AdapterSummary, mem: Option<u64>) -> [String; 3] {
+    let feats = ad.features.words();
+    let (budget, facts) = sysmem::budget_for(mem, ad, &sysmem::System);
+    [
+        format!("adapter: {} ({:?}, {})", ad.name, ad.kind, ad.backend),
+        format!(
+            "  features: {}; largest buffer {} MiB",
+            if feats.is_empty() {
+                "none reported".to_string()
+            } else {
+                feats.join(", ")
+            },
+            ad.max_binding >> 20
+        ),
+        format!("  {}", preflight::explain(budget, &facts)),
+    ]
+}
+
 fn info(a: &Args, out: &mut dyn Write) -> Result<(), String> {
     let app = app(a, Workload::Decode)?;
     device_line(out, &app)?;
     let mem = mem_mb(a)?;
     for ad in &app.adapters {
-        say(
-            out,
-            format!("adapter: {} ({:?}, {})", ad.name, ad.kind, ad.backend),
-        )?;
-        let feats = ad.features.words();
-        say(
-            out,
-            format!(
-                "  features: {}; largest buffer {} MiB",
-                if feats.is_empty() {
-                    "none reported".to_string()
-                } else {
-                    feats.join(", ")
-                },
-                ad.max_binding >> 20
-            ),
-        )?;
-        let (budget, facts) = sysmem::budget_for(mem, ad, &sysmem::System);
-        say(out, format!("  {}", preflight::explain(budget, &facts)))?;
+        for line in adapter_lines(ad, mem) {
+            say(out, line)?;
+        }
     }
     if let Some(p) = a.get("--model") {
         say(
@@ -393,7 +397,7 @@ fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {
     let trained = app.backend.train(&model, &spec, &progress)?;
     let losses = progress
         .lock()
-        .map_err(|_| "progress lock poisoned")?
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
         .losses
         .clone();
     let (first, last) = (losses.first().copied(), losses.last().copied());

@@ -129,6 +129,17 @@ fn the_loop_reports_progress_follows_the_schedule_and_can_be_stopped() {
     })
     .unwrap();
     assert_eq!(progress.lock().unwrap().step, 1);
+    // a cancelled request (the thread's flag) ends the run before the first step
+    let progress = shared();
+    {
+        let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+        let _scope = crate::cancel::install(flag);
+        run_training(&spec(50), &progress, &mut |_, _, _, _| {
+            panic!("no step runs")
+        })
+        .unwrap();
+    }
+    assert_eq!(progress.lock().unwrap().step, 0);
     // a diverged loss and an engine error both end the run with a message
     let e = run_training(&spec(5), &shared(), &mut |_, _, _, _| {
         Ok(StepStats {
