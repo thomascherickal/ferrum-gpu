@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Line coverage of the whole workspace, merging a real-GPU run with a no-GPU run (the "skip when
-# there is no adapter" branches only execute in the second one).
+# Line coverage of the whole workspace, merging a real-GPU run with a no-GPU run of the crates that open
+# an adapter (the "skip when there is no adapter" branches only execute in the second one). The
+# interoperability tests are not instrumented (see the comment at the runs).
 #   scripts/coverage.sh            # print the per-file table
 #   FLOOR=99 scripts/coverage.sh   # also fail if total line coverage is below FLOOR
 # The two runs are the two configurations the gate needs for the whole workspace (the default adapter
@@ -14,8 +15,18 @@ export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}"
 # no more (cargo's own fingerprints rebuild a file that changed). After files MOVE or are deleted,
 # remove target/llvm-cov-target by hand, or the report lists the old paths at 0%.
 cargo llvm-cov clean --workspace --profraw-only
-cargo llvm-cov --workspace --no-report -- --test-threads 1
-FERRUM_GPU_ADAPTER=no-such-adapter cargo llvm-cov --workspace --no-report -- --test-threads 1
+# What each run executes, and what it leaves out, measured 2026-11-18 (instrumented tests of each crate,
+# warm build): interop 668 s and the browser tests of the GUI crate 316 s of 1172 s in all. The
+# interoperability tests run the real llama.cpp and Ollama; the gate runs them in their own step (with
+# their time limits), so the instrumented copy only repeated that work. Run 1 is everything else on the
+# default adapter. Run 2, with no adapter, exists for the "skip when there is no adapter" branches, which
+# only the crates that open an adapter in their tests have, so it runs those and nothing else.
+cargo llvm-cov --workspace --exclude ferrum_gpu_cli --no-report -- --test-threads 1
+cargo llvm-cov -p ferrum_gpu_cli --bins --test e2e --no-report -- --test-threads 1
+export FERRUM_GPU_ADAPTER=no-such-adapter
+cargo llvm-cov -p ferrum_wgpu -p ferrum_gpu_core --no-report -- --test-threads 1
+cargo llvm-cov -p ferrum_gpu_gui --lib --bins --test api --test binary --no-report -- --test-threads 1
+unset FERRUM_GPU_ADAPTER
 
 # The summary is kept in target/ and given to metrics.md whether or not the floor is met, so the
 # record of the run is never lost to a failure. The floor decides the exit status.
