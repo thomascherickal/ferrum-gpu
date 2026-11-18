@@ -17,8 +17,17 @@ cargo llvm-cov clean --workspace --profraw-only
 cargo llvm-cov --workspace --no-report -- --test-threads 1
 FERRUM_GPU_ADAPTER=no-such-adapter cargo llvm-cov --workspace --no-report -- --test-threads 1
 
+# The summary is kept in target/ and given to metrics.md whether or not the floor is met, so the
+# record of the run is never lost to a failure. The floor decides the exit status.
+summary=target/coverage-summary.txt
+mkdir -p target
+set +e
 if [[ -n "${FLOOR:-}" ]]; then
-  cargo llvm-cov report --summary-only --fail-under-lines "$FLOOR"
+  cargo llvm-cov report --summary-only --fail-under-lines "$FLOOR" 2>&1 | tee "$summary"
 else
-  cargo llvm-cov report --summary-only
+  cargo llvm-cov report --summary-only 2>&1 | tee "$summary"
 fi
+status=${PIPESTATUS[0]}
+set -e
+python3 scripts/metrics.py --coverage "$summary" --floor "${FLOOR:-none}" || echo "metrics.md was not updated" >&2
+exit "$status"

@@ -128,3 +128,9 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     outside tool skip with a printed reason when it is absent. The tests that change anything outside
     the repository (a real `lms import` under `~/.lmstudio`) or use the GPU through an outside tool are
     opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/INTEROP.md`.
+18. **`metrics.md` is always current (user decision 2026-11-18).** The repository root holds `metrics.md`: size, tests,
+    structure, dependencies, history, the last gate's timing and the last coverage run. It is generated, never edited by
+    hand: the pre-commit hook (`scripts/githooks`, enabled with `git config core.hooksPath scripts/githooks`) refreshes it
+    and adds it to every commit, `scripts/coverage.sh` rewrites its coverage section and `scripts/gate.sh` its gate
+    section. In a clone or worktree where the hook is not active, run `python3 scripts/metrics.py --next-commit` before
+    committing. Nothing in it is estimated; a number that cannot be read shows as "-".

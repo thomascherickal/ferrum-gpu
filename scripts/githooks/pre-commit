@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Refresh metrics.md and put it in the commit being made, so every commit carries the metrics of its
+# own tree. It never blocks a commit: if python3 or the script is missing, or the script fails, the
+# commit goes ahead. Enable once per clone:  git config core.hooksPath scripts/githooks
+root=$(git rev-parse --show-toplevel) || exit 0
+[ -f "$root/scripts/metrics.py" ] || exit 0
+command -v python3 >/dev/null || exit 0
+python3 "$root/scripts/metrics.py" --root "$root" --next-commit && git -C "$root" add metrics.md
+exit 0

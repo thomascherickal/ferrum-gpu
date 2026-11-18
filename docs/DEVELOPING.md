@@ -8,6 +8,8 @@ see [ARCHITECTURE.md](ARCHITECTURE.md).
 ```bash
 rustc --version        # 1.87 or newer
 cargo install cargo-deny cargo-llvm-cov   # optional but used by the gates
+git config core.hooksPath scripts/githooks   # once per clone: every commit refreshes metrics.md
+git config merge.ours.driver true            # once per clone: a merge keeps its own metrics.md
 ```
 
 The project assumes a **low-memory machine (15 GB)**: use the settings below, and run one cargo command at a
@@ -59,7 +61,7 @@ FLOOR=99 scripts/coverage.sh    # needs cargo-llvm-cov; run alone
 ```
 
 It merges a real-GPU run with a no-GPU run (the skip branches only run in the second) and fails below
-`FLOOR`. Raise the floor only to a figure a real run has met. Current numbers and what they do and do not
+`FLOOR`. Raise the floor only to a figure a real run has met. Every coverage run also rewrites the coverage section of [metrics.md](../metrics.md) (commit, date, totals, per crate, least covered files). Current numbers and what they do and do not
 mean (the browser JavaScript has no line coverage; the thin `main.rs` files are uncovered) are in
 [COVERAGE.md](COVERAGE.md). Phase 6 code has not yet been added to that measurement.
 
@@ -120,7 +122,10 @@ support), then the GPU path with parity tests at every position of a full contex
 
 | Script | Purpose |
 |---|---|
-| `scripts/coverage.sh` | Merged GPU and no-GPU line coverage (section 4) |
+| `scripts/coverage.sh` | Merged GPU and no-GPU line coverage (section 4); records the run in `metrics.md` |
+| `scripts/metrics.py` | Regenerates [metrics.md](../metrics.md): size, tests, structure, dependencies, history, the last gate's timing and the last coverage run. `--next-commit` (the pre-commit hook), `--coverage FILE`, `--gate gate.txt`. Unit tests: `python3 scripts/test_metrics.py` |
+| `scripts/githooks/pre-commit` | Runs `metrics.py --next-commit` and adds `metrics.md` to the commit; never blocks a commit |
+| `scripts/gate.sh` | The full gate (fmt, clippy, adapters, interop, coverage, deny, desktop app); records its timing in `metrics.md` |
 | `scripts/statusline.sh` | Records the context-window usage from the status-line JSON in `.superpowers/context.json`, then delegates to your own status line (`FERRUM_STATUSLINE_DELEGATE`) |
 | `scripts/handoff_check.sh` | Hook that, once usage reaches 98% (`HANDOFF_AT` overrides), tells the agent to write `HANDOFF.md` |
 

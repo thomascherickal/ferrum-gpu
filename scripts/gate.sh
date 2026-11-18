@@ -20,6 +20,7 @@ OUT="${GATE_OUT:-$PWD/.gate}"
 mkdir -p "$OUT"
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}"
 rm -f "$OUT"/gate.txt "$OUT"/gate.done "$OUT"/*.log
+echo "start rc=0 $(date +%T)" > "$OUT/gate.txt"
 fail=0
 step() {
   name=$1
@@ -44,4 +45,5 @@ step deny cargo deny check
 FERRUM_GPU_ADAPTER=no-such-adapter step studio bash -c "cd ferrum_gpu_studio && cargo fmt --check && cargo clippy --all-targets --locked -- -D warnings && cargo test --locked -- --test-threads 1"
 step studiodeny cargo deny --manifest-path ferrum_gpu_studio/Cargo.toml check
 if [ $fail -eq 0 ]; then echo PASS > "$OUT/gate.done"; else echo FAIL > "$OUT/gate.done"; fi
+python3 scripts/metrics.py --gate "$OUT/gate.txt" || echo "metrics.md was not updated" >&2
 cat "$OUT/gate.txt" "$OUT/gate.done"
