@@ -843,3 +843,25 @@ fn the_token_loop_stops_at_once_when_the_request_is_cancelled() {
     assert_eq!(e, crate::cancel::MESSAGE);
     assert!(fed <= 5, "stopped within a token of the flag: fed {fed}");
 }
+
+#[test]
+fn the_files_of_a_tokenizer_without_end_of_text_are_joined_with_no_separator_token() {
+    let d = dir("tok_noeos");
+    let tok = d.join("byte.tok.gguf");
+    let byte = ferrum_tok::ByteBpeTokenizer::byte_level();
+    assert!(byte.eos_id().is_none());
+    std::fs::write(&tok, ferrum_model::tokenizer_gguf::to_gguf_bytes(&byte)).unwrap();
+    let docs = d.join("docs");
+    std::fs::create_dir_all(&docs).unwrap();
+    std::fs::write(docs.join("a.txt"), "ab").unwrap();
+    std::fs::write(docs.join("b.txt"), "cd").unwrap();
+    let o = d.join("o.tok.gguf");
+    ok(&format!(
+        "tokenize --data {} --tokenizer {} --out {}",
+        docs.display(),
+        tok.display(),
+        o.display()
+    ));
+    let f = ferrum_model::token_file::TokenFile::open(o.to_str().unwrap()).unwrap();
+    assert_eq!(f.read(0, 4).unwrap(), vec![97, 98, 99, 100]);
+}

@@ -263,11 +263,17 @@ impl Jobs {
         let job = Arc::new(Job::new(id, cmd, args));
         runner::spawn(self.run.clone(), job.clone())?;
         t.insert(id, job.clone());
-        while t.len() > MAX_KEPT {
-            match t.iter().find(|(_, j)| j.is_finished()).map(|(k, _)| *k) {
-                Some(k) => t.remove(&k),
-                None => break,
-            };
+        // forget the oldest finished jobs beyond MAX_KEPT (there are always enough: at most
+        // MAX_RUNNING jobs can be unfinished, and MAX_RUNNING is far below MAX_KEPT)
+        let excess = t.len().saturating_sub(MAX_KEPT);
+        let forget: Vec<u64> = t
+            .iter()
+            .filter(|(_, j)| j.is_finished())
+            .map(|(k, _)| *k)
+            .take(excess)
+            .collect();
+        for k in forget {
+            t.remove(&k);
         }
         Ok(job)
     }

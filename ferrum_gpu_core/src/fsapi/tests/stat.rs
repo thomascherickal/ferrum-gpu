@@ -53,3 +53,20 @@ fn the_depth_limit_stops_the_descent_and_says_so() {
     assert!(!deep.truncated);
     assert_eq!(deep.files, 2);
 }
+
+#[cfg(unix)]
+#[test]
+fn an_unreadable_folder_a_dangling_link_and_a_socket_do_not_stop_the_count() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let d = tmp();
+    put(&d, "a.txt", b"x");
+    let locked = d.join("locked");
+    std::fs::create_dir(&locked).unwrap();
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+    symlink(d.join("missing"), d.join("dangling")).unwrap();
+    let _socket = std::os::unix::net::UnixListener::bind(d.join("sock")).unwrap();
+    let s = stat(&d);
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+    // only the real file counts; the others are skipped, not errors
+    assert_eq!((s.files, s.truncated), (1, false));
+}

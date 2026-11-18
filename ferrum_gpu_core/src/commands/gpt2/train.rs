@@ -256,7 +256,7 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
             let mut f = std::fs::File::create(p).map_err(|e| format!("{p}: {e}"))?;
             f.write_all(b"step,epoch,loss,lr,grad_norm,tokens_per_sec,elapsed\n")
                 .map_err(|e| format!("{p}: {e}"))?;
-            Ok::<_, String>(f)
+            Ok::<_, String>(Box::new(f) as Box<dyn std::io::Write>)
         })
         .transpose()?;
     let mut hook = Run {

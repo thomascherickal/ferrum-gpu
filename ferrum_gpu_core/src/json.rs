@@ -303,6 +303,14 @@ mod tests {
     }
 
     #[test]
+    fn every_escape_a_string_may_carry_is_decoded() {
+        assert_eq!(
+            p(r#""\"\\\/\b\f\n\r\t\u0041""#),
+            Ok(Json::Str("\"\\/\u{8}\u{c}\n\r\tA".into()))
+        );
+    }
+
+    #[test]
     fn parses_every_value_kind() {
         assert_eq!(p("null"), Ok(Json::Null));
         assert_eq!(p(" true "), Ok(Json::Bool(true)));

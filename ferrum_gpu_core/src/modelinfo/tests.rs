@@ -304,3 +304,19 @@ fn the_json_carries_the_tokenizer_of_a_model_that_has_one() {
     let plain = to_json(&inspect(&write(&d, "p.gguf", &model_bytes())).unwrap());
     assert_eq!(plain.get("tokenizer"), Some(&Json::Null));
 }
+
+#[cfg(unix)]
+#[test]
+fn a_scan_skips_an_unreadable_folder_and_a_dangling_link() {
+    use std::os::unix::fs::{symlink, PermissionsExt};
+    let d = tmp();
+    write(&d, "m.gguf", &model_bytes());
+    let locked = d.join("locked");
+    std::fs::create_dir(&locked).unwrap();
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
+    symlink(d.join("missing"), d.join("dangling.gguf")).unwrap();
+    let r = scan(&d);
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let (files, truncated) = r.unwrap();
+    assert_eq!((files.len(), truncated), (1, false));
+}

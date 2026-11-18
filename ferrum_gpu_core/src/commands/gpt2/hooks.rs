@@ -22,7 +22,7 @@ pub struct Validation {
 pub struct Run<'a> {
     pub out: &'a mut dyn Write,
     pub verbose: bool,
-    pub csv: Option<std::fs::File>,
+    pub csv: Option<Box<dyn Write>>,
     pub started: Instant,
     pub max_seconds: Option<f64>,
     pub stop_file: PathBuf,
@@ -130,3 +130,6 @@ impl Hooks for Run<'_> {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests;
