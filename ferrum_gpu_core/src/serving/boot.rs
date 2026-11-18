@@ -76,6 +76,7 @@ pub fn boot(args: &[String], out: &mut dyn Write) -> Result<Booted, String> {
             max_tokens: a.num("--max-tokens", d.max_tokens)?,
             repetition_penalty: a.num("--repetition-penalty", d.repetition_penalty)?,
         },
+        ..Config::default()
     };
     check_exposure(
         &cfg.host,
@@ -145,3 +146,6 @@ pub fn boot(args: &[String], out: &mut dyn Write) -> Result<Booted, String> {
         has_token: cfg.token.is_some(),
     })
 }
+
+#[cfg(test)]
+mod tests;

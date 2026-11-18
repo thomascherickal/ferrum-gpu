@@ -21,6 +21,8 @@ pub struct Config {
     pub token: Option<String>,
     /// Request limits.
     pub limits: Limits,
+    /// Most POST requests held at once; more get an immediate 503.
+    pub max_inflight: usize,
 }
 
 impl Default for Config {
@@ -30,6 +32,7 @@ impl Default for Config {
             port: 0,
             token: None,
             limits: Limits::default(),
+            max_inflight: MAX_INFLIGHT,
         }
     }
 }
@@ -75,8 +78,8 @@ impl Running {
 struct Slot<'a>(&'a AtomicUsize);
 
 impl<'a> Slot<'a> {
-    fn take(n: &'a AtomicUsize) -> Option<Slot<'a>> {
-        if n.fetch_add(1, Ordering::SeqCst) < MAX_INFLIGHT {
+    fn take(n: &'a AtomicUsize, cap: usize) -> Option<Slot<'a>> {
+        if n.fetch_add(1, Ordering::SeqCst) < cap {
             Some(Slot(n))
         } else {
             n.fetch_sub(1, Ordering::SeqCst);
@@ -98,12 +101,13 @@ pub fn start(d: Arc<dyn Decoder>, cfg: &Config) -> Result<Running, String> {
     let addr = listener.local_addr().map_err(|e| e.to_string())?;
     let stop = Arc::new(AtomicBool::new(false));
     let (token, limits, inflight) = (cfg.token.clone(), cfg.limits.clone(), AtomicUsize::new(0));
+    let cap = cfg.max_inflight;
     let handler: Handler = Arc::new(move |req| {
         if let Some(denied) = token.as_deref().and_then(|t| auth::check(req, t)) {
             return denied;
         }
         let _slot = if req.method == "POST" {
-            match Slot::take(&inflight) {
+            match Slot::take(&inflight, cap) {
                 Some(s) => Some(s),
                 None => return Response::error(503, "too many requests in flight"),
             }

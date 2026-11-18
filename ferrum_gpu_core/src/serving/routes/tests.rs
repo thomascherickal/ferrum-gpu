@@ -340,3 +340,19 @@ fn model_errors_are_422() {
         assert_eq!(r.status, 422, "{p}");
     }
 }
+
+#[test]
+fn loglikelihood_over_the_batch_or_text_limit_is_refused_before_any_scoring() {
+    let body =
+        r#"{"requests":[{"context":"ab","continuation":"c"},{"context":"a","continuation":"b"}]}"#;
+    let few = Limits {
+        max_batch: 1,
+        ..Limits::default()
+    };
+    assert_eq!(call_with(&few, "POST", "/v1/loglikelihood", body).0, 400);
+    let short = Limits {
+        max_chars: 2,
+        ..Limits::default()
+    };
+    assert_eq!(call_with(&short, "POST", "/v1/loglikelihood", body).0, 400);
+}

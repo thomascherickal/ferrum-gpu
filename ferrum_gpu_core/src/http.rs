@@ -318,10 +318,8 @@ pub fn serve_with(
                 let h = handler.clone();
                 std::thread::spawn(move || handle(stream, &*h, (port, loopback_guard), max_body));
             }
-            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
-                std::thread::sleep(Duration::from_millis(10))
-            }
-            Err(_) => std::thread::sleep(Duration::from_millis(50)),
+            // no connection waiting (WouldBlock) or a transient accept error: look again shortly
+            Err(_) => std::thread::sleep(Duration::from_millis(10)),
         }
     }
 }
@@ -404,8 +402,18 @@ fn handle_watched(
 fn watch_for_close(stream: &TcpStream, flag: &AtomicBool, done: &AtomicBool) {
     stream.set_read_timeout(Some(WATCH_INTERVAL)).ok();
     let mut one = [0u8; 1];
+    watch_with(|| stream.peek(&mut one), flag, done);
+}
+
+/// [`watch_for_close`] over any `peek`: 0 bytes is a close, an error other than "nothing yet" is a
+/// reset, bytes waiting are neither.
+fn watch_with(
+    mut peek: impl FnMut() -> std::io::Result<usize>,
+    flag: &AtomicBool,
+    done: &AtomicBool,
+) {
     while !done.load(Ordering::Relaxed) {
-        match stream.peek(&mut one) {
+        match peek() {
             Ok(0) => return flag.store(true, Ordering::Relaxed),
             // pipelined bytes are waiting: not a close, and peek would return at once forever
             Ok(_) => std::thread::sleep(WATCH_INTERVAL),
@@ -680,10 +688,11 @@ mod tests {
         let (port, stop, t) = serve_work(|_| {
             // slow enough for several watcher polls
             std::thread::sleep(Duration::from_millis(200));
-            match crate::cancel::check() {
-                Ok(()) => Response::new(200, "text/plain", "done"),
-                Err(e) => Response::new(500, "text/plain", e),
-            }
+            assert!(
+                crate::cancel::check().is_ok(),
+                "a client that stays is not cancelled"
+            );
+            Response::new(200, "text/plain", "done")
         });
         let mut c = TcpStream::connect(("127.0.0.1", port)).unwrap();
         c.write_all(b"POST /work HTTP/1.1\r\nHost: x\r\nContent-Length: 0\r\n\r\n")
@@ -710,10 +719,11 @@ mod tests {
         // returns them at once, forever, and they say nothing about the client leaving
         let (port, stop, t) = serve_work(|_| {
             std::thread::sleep(Duration::from_millis(200)); // several watcher polls
-            match crate::cancel::check() {
-                Ok(()) => Response::new(200, "text/plain", "done"),
-                Err(e) => Response::new(500, "text/plain", e),
-            }
+            assert!(
+                crate::cancel::check().is_ok(),
+                "a client that stays is not cancelled"
+            );
+            Response::new(200, "text/plain", "done")
         });
         let mut c = TcpStream::connect(("127.0.0.1", port)).unwrap();
         c.write_all(
@@ -728,5 +738,31 @@ mod tests {
         );
         stop.store(true, Ordering::Relaxed);
         t.join().unwrap();
+    }
+
+    #[test]
+    fn the_close_watcher_tells_a_close_a_reset_and_silence_apart() {
+        use std::io::ErrorKind;
+        let run = |script: Vec<std::io::Result<usize>>| {
+            let flag = AtomicBool::new(false);
+            let done = AtomicBool::new(false);
+            let mut script = script.into_iter();
+            watch_with(|| script.next().unwrap_or_else(|| Ok(0)), &flag, &done);
+            flag.load(Ordering::Relaxed)
+        };
+        // nothing yet, then pipelined bytes (neither is a close), then the peer closes
+        assert!(run(vec![
+            Err(ErrorKind::WouldBlock.into()),
+            Err(ErrorKind::TimedOut.into()),
+            Ok(3),
+            Ok(0)
+        ]));
+        // a reset is a close too
+        assert!(run(vec![Err(ErrorKind::ConnectionReset.into())]));
+        // the handler finishing first leaves the flag alone
+        let flag = AtomicBool::new(false);
+        let done = AtomicBool::new(true);
+        watch_with(|| panic!("never polled"), &flag, &done);
+        assert!(!flag.load(Ordering::Relaxed));
     }
 }

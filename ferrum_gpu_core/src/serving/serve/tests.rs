@@ -112,9 +112,12 @@ fn loopback_detection_and_the_exposure_rule() {
 fn the_in_flight_cap_refuses_with_503_and_frees_slots() {
     let n = AtomicUsize::new(0);
     let slots: Vec<_> = (0..MAX_INFLIGHT)
-        .map(|_| Slot::take(&n).expect("slot"))
+        .map(|_| Slot::take(&n, MAX_INFLIGHT).expect("slot"))
         .collect();
-    assert!(Slot::take(&n).is_none(), "the 33rd is refused");
+    assert!(
+        Slot::take(&n, MAX_INFLIGHT).is_none(),
+        "the 33rd is refused"
+    );
     assert_eq!(
         n.load(Ordering::SeqCst),
         MAX_INFLIGHT,
@@ -122,7 +125,7 @@ fn the_in_flight_cap_refuses_with_503_and_frees_slots() {
     );
     drop(slots);
     assert_eq!(n.load(Ordering::SeqCst), 0);
-    assert!(Slot::take(&n).is_some());
+    assert!(Slot::take(&n, MAX_INFLIGHT).is_some());
 }
 
 #[test]
@@ -209,5 +212,27 @@ fn a_client_that_leaves_stops_the_generation_and_frees_its_slot() {
     }
     let n = d.tokens.load(Ordering::SeqCst);
     assert!(n < 1000, "stopped long before the 4000-token budget: {n}");
+    r.stop();
+}
+
+#[test]
+fn a_full_server_answers_a_post_with_503_and_still_answers_a_get() {
+    let cfg = Config {
+        max_inflight: 0,
+        ..Config::default()
+    };
+    let r = start(Arc::new(StubDecoder), &cfg).unwrap();
+    let post = http(
+        r.addr,
+        "POST",
+        "/v1/generate",
+        "",
+        r#"{"requests":[{"prompt":"x"}]}"#,
+    );
+    assert!(
+        post.contains("503") && post.contains("too many requests in flight"),
+        "{post}"
+    );
+    assert!(http(r.addr, "GET", "/health", "", "").contains("200"));
     r.stop();
 }
