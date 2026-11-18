@@ -62,7 +62,10 @@ fn quant_check(gpu: &Gpu, w: &Llama, kind: QKind) -> Result<Check, String> {
     let want = oracle.forward_logits(&IDS).map_err(err)?;
     let m = GpuLlama::new(gpu, w, Some(kind), None).map_err(err)?;
     Ok(check(
-        &format!("prefill, {} (against the dequantised reference)", kind.label()),
+        &format!(
+            "prefill, {} (against the dequantised reference)",
+            kind.label()
+        ),
         max_rel_err(&m.forward_all(&IDS).map_err(err)?, &want),
     ))
 }

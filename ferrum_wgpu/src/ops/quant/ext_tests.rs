@@ -6,7 +6,7 @@ use crate::tolerance::{max_rel_err, REDUCING};
 use ferrum_gguf::f16::f32_to_f16;
 use ferrum_ref::matmul::{matmul, rand_vec};
 
-const EXT: [QKind; 4] = [QKind::Fp4, QKind::Fp8E4M3, QKind::Fp8E5M2, QKind::Q2K];
+pub(super) const EXT: [QKind; 4] = [QKind::Fp4, QKind::Fp8E4M3, QKind::Fp8E5M2, QKind::Q2K];
 
 /// Shapes `(k, n)` that fill whole blocks of `kind`, including awkward widths for the kernels.
 fn shapes(kind: QKind) -> Vec<(usize, usize)> {
@@ -210,21 +210,58 @@ fn the_packed_weight_is_smaller_by_the_claimed_ratio() {
 }
 
 #[test]
-fn the_extra_formats_always_use_the_one_kernel_they_have() {
+fn every_kernel_matches_the_cpu_matmul_for_the_extra_formats() {
+    let Some(g) = open_for_test() else { return };
     for kind in EXT {
-        for rows in [1, 4, 100] {
-            assert_eq!(choose(rows, kind, 256, 256), QPath::Naive);
-            assert_eq!(choose(rows, kind, 256, 4096), QPath::Naive);
+        for (k, n) in shapes(kind) {
+            let bytes = quantise_matrix(kind, &rand_vec(k * n, 17), k, n).unwrap();
+            let w_rows = rows_of(kind, &bytes, k, n);
+            let qw = upload_qweight(&g, kind, &bytes, k, n).unwrap();
+            for rows in [1usize, 3, 17, 33] {
+                let x = rand_vec(rows * k, 5);
+                let want = matmul(&x, &transpose(&w_rows, n, k), rows, k, n).unwrap();
+                let gx = g.upload(&x).unwrap();
+                let paths: &[QPath] = if rows == 1 {
+                    &[QPath::Naive, QPath::Gemv, QPath::Tiled, QPath::Auto]
+                } else {
+                    &[QPath::Naive, QPath::Tiled, QPath::Auto]
+                };
+                for &path in paths {
+                    let gy = g.zeros(rows * n).unwrap();
+                    linear_q_with(&g, &gx, &qw, &gy, rows, path).unwrap();
+                    let err = max_rel_err(&g.read(&gy).unwrap(), &want);
+                    assert!(err <= REDUCING, "{kind:?} {path:?} {rows}x{k}x{n}: {err}");
+                }
+            }
         }
     }
-    // the other kernels are not offered: asking for them still runs the one that exists
-    let Some(g) = open_for_test() else { return };
-    let (k, n) = (32, 4);
-    let qw = upload_quantised(&g, QKind::Fp4, &rand_vec(k * n, 2), k, n).unwrap();
-    let (gx, gy) = (g.upload(&rand_vec(k, 3)).unwrap(), g.zeros(n).unwrap());
-    for path in [QPath::Gemv, QPath::Tiled, QPath::Naive, QPath::Auto] {
-        linear_q_with(&g, &gx, &qw, &gy, 1, path).unwrap();
+}
+
+#[test]
+fn the_kernel_choice_for_the_extra_formats_follows_the_measurements() {
+    // several rows: tiled
+    for kind in EXT {
+        assert_eq!(choose(32, kind, 512, 1408), QPath::Tiled);
+        assert_eq!(choose(2, kind, 256, 3), QPath::Tiled);
     }
+    // one row: per-column unless the output is wider than the input, where MXFP4 and FP8 are
+    // faster naive on the MX330; Q2_K always per-column
+    for kind in [QKind::Fp4, QKind::Fp8E4M3, QKind::Fp8E5M2] {
+        assert_eq!(choose(1, kind, 512, 512), QPath::Gemv);
+        assert_eq!(choose(1, kind, 1024, 512), QPath::Gemv);
+        assert_eq!(choose(1, kind, 512, 1408), QPath::Naive);
+    }
+    for (k, n) in [(512, 512), (1024, 512), (512, 1408), (512, 2048)] {
+        assert_eq!(choose(1, QKind::Q2K, k, n), QPath::Gemv);
+    }
+}
+
+#[test]
+fn the_per_column_kernel_still_refuses_more_than_one_row_for_the_extra_formats() {
+    let Some(g) = open_for_test() else { return };
+    let qw = upload_quantised(&g, QKind::Fp4, &rand_vec(32 * 4, 2), 32, 4).unwrap();
+    let (gx, gy) = (g.upload(&rand_vec(64, 3)).unwrap(), g.zeros(8).unwrap());
+    assert!(linear_q_with(&g, &gx, &qw, &gy, 2, QPath::Gemv).is_err());
 }
 
 #[test]

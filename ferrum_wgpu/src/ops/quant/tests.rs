@@ -223,8 +223,9 @@ fn bench_quant_paths() {
     use crate::bench_util::time_ms;
     let Some(g) = open_for_test() else { return };
     eprintln!("adapter: {}", g.info().name);
-    for (k, n) in [(512usize, 512usize), (512, 1408), (1408, 512), (512, 2048)] {
-        for kind in KINDS {
+    // every width is a whole number of Q2_K super-blocks too
+    for (k, n) in [(512usize, 512usize), (512, 1408), (1024, 512), (512, 2048)] {
+        for kind in KINDS.into_iter().chain(super::ext_tests::EXT) {
             let w = rand_vec(k * n, 1);
             let qw = upload_quantised(&g, kind, &w, k, n).unwrap();
             for rows in [1usize, 32] {

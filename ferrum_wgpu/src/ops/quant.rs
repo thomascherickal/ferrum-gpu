@@ -305,12 +305,17 @@ pub enum QPath {
 /// (an Intel Xe and an NVIDIA MX330, `cargo test --release -p ferrum_wgpu --lib -- --ignored
 /// bench_quant`, recorded in `docs/gui-studio-plan.md`): the tiled kernel beat the naive one for
 /// Q8_0 and F16 on both and was slower or level for Q4_0; the per-column kernel beat it when the
-/// output is no wider than the input and lost on the MX330 when it is wider.
+/// output is no wider than the input and lost on the MX330 when it is wider. MXFP4, FP8 and Q2_K
+/// (measured 2026-11-18 with the same bench) follow the Q8_0 pattern: tiled faster for several rows
+/// by 24% to 87%; per-column faster when `n <= k` by 3% to 78%, and on the MX330 up to 2.5x slower
+/// when the output is wider, except Q2_K, which is never slower by more than 1%.
 // ponytail: two adapters and two shapes of rule; re-measure on a new adapter with the bench above
 // before trusting it there (an Apple GPU has not been run).
 pub fn choose(rows: usize, kind: QKind, k: usize, n: usize) -> QPath {
     match (rows, kind) {
-        (_, kind) if !kind.is_core() => QPath::Naive,
+        // Q2_K: the per-column kernel was never more than 1% slower than the naive one on either
+        // adapter and up to 69% faster, so it takes every single-row shape
+        (1, QKind::Q2K) => QPath::Gemv,
         (1, _) if n <= k => QPath::Gemv,
         (1, _) | (_, QKind::Q4_0) => QPath::Naive,
         _ => QPath::Tiled,
@@ -341,12 +346,6 @@ pub fn linear_q_with(
     need("linear_q y", y, rows * w.n)?;
     let uniform = [rows as u32, w.k as u32, w.n as u32, w.kind.id()];
     let buffers = [x, &w.buf, y];
-    // ponytail: the formats added after Q8_0/Q4_0/F16 have one kernel (one invocation per output
-    // element); a per-column and a tiled variant can be added and chosen from measurements.
-    if !w.kind.is_core() {
-        let p = pipe!(gpu, "quant/qlinear_ext")?;
-        return gpu.dispatch_1d(&p, &buffers, &uniform, rows * w.n);
-    }
     let path = if path == QPath::Auto {
         choose(rows, w.kind, w.k, w.n)
     } else {
@@ -354,7 +353,12 @@ pub fn linear_q_with(
     };
     match path {
         QPath::Naive | QPath::Auto => {
-            let p = pipe!(gpu, "quant/qlinear")?;
+            // the formats added after Q8_0, Q4_0 and F16 keep their one-invocation-per-output kernel apart
+            let p = if w.kind.is_core() {
+                pipe!(gpu, "quant/qlinear")?
+            } else {
+                pipe!(gpu, "quant/qlinear_ext")?
+            };
             gpu.dispatch_1d(&p, &buffers, &uniform, rows * w.n)
         }
         QPath::Gemv => {
