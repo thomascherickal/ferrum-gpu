@@ -9,7 +9,10 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn repo() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).parent().unwrap().to_path_buf()
+    Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .unwrap()
+        .to_path_buf()
 }
 
 fn have_python() -> bool {
@@ -36,11 +39,7 @@ fn the_generators_own_tests_pass() {
         .arg(repo().join("scripts/test_metrics.py"))
         .output()
         .unwrap();
-    assert!(
-        o.status.success(),
-        "{}",
-        String::from_utf8_lossy(&o.stderr)
-    );
+    assert!(o.status.success(), "{}", String::from_utf8_lossy(&o.stderr));
 }
 
 #[test]
@@ -51,7 +50,10 @@ fn the_pre_commit_hook_is_executable_and_never_blocks_a_commit() {
     assert!(mode & 0o111 != 0, "the hook must be executable");
     let text = read("scripts/githooks/pre-commit");
     assert!(text.contains("metrics.py") && text.contains("--next-commit"));
-    assert!(text.trim_end().ends_with("exit 0"), "the hook ends with exit 0");
+    assert!(
+        text.trim_end().ends_with("exit 0"),
+        "the hook ends with exit 0"
+    );
 }
 
 #[test]
