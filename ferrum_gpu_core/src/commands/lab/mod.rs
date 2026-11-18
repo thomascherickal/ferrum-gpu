@@ -78,6 +78,27 @@ pub fn build(
     Ok(r)
 }
 
+/// The message of a failure, for `map_err` (one function instead of a closure at every call).
+pub(super) fn text(e: impl std::fmt::Display) -> String {
+    e.to_string()
+}
+
+/// Print a finished report (or the reason there is none) and turn a failed parity check into an error.
+fn finish(report: Result<Report, String>, json: bool, out: &mut dyn Write) -> Result<(), String> {
+    let report = report?;
+    let shown = if json {
+        report.json().to_string()
+    } else {
+        report.text()
+    };
+    writeln!(out, "{shown}").map_err(text)?;
+    if report.passed() {
+        Ok(())
+    } else {
+        Err("lab: a parity check failed".into())
+    }
+}
+
 /// The `lab` command.
 pub fn run(a: &Args, out: &mut dyn Write) -> Result<(), String> {
     let reps: usize = a.num("--reps", 5)?;
@@ -95,18 +116,8 @@ pub fn run(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         (size, reps, !a.has("--parity-only")),
         &sysmem::System,
         now,
-    )?;
-    let text = if a.has("--json") {
-        report.json().to_string()
-    } else {
-        report.text()
-    };
-    writeln!(out, "{text}").map_err(|e| e.to_string())?;
-    if report.passed() {
-        Ok(())
-    } else {
-        Err("lab: a parity check failed".into())
-    }
+    );
+    finish(report, a.has("--json"), out)
 }
 
 #[cfg(test)]

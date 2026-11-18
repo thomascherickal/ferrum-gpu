@@ -117,11 +117,13 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
                 .and_then(|b| from_bytes(b).map_err(|e| format!("{p}: {e}")))
         })
         .transpose()?;
-    let (tok, base_model) = match (base, &text, &token_file) {
-        (Some(l), _, _) => (l.tok, Some(l.model)),
-        (None, Some(t), _) => (tokenizer(a, t, sizes.vocab, out)?, None),
-        (None, None, Some(tf)) => (token_file_tokenizer(a, tf, out)?, None),
-        (None, None, None) => unreachable!("a corpus is either text or a token file"),
+    // a corpus is text or a token file, never neither (checked above): `text` is `Some` exactly when
+    // there is no token file
+    let corpus_text = || text.as_deref().expect("a corpus is text or a token file");
+    let (tok, base_model) = match (base, &token_file) {
+        (Some(l), _) => (l.tok, Some(l.model)),
+        (None, Some(tf)) => (token_file_tokenizer(a, tf, out)?, None),
+        (None, None) => (tokenizer(a, corpus_text(), sizes.vocab, out)?, None),
     };
     if let Some(tf) = &token_file {
         if tf.vocab_size() != tok.vocab_size() {
@@ -132,10 +134,9 @@ pub fn train(a: &Args, out: &mut dyn Write, base: Option<Loaded>) -> Result<(), 
             ));
         }
     }
-    let source: Box<dyn TokenSource> = match (token_file, &text) {
-        (Some(tf), _) => Box::new(tf),
-        (None, Some(t)) => Box::new(tok.encode_docs(t)),
-        (None, None) => unreachable!(),
+    let source: Box<dyn TokenSource> = match token_file {
+        Some(tf) => Box::new(tf),
+        None => Box::new(tok.encode_docs(corpus_text())),
     };
     let mut train_len = source.len();
     let mut val = None;

@@ -4,6 +4,7 @@
 //! the report says so.
 
 use super::report::Speed;
+use super::text;
 use ferrum_ref::llama::{Config, Llama, RopeType};
 use ferrum_wgpu::bench_util::time_ms;
 use ferrum_wgpu::llama::{plan, GpuLlama};
@@ -75,28 +76,28 @@ pub fn tps(tokens: usize, ms: f64) -> f64 {
     }
 }
 
+/// Run `f` `reps` times and return the mean milliseconds, or the first error it reported.
+fn time_fallible(reps: usize, mut f: impl FnMut() -> Result<(), String>) -> Result<f64, String> {
+    let mut fault: Option<String> = None;
+    let ms = time_ms(reps, || {
+        if let Err(e) = f() {
+            fault.get_or_insert(e);
+        }
+    });
+    fault.map_or(Ok(ms), Err)
+}
+
 /// Measure one precision (`None` is f32).
 pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Result<Speed, String> {
     let c = w.cfg;
     let ids = ids(c.vocab);
-    let mut m = GpuLlama::new(gpu, w, quant, None).map_err(|e| e.to_string())?;
-    let mut fault: Option<String> = None;
-    let decode_ms = time_ms(reps, || {
+    let mut m = GpuLlama::new(gpu, w, quant, None).map_err(text)?;
+    let decode_ms = time_fallible(reps, || {
         m.reset();
-        for &t in &ids {
-            if let Err(e) = m.feed(t) {
-                fault.get_or_insert(e.to_string());
-            }
-        }
-    });
-    let prefill_ms = time_ms(reps, || {
-        if let Err(e) = m.forward_all(&ids) {
-            fault.get_or_insert(e.to_string());
-        }
-    });
-    if let Some(e) = fault {
-        return Err(e);
-    }
+        ids.iter()
+            .try_for_each(|&t| m.feed(t).map(drop).map_err(text))
+    })?;
+    let prefill_ms = time_fallible(reps, || m.forward_all(&ids).map(drop).map_err(text))?;
     Ok(Speed {
         precision: quant.map_or("f32", QKind::label).into(),
         model_mib: plan(&c, quant).total() as f64 / 1048576.0,
@@ -108,13 +109,8 @@ pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Resul
 /// The CPU reference's prefill speed on the same model, for scale.
 pub fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
     let ids = ids(w.cfg.vocab);
-    let mut fault: Option<String> = None;
-    let ms = time_ms(reps, || {
-        if let Err(e) = w.forward_logits(&ids) {
-            fault.get_or_insert(e);
-        }
-    });
-    fault.map_or(Ok(tps(TOKENS, ms)), Err)
+    let ms = time_fallible(reps, || w.forward_logits(&ids).map(drop))?;
+    Ok(tps(TOKENS, ms))
 }
 
 /// Every precision.

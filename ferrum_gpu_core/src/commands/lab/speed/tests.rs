@@ -78,3 +78,21 @@ fn every_precision_measures_a_speed_on_an_available_adapter() {
     assert!(mib("Q2_K") < mib("Q4_0"), "{speeds:?}");
     assert!(cpu > 0.0);
 }
+
+#[test]
+fn a_timed_run_reports_its_time_or_the_first_error() {
+    let mut calls = 0;
+    let ms = time_fallible(3, || {
+        calls += 1;
+        Ok(())
+    })
+    .unwrap();
+    assert!(ms >= 0.0 && calls >= 3);
+    let mut n = 0;
+    let e = time_fallible(3, || {
+        n += 1;
+        Err(format!("failure {n}"))
+    })
+    .unwrap_err();
+    assert_eq!(e, "failure 1", "the first error is kept");
+}

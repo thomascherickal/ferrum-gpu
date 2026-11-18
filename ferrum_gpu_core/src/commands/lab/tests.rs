@@ -122,3 +122,61 @@ fn lab_is_a_device_command_the_studio_may_run() {
     assert!(crate::jobs::allow::uses_device("lab"));
     assert!(crate::commands::USAGE.contains("lab"));
 }
+
+fn checked(error: f32) -> Report {
+    use report::Check;
+    Report {
+        checks: vec![Check {
+            name: "f32".into(),
+            error,
+            tolerance: 1e-5,
+        }],
+        ..Report::default()
+    }
+}
+
+#[test]
+fn text_is_a_failures_message() {
+    assert_eq!(text("boom"), "boom");
+    assert_eq!(text(std::io::Error::other("closed")), "closed");
+}
+
+#[test]
+fn a_finished_report_is_printed_and_a_failed_check_is_an_error() {
+    // a passing report prints as text or as json
+    let mut out = Vec::new();
+    finish(Ok(checked(1e-7)), false, &mut out).unwrap();
+    assert!(String::from_utf8(out).unwrap().contains("PASS"));
+    let mut out = Vec::new();
+    finish(Ok(checked(1e-7)), true, &mut out).unwrap();
+    assert!(String::from_utf8(out)
+        .unwrap()
+        .trim_start()
+        .starts_with('{'));
+    // a failed check is printed and then reported
+    let mut out = Vec::new();
+    let e = finish(Ok(checked(1.0)), false, &mut out).unwrap_err();
+    assert_eq!(e, "lab: a parity check failed");
+    assert!(String::from_utf8(out).unwrap().contains("FAIL"));
+    // no report at all: the reason, and nothing printed
+    let mut out = Vec::new();
+    assert_eq!(
+        finish(Err("no device".into()), false, &mut out).unwrap_err(),
+        "no device"
+    );
+    assert!(out.is_empty());
+    // a closed output is an error too
+    struct Closed;
+    impl Write for Closed {
+        fn write(&mut self, _: &[u8]) -> std::io::Result<usize> {
+            Err(std::io::Error::other("closed"))
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    assert_eq!(
+        finish(Ok(checked(1e-7)), false, &mut Closed).unwrap_err(),
+        "closed"
+    );
+}

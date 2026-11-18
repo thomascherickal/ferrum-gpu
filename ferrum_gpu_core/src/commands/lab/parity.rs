@@ -2,6 +2,7 @@
 //! the arithmetic (what counts as a pass) lives in `report`; this file only runs the models.
 
 use super::report::Check;
+use super::text;
 use ferrum_ref::llama::{Config, Llama, RopeType};
 use ferrum_wgpu::llama::{dequantised, GpuLlama};
 use ferrum_wgpu::ops_quant::QKind;
@@ -52,41 +53,37 @@ fn check(name: &str, error: f32) -> Check {
     }
 }
 
-fn err(e: impl std::fmt::Display) -> String {
-    e.to_string()
-}
-
 /// Prefill of `w` stored as `kind` on the GPU against the CPU reference over the dequantised model.
 fn quant_check(gpu: &Gpu, w: &Llama, kind: QKind) -> Result<Check, String> {
-    let oracle = dequantised(w, kind).map_err(err)?;
-    let want = oracle.forward_logits(&IDS).map_err(err)?;
-    let m = GpuLlama::new(gpu, w, Some(kind), None).map_err(err)?;
+    let oracle = dequantised(w, kind).map_err(text)?;
+    let want = oracle.forward_logits(&IDS).map_err(text)?;
+    let m = GpuLlama::new(gpu, w, Some(kind), None).map_err(text)?;
     Ok(check(
         &format!(
             "prefill, {} (against the dequantised reference)",
             kind.label()
         ),
-        max_rel_err(&m.forward_all(&IDS).map_err(err)?, &want),
+        max_rel_err(&m.forward_all(&IDS).map_err(text)?, &want),
     ))
 }
 
 /// Run every check; the first device error aborts the report.
 pub fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
     let w = Llama::random(config(), 11, true, false);
-    let want = w.forward_logits(&IDS).map_err(err)?;
+    let want = w.forward_logits(&IDS).map_err(text)?;
     let v = config().vocab;
     let mut out = Vec::new();
 
-    let m = GpuLlama::new(gpu, &w, None, None).map_err(err)?;
+    let m = GpuLlama::new(gpu, &w, None, None).map_err(text)?;
     out.push(check(
         "prefill, f32",
-        max_rel_err(&m.forward_all(&IDS).map_err(err)?, &want),
+        max_rel_err(&m.forward_all(&IDS).map_err(text)?, &want),
     ));
 
-    let mut m = GpuLlama::new(gpu, &w, None, None).map_err(err)?;
+    let mut m = GpuLlama::new(gpu, &w, None, None).map_err(text)?;
     let mut worst = 0f32;
     for (i, &t) in IDS.iter().enumerate() {
-        let row = m.feed(t).map_err(err)?;
+        let row = m.feed(t).map_err(text)?;
         worst = worst.max(max_rel_err(&row, &want[i * v..(i + 1) * v]));
     }
     out.push(check("decode with the KV cache, f32", worst));
@@ -104,13 +101,13 @@ pub fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
     let wk = Llama::random(config_k(), 12, true, false);
     out.push(quant_check(gpu, &wk, QKind::Q2K)?);
 
-    let whole = GpuLlama::new(gpu, &w, None, None).map_err(err)?;
-    let cut = GpuLlama::with_binding_limit(gpu, &w, None, None, BLOCK_LIMIT).map_err(err)?;
+    let whole = GpuLlama::new(gpu, &w, None, None).map_err(text)?;
+    let cut = GpuLlama::with_binding_limit(gpu, &w, None, None, BLOCK_LIMIT).map_err(text)?;
     out.push(check(
         &format!("weights stored in blocks of at most {BLOCK_LIMIT} bytes, against stored whole"),
         max_rel_err(
-            &cut.forward_all(&IDS).map_err(err)?,
-            &whole.forward_all(&IDS).map_err(err)?,
+            &cut.forward_all(&IDS).map_err(text)?,
+            &whole.forward_all(&IDS).map_err(text)?,
         ),
     ));
     Ok(out)
