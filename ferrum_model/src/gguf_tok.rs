@@ -499,6 +499,13 @@ mod tests {
     }
 
     #[test]
+    fn a_merged_piece_the_vocabulary_lacks_is_spelled_by_its_characters() {
+        // "h e" merges to "he", which is not a token: the pieces fall back to "h" and "e"
+        let t = build("gpt2", &["h", "e"], &["h e"], &[]).unwrap();
+        assert_eq!(t.encode("he"), vec![0, 1]);
+    }
+
+    #[test]
     fn pretokenizer_groups_letters_digits_symbols_and_whitespace() {
         let chunks = |s: &str| pretokenize(s);
         assert_eq!(chunks("ab cd"), vec!["ab", " cd"]);

@@ -163,6 +163,10 @@ mod tests {
         let mut late = mer.clone();
         late.swap(0, 1);
         assert!(ByteBpeTokenizer::from_gguf_vocab(&tok, &late, &ty).is_err());
+        // a merge whose left part is the token a later merge makes
+        let mut later = mer.clone();
+        later[0] = format!("{} {}", tok[257], tok[65]);
+        assert!(e(ByteBpeTokenizer::from_gguf_vocab(&tok, &later, &ty)).contains("later token"));
         // token after the merges that is not control
         let (t2, m2, mut y2) = parts(&trained_tok());
         *y2.last_mut().unwrap() = 1;

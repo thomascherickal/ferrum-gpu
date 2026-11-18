@@ -74,6 +74,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn carriage_returns_and_tabs_are_escaped() {
+        assert_eq!(Json::Str("a\r\tb".into()).pretty(), "\"a\\r\\tb\"");
+    }
+
+    #[test]
     fn prints_sorted_keys_two_space_indent_and_escapes() {
         let v = obj([
             (

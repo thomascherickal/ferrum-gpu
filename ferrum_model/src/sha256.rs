@@ -122,6 +122,11 @@ mod tests {
     use super::*;
 
     #[test]
+    fn a_default_hasher_is_a_new_one() {
+        assert_eq!(Sha256::default().hex(), sha256_hex(b""));
+    }
+
+    #[test]
     fn incremental_updates_equal_one_shot_at_every_split() {
         let data: Vec<u8> = (0..300u32).map(|i| (i * 7) as u8).collect();
         for cut in [0, 1, 55, 56, 63, 64, 65, 127, 128, 299, 300] {

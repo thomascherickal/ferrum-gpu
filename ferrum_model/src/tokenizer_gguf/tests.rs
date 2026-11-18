@@ -182,3 +182,25 @@ fn our_trainer_learns_the_merges_ferrum_cpu_learned() {
     let theirs = from_gguf_bytes(TOK).unwrap();
     assert_eq!(ours.encode_state(), theirs.encode_state());
 }
+
+#[test]
+fn an_array_of_numbers_where_strings_belong_reads_as_empty() {
+    use ferrum_gguf::{Gguf, GgufBuilder, Value};
+    let mut b = GgufBuilder::new();
+    b.meta("k", Value::Arr(vec![Value::U32(7), Value::U32(8)]));
+    b.meta(
+        "s",
+        Value::Arr(vec![Value::Str("a".into()), Value::Str("b".into())]),
+    );
+    b.meta("n", Value::U32(1));
+    let g = Gguf::parse(b.into_bytes()).unwrap();
+    assert!(str_array(&g, "k").unwrap().is_empty());
+    assert_eq!(
+        str_array(&g, "s").unwrap(),
+        vec!["a".to_string(), "b".to_string()]
+    );
+    assert!(str_array(&g, "n")
+        .unwrap_err()
+        .contains("missing or not an array"));
+    assert!(str_array(&g, "absent").is_err());
+}

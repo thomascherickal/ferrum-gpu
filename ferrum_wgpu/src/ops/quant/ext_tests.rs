@@ -56,6 +56,14 @@ fn sizes_eligibility_and_the_memory_ratio() {
 }
 
 #[test]
+fn only_the_formats_llama_cpp_has_are_ggml_types() {
+    assert!(QKind::Fp8E4M3.ggml().is_none() && QKind::Fp8E5M2.ggml().is_none());
+    for k in [QKind::Q8_0, QKind::Q4_0, QKind::F16, QKind::Fp4, QKind::Q2K] {
+        assert!(k.ggml().is_some(), "{k:?}");
+    }
+}
+
+#[test]
 fn pack_puts_the_scale_first_and_keeps_the_quants() {
     // MXFP4: the scale byte becomes the f32 half scale; the 16 nibble bytes follow
     let mut b = vec![130u8];

@@ -151,6 +151,14 @@ mod tests {
     }
 
     #[test]
+    fn no_break_spaces_and_bullets_are_folded() {
+        assert_eq!(
+            clean("a\u{00A0}b\u{2007}c\u{202F}d \u{2022} e", false),
+            "a b c d * e\n"
+        );
+    }
+
+    #[test]
     fn invisible_characters_and_spaces() {
         assert_eq!(strip_invisible("\u{FEFF}a\u{200D}b\r\u{1}\tc\n"), "ab\tc\n");
         assert_eq!(squeeze_spaces("a  \t b\n c"), "a b\n c");

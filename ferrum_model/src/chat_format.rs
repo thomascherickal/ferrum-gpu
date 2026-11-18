@@ -229,6 +229,8 @@ mod tests {
         assert_eq!(ids, vec![2, 0, 1, 3]);
         // a special the vocab lacks degrades to plain text (here: unknown bytes encode to nothing)
         let ids = encode_segments(&t, &[Segment::Special("a")]);
-        assert_eq!(ids, vec![0]);
+        assert_eq!(ids, vec![0]); // "a" is a token: used as it is
+        let ids = encode_segments(&t, &[Segment::Special("ab")]);
+        assert_eq!(ids, vec![0, 1]); // "ab" is not: encoded as the text "ab"
     }
 }

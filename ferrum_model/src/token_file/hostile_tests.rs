@@ -177,6 +177,9 @@ fn a_file_that_is_not_gguf_is_not_a_token_file() {
     // too short to hold a header
     std::fs::write(&p, b"GGUF").unwrap();
     assert!(!is_token_file(p.to_str().unwrap()));
+    // the right magic with a version GGUF does not have
+    std::fs::write(&p, b"GGUF\x09\0\0\0rest of the file").unwrap();
+    assert!(!is_token_file(p.to_str().unwrap()));
 }
 
 #[test]

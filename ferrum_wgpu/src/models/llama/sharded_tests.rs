@@ -167,3 +167,16 @@ fn a_token_outside_the_blocks_is_an_error_not_a_wrong_row() {
     g.end_batch(false).unwrap();
     assert!(e.contains("outside the embedding"), "{e}");
 }
+
+#[test]
+fn a_weight_stored_in_blocks_occupies_the_bytes_of_the_whole_weight() {
+    let Some(g) = open_for_test() else { return };
+    let w = Llama::random(cfg(), 4, false, false);
+    let whole = GpuLlama::new(&g, &w, None, None).unwrap();
+    let cut = GpuLlama::with_binding_limit(&g, &w, None, None, LIMIT).unwrap();
+    assert!(matches!(cut.blocks[0].wq, Lin::Sharded { .. }));
+    assert_eq!(
+        cut.blocks[0].wq.device_bytes(),
+        whole.blocks[0].wq.device_bytes()
+    );
+}
