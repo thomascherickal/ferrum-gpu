@@ -747,7 +747,7 @@ mod tests {
             let flag = AtomicBool::new(false);
             let done = AtomicBool::new(false);
             let mut script = script.into_iter();
-            watch_with(|| script.next().unwrap_or_else(|| Ok(0)), &flag, &done);
+            watch_with(|| script.next().unwrap_or(Ok(0)), &flag, &done);
             flag.load(Ordering::Relaxed)
         };
         // nothing yet, then pipelined bytes (neither is a close), then the peer closes
