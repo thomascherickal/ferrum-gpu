@@ -3,10 +3,11 @@ import { mountJobPanel } from '../jobs/panel.js';
 import { evalArgs } from './flow_args.js';
 import { store } from '../shell/state.js';
 
-/** The sentence for an eval result event: `{tokens, loss, perplexity}`. */
+/** The sentence for an eval result event: `{tokens, loss, perplexity, bits_per_byte?}`. */
 export function resultText(ev) {
   if (!ev) return '';
-  return `perplexity ${ev.perplexity.toFixed(3)} · loss ${ev.loss.toFixed(4)} · over ${ev.tokens} tokens`;
+  const bpb = Number.isFinite(ev.bits_per_byte) ? ` · ${ev.bits_per_byte.toFixed(4)} bits per byte` : '';
+  return `perplexity ${ev.perplexity.toFixed(3)} · loss ${ev.loss.toFixed(4)} · over ${ev.tokens} tokens${bpb}`;
 }
 
 export function mountEvaluate(doc = document, env = {}) {

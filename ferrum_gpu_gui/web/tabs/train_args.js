@@ -25,6 +25,7 @@ export const LENGTH_KINDS = ['epochs', 'steps', 'tokens'];
 export const PRESETS = ['tiny', 'small', 'medium'];
 export const QUANTS = ['int8', 'int4', 'f32'];
 export const DEVICES = ['auto', 'cpu', 'gpu'];
+export const GPU_WEIGHTS = ['f32', 'f16', 'q8_0', 'q4_0'];
 
 /** The arguments of `train` (GPT-2, the default architecture). */
 export function trainArgs(f) {
@@ -65,6 +66,18 @@ export function trainArgs(f) {
     const n = whole(f.seed, 0);
     if (n === null) return { error: 'Seed must be a whole number, 0 or more.' };
     need('--seed', n);
+  }
+  // the shape of the model, over the preset (each is optional)
+  const shape = {};
+  for (const [key, flag, label] of [['embed', '--embed', 'Width'], ['heads', '--heads', 'Heads'], ['blocks', '--blocks', 'Blocks'], ['hidden', '--hidden', 'Hidden size'], ['stride', '--stride', 'Window stride']]) {
+    if (blank(f[key])) continue;
+    const n = whole(f[key], key === 'stride' ? 0 : 1);
+    if (n === null) return { error: `${label} must be a whole number${key === 'stride' ? ', 0 or more (0 = windows do not overlap)' : ' of at least 1'}.` };
+    shape[key] = n;
+    need(flag, n);
+  }
+  if (shape.embed && shape.heads && shape.embed % shape.heads !== 0) {
+    return { error: `Width ${shape.embed} must divide evenly by the ${shape.heads} heads.` };
   }
   if (!blank(f.vocab)) {
     const n = whole(f.vocab, 0);
@@ -134,6 +147,7 @@ export function trainArgs(f) {
   }
   if (!blank(f.resume)) need('--resume', text(f.resume));
   if (f.sample) args.push('--sample');
+  if (!blank(f.metricsCsv)) need('--metrics-csv', text(f.metricsCsv));
 
   // device
   if (!blank(f.device) && f.device !== 'auto') {

@@ -1,6 +1,6 @@
 // Argument builders for the Fine-tune, Evaluate and Generate tabs, and the text of a generation.
 // Pure: `{ args }` or `{ error }`, tested under node. Flag spellings follow ferrum_gpu_core::commands.
-import { trainArgs, QUANTS, DEVICES } from './train_args.js';
+import { trainArgs, QUANTS, DEVICES, GPU_WEIGHTS } from './train_args.js';
 import { stopStrings } from '../stop.js';
 
 const blank = (v) => String(v ?? '').trim() === '';
@@ -25,7 +25,7 @@ function real(v, ok) {
  */
 export function finetuneArgs(f) {
   if (blank(f.model)) return { error: 'Choose the model to fine-tune (a .gguf file).' };
-  const r = trainArgs({ ...f, preset: '', vocab: '', tokenizer: '', tie: false });
+  const r = trainArgs({ ...f, preset: '', vocab: '', tokenizer: '', tie: false, embed: '', heads: '', blocks: '', hidden: '' });
   if (r.error) return r;
   return { args: ['--model', text(f.model), ...r.args] };
 }
@@ -51,8 +51,17 @@ export function evalArgs(f) {
 /** `generate`: continue a prompt. `stop` is the stop-strings box (one per line, `\n` and `\t` unescaped). */
 export function generateArgs(f) {
   if (blank(f.model)) return { error: 'Choose the model to generate from (a .gguf file).' };
-  if (blank(f.prompt)) return { error: 'Type a prompt to continue.' };
-  const args = ['--model', text(f.model), '--prompt', String(f.prompt)];
+  // token ids replace the prompt text (and skip the chat template): "1 2 3"
+  let ids = null;
+  if (!blank(f.ids)) {
+    ids = text(f.ids).split(/\s+/);
+    if (!ids.every((x) => /^\d+$/.test(x))) return { error: 'Token ids are whole numbers separated by spaces, for example 1 15043.' };
+  }
+  if (blank(f.prompt) && !ids) return { error: 'Type a prompt to continue, or give token ids.' };
+  const args = ['--model', text(f.model)];
+  if (!blank(f.prompt)) args.push('--prompt', String(f.prompt));
+  if (ids) args.push('--ids', ids.join(' '));
+  if (f.raw) args.push('--raw');
   if (!blank(f.maxNew)) {
     const n = whole(f.maxNew, 1, 4096);
     if (n === null) return { error: 'New tokens must be a whole number from 1 to 4096.' };
@@ -93,6 +102,15 @@ export function generateArgs(f) {
     const n = whole(f.gpuMem, 1);
     if (n === null) return { error: 'The GPU memory budget must be a whole number of MiB, 1 or more.' };
     args.push('--gpu-mem-mb', String(n));
+  }
+  if (!blank(f.gpuWeights)) {
+    if (!GPU_WEIGHTS.includes(f.gpuWeights)) return { error: `GPU weights must be one of ${GPU_WEIGHTS.join(', ')}.` };
+    if (f.gpuWeights !== 'f32') args.push('--gpu-weights', f.gpuWeights);
+  }
+  if (!blank(f.threads)) {
+    const n = whole(f.threads, 1);
+    if (n === null) return { error: 'Threads must be a whole number, 1 or more.' };
+    args.push('--threads', String(n));
   }
   return { args };
 }

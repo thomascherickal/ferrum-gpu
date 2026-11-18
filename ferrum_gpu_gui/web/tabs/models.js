@@ -2,7 +2,7 @@
 // choose it as the model the other tabs use. Everything is read on the server, from the start of the file.
 import { api, withQuery, humanBytes } from '../shell/api.js';
 import { store } from '../shell/state.js';
-import { dimsText, summaryLine, kindsText, rowMatches, timeText } from './models_view.js';
+import { dimsText, summaryLine, kindsText, rowMatches, timeText, tokenizerLine } from './models_view.js';
 
 export function mountModels(doc = document, env = {}) {
   const $ = (id) => doc.getElementById(id);
@@ -40,6 +40,7 @@ export function mountModels(doc = document, env = {}) {
       summary.textContent = e.message;
       summary.className = 'bad';
       $('md-kinds').textContent = '';
+      $('md-tokenizer').textContent = '';
       $('md-meta').textContent = '';
       showTensors();
       return;
@@ -47,6 +48,7 @@ export function mountModels(doc = document, env = {}) {
     current = path;
     summary.textContent = summaryLine(info);
     $('md-kinds').textContent = kindsText(info.kinds);
+    $('md-tokenizer').textContent = tokenizerLine(info);
     const meta = $('md-meta');
     meta.textContent = '';
     for (const m of info.metadata) {

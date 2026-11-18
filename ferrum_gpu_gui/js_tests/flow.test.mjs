@@ -67,8 +67,24 @@ eq(outputText([]), '');
 eq(outputText([L(''), L('first line after a blank')]), 'first line after a blank');
 eq(outputText([L('a'), L(''), L('b')]), 'a\n\nb');                     // blank lines inside the text are kept
 
+// ---- generate: chat template switch, token ids, GPU weights, threads
+const g0 = { model: 'm.gguf', prompt: 'hi' };
+eq(generateArgs({ ...g0, raw: true }), { args: ['--model', 'm.gguf', '--prompt', 'hi', '--raw'] });
+eq(generateArgs({ ...g0, raw: false }), { args: ['--model', 'm.gguf', '--prompt', 'hi'] });
+eq(generateArgs({ model: 'm.gguf', prompt: '', ids: ' 1  15043 ' }), { args: ['--model', 'm.gguf', '--ids', '1 15043'] });
+eq(generateArgs({ ...g0, ids: '1 2' }), { args: ['--model', 'm.gguf', '--prompt', 'hi', '--ids', '1 2'] });
+ok(generateArgs({ ...g0, ids: '1 x' }).error.includes('whole numbers'));
+ok(generateArgs({ model: 'm.gguf', prompt: ' ' }).error.includes('or give token ids'));
+eq(generateArgs({ ...g0, gpuWeights: 'q8_0', threads: '4' }), { args: ['--model', 'm.gguf', '--prompt', 'hi', '--gpu-weights', 'q8_0', '--threads', '4'] });
+eq(generateArgs({ ...g0, gpuWeights: 'f32' }), { args: ['--model', 'm.gguf', '--prompt', 'hi'] });
+ok(generateArgs({ ...g0, gpuWeights: 'q5' }).error.includes('GPU weights must be one of'));
+ok(generateArgs({ ...g0, threads: '0' }).error.includes('Threads'));
+
 // ---- the eval sentence
 eq(resultText(null), '');
 eq(resultText({ tokens: 4096, loss: 2.34567, perplexity: 10.4421 }), 'perplexity 10.442 · loss 2.3457 · over 4096 tokens');
+
+eq(resultText({ tokens: 10, loss: 1.5, perplexity: 4.4817, bits_per_byte: 0.8125 }), 'perplexity 4.482 · loss 1.5000 · over 10 tokens · 0.8125 bits per byte');
+eq(resultText({ tokens: 10, loss: 1.5, perplexity: 4.4817, bits_per_byte: null }), 'perplexity 4.482 · loss 1.5000 · over 10 tokens');
 
 console.log(`OK ${checks} checks`);

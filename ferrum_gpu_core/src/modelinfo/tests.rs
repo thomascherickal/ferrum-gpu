@@ -213,6 +213,7 @@ fn the_json_has_every_field_the_page_reads() {
         "metadata",
         "tensors",
         "truncated",
+        "tokenizer",
     ] {
         assert!(j.get(k).is_some(), "{k}");
     }
@@ -277,4 +278,29 @@ fn scanning_a_missing_folder_or_a_file_is_an_error_naming_it() {
     let f = write(&d, "f.gguf", b"x");
     assert!(scan(&f).is_err());
     assert_eq!(scan(&d).unwrap().0.len(), 1);
+}
+
+#[test]
+fn the_json_carries_the_tokenizer_of_a_model_that_has_one() {
+    let d = tmp();
+    let mut b = GgufBuilder::new();
+    b.meta("general.architecture", Value::Str("qwen2".into()));
+    b.meta("tokenizer.ggml.model", Value::Str("gpt2".into()));
+    b.meta(
+        "tokenizer.ggml.tokens",
+        Value::Arr(vec![
+            Value::Str("a".into()),
+            Value::Str("<|im_start|>".into()),
+        ]),
+    );
+    b.meta("tokenizer.chat_template", Value::Str("<|im_start|>".into()));
+    b.tensor_f32("token_embd.weight", &[2, 2], &[0.5; 4]);
+    let j = to_json(&inspect(&write(&d, "t.gguf", &b.into_bytes())).unwrap());
+    let t = j.get("tokenizer").unwrap();
+    assert_eq!(t.get("model").and_then(Json::as_str), Some("gpt2"));
+    assert_eq!(t.get("tokens").and_then(Json::as_f64), Some(2.0));
+    assert_eq!(t.get("chat_format").and_then(Json::as_str), Some("ChatML"));
+    // a model without a vocabulary has null
+    let plain = to_json(&inspect(&write(&d, "p.gguf", &model_bytes())).unwrap());
+    assert_eq!(plain.get("tokenizer"), Some(&Json::Null));
 }

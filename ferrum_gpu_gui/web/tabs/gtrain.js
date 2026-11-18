@@ -38,7 +38,8 @@ export function mountGtrain(doc = document, env = {}) {
     tie: $('gt-tie').checked, dropout: $('gt-dropout').value, qat: $('gt-qat').checked, quant: $('gt-quant').value,
     val: $('gt-val').value, patience: $('gt-patience').value, maxSeconds: $('gt-maxsec').value,
     checkpoint: $('gt-checkpoint').value, checkpointEvery: $('gt-ckevery').value, resume: $('gt-resume').value,
-    sample: $('gt-sample').checked,
+    sample: $('gt-sample').checked, metricsCsv: $('gt-metrics').value,
+    embed: $('gt-embed').value, heads: $('gt-heads').value, blocks: $('gt-blocks').value, hidden: $('gt-hidden').value, stride: $('gt-stride').value,
     device: $('gt-device').value, adapter: $('gt-adapter').value, gpuMem: $('gt-gpumem').value, threads: $('gt-threads').value,
   });
 

@@ -166,4 +166,19 @@ const css = { line: '#ccc', muted: '#888', accent: '#06c', good: '#0a0' };
 eq(runSummary(null), '');
 eq(runSummary({ step: 20, total: 100, tokens_per_s: 1234.6, eta: 65 }), 'step 20/100 · 1235 tokens/s · 1m 05s left');
 
+// ---- model shape and metrics file
+const shapeBase = { data: 'a.txt', out: 'm.gguf' };
+const with_ = (f) => trainArgs({ ...shapeBase, ...f });
+eq(with_({ embed: '64', heads: '4', blocks: '3', hidden: '256', stride: '8' }).args.slice(5),
+  ['--embed', '64', '--heads', '4', '--blocks', '3', '--hidden', '256', '--stride', '8']);
+eq(with_({ stride: '0' }).args.slice(5), ['--stride', '0']);
+ok(with_({ embed: '30', heads: '4' }).error.includes('divide evenly'));
+ok(with_({ embed: '0' }).error.includes('Width'));
+ok(with_({ heads: 'x' }).error.includes('Heads'));
+ok(with_({ blocks: '1.5' }).error.includes('Blocks'));
+ok(with_({ hidden: '-1' }).error.includes('Hidden'));
+ok(with_({ stride: 'a' }).error.includes('stride'));
+eq(with_({ metricsCsv: ' m.csv ' }).args.slice(-2), ['--metrics-csv', 'm.csv']);
+ok(!with_({ metricsCsv: '' }).args.includes('--metrics-csv'));
+
 console.log(`OK ${checks} checks`);

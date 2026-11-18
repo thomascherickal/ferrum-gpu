@@ -17,6 +17,7 @@ export function mountGenerate(doc = document, env = {}) {
       temperature: $('gg-temp').value, topK: $('gg-topk').value, topP: $('gg-topp').value,
       repetition: $('gg-rep').value, stop: $('gg-stop').value, seed: $('gg-seed').value,
       device: $('gg-device').value, adapter: $('gg-adapter').value,
+      raw: $('gg-raw').checked, ids: $('gg-ids').value, gpuWeights: $('gg-gpuweights').value, threads: $('gg-threads').value,
     });
     if (r.error) {
       panel.elements.status.textContent = r.error;

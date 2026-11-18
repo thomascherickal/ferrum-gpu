@@ -4,6 +4,7 @@
 
 pub mod kinds;
 pub mod scan;
+pub mod tokenizer;
 
 use crate::json::Json;
 use ferrum_gguf::{Gguf, Value};
@@ -69,6 +70,8 @@ pub struct Info {
     pub tensors: Vec<TensorRow>,
     /// There were more tensors than rows listed.
     pub truncated: bool,
+    /// The tokenizer the file carries, if any.
+    pub tokenizer: Option<tokenizer::TokInfo>,
 }
 
 /// A metadata value as text: strings quoted and cut, arrays summarised.
@@ -173,6 +176,7 @@ pub fn inspect_with(path: &Path, max_header: u64) -> Result<Info, String> {
         kinds,
         metadata: g.kv.iter().map(|(k, v)| (k.clone(), show(v))).collect(),
         truncated: g.tensors.len() > rows.len(),
+        tokenizer: tokenizer::tokenizer_info(&g),
         tensors: rows,
     })
 }
@@ -190,6 +194,19 @@ pub fn to_json(i: &Info) -> Json {
         ("n_kv", num(i.n_kv as u64)),
         ("parameters", num(i.parameters)),
         ("tensor_bytes", num(i.tensor_bytes)),
+        (
+            "tokenizer",
+            i.tokenizer.as_ref().map_or(Json::Null, |t| {
+                Json::obj([
+                    ("model", Json::Str(t.model.clone())),
+                    ("tokens", num(t.tokens as u64)),
+                    (
+                        "chat_format",
+                        t.chat_format.map_or(Json::Null, |f| Json::Str(f.into())),
+                    ),
+                ])
+            }),
+        ),
         (
             "kinds",
             Json::Arr(

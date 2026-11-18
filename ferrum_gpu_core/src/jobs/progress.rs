@@ -35,6 +35,8 @@ pub enum Event {
         loss: f64,
         /// `exp(loss)`.
         perplexity: f64,
+        /// Bits per byte of text, when the command reports it (models with their own tokenizer).
+        bits_per_byte: Option<f64>,
     },
     /// The validation loss after an epoch.
     Val {
@@ -75,6 +77,9 @@ pub fn parse_line(line: &str) -> Option<Event> {
                 tokens: words.get(1)?.parse().ok()?,
                 loss: words.get(3)?.parse().ok()?,
                 perplexity: words.get(5)?.parse().ok()?,
+                bits_per_byte: (words.get(6) == Some(&"bits/byte:"))
+                    .then(|| words.get(7)?.parse().ok())
+                    .flatten(),
             })
         }
         "epoch" if words.get(2) == Some(&"val") && words.get(3) == Some(&"loss") => {
@@ -115,11 +120,13 @@ impl Event {
                 tokens,
                 loss,
                 perplexity,
+                bits_per_byte,
             } => Json::obj([
                 ("kind", Json::Str("eval".into())),
                 ("tokens", n(*tokens as f64)),
                 ("loss", n(*loss)),
                 ("perplexity", n(*perplexity)),
+                ("bits_per_byte", bits_per_byte.map_or(Json::Null, n)),
             ]),
             Event::Val { epoch, loss, best } => Json::obj([
                 ("kind", Json::Str("val".into())),

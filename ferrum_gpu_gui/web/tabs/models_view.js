@@ -45,3 +45,17 @@ export function rowMatches(row, q) {
   const s = String(q ?? '').trim().toLowerCase();
   return s === '' || row.name.toLowerCase().includes(s) || row.kind.toLowerCase().includes(s);
 }
+
+/**
+ * What the file's tokenizer is, as a sentence: the family, the vocabulary and, for an instruct model,
+ * the chat format its prompts are wrapped in. Empty for a file without a vocabulary.
+ */
+export function tokenizerLine(info) {
+  const t = info.tokenizer;
+  if (!t) return '';
+  const family = { gpt2: 'byte-level BPE', bpe: 'byte-level BPE', llama: 'SentencePiece', spm: 'SentencePiece' }[t.model] ?? t.model;
+  const chat = t.chat_format
+    ? `instruct model: Generate wraps the prompt in the ${t.chat_format} chat format (tick "Raw prompt" to turn it off)`
+    : 'no chat format: the prompt is used as written';
+  return `tokenizer: ${family}, ${t.tokens.toLocaleString('en-US')} tokens · ${chat}`;
+}

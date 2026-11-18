@@ -1,7 +1,7 @@
 // Node tests of the Models tab's text helpers.
 // usage: node models.test.mjs
 import assert from 'node:assert/strict';
-import { dimsText, paramsText, timeText, summaryLine, kindsText, rowMatches } from '../web/tabs/models_view.js';
+import { dimsText, paramsText, timeText, summaryLine, kindsText, rowMatches, tokenizerLine } from '../web/tabs/models_view.js';
 
 let checks = 0;
 const eq = (a, b) => { assert.deepEqual(a, b); checks++; };
@@ -34,5 +34,13 @@ const row = { name: 'blk.0.attn_q.weight', kind: 'Q8_0' };
 ok(rowMatches(row, '')); ok(rowMatches(row, '  ')); ok(rowMatches(row, undefined));
 ok(rowMatches(row, 'BLK.0')); ok(rowMatches(row, 'q8')); ok(rowMatches(row, ' attn_q '));
 ok(!rowMatches(row, 'blk.1')); ok(!rowMatches(row, 'f32'));
+
+// ---- the tokenizer line
+eq(tokenizerLine(info), '');
+eq(tokenizerLine({ ...info, tokenizer: { model: 'gpt2', tokens: 151936, chat_format: 'ChatML' } }),
+  'tokenizer: byte-level BPE, 151,936 tokens · instruct model: Generate wraps the prompt in the ChatML chat format (tick "Raw prompt" to turn it off)');
+eq(tokenizerLine({ ...info, tokenizer: { model: 'llama', tokens: 32000, chat_format: null } }),
+  'tokenizer: SentencePiece, 32,000 tokens · no chat format: the prompt is used as written');
+eq(tokenizerLine({ ...info, tokenizer: { model: 'wpm', tokens: 5, chat_format: null } }).startsWith('tokenizer: wpm, 5 tokens'), true);
 
 console.log(`OK ${checks} checks`);

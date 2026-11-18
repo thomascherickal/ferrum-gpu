@@ -140,6 +140,14 @@
         <button type="button" class="browse">Browse…</button>
         <div class="picker-panel" hidden></div>
       </div>
+      <h3>Model shape (over the size above)</h3>
+      <div class="row">
+        <label>Width <input id="gt-embed" type="number" min="1" placeholder="preset"></label>
+        <label>Heads <input id="gt-heads" type="number" min="1" placeholder="preset"></label>
+        <label>Blocks <input id="gt-blocks" type="number" min="1" placeholder="preset"></label>
+        <label>Hidden size <input id="gt-hidden" type="number" min="1" placeholder="preset"></label>
+        <label>Window stride <input id="gt-stride" type="number" min="0" placeholder="0"></label>
+      </div>
       <h3>Optimiser</h3>
       <div class="row">
         <label>Weight decay <input id="gt-wd" type="number" step="any" min="0" max="1" placeholder="0"></label>
@@ -159,6 +167,7 @@
         <label>Patience (epochs) <input id="gt-patience" type="number" min="1"></label>
         <label>Time limit (seconds) <input id="gt-maxsec" type="number" step="any" min="1"></label>
         <label class="check"><input id="gt-sample" type="checkbox"> Print a sample at the end</label>
+        <label>Metrics CSV file <input id="gt-metrics" type="text" spellcheck="false" placeholder="metrics.csv"></label>
       </div>
       <h3>Checkpoints</h3>
       <div class="row">
@@ -204,6 +213,7 @@
     </div>
     <p id="md-summary" class="result" role="status" aria-live="polite"></p>
     <p id="md-kinds" class="muted"></p>
+    <p id="md-tokenizer" class="muted"></p>
     <h3>Tensors</h3>
     <label>Filter by name or type <input id="md-filter" type="text" spellcheck="false" placeholder="for example blk.0 or Q8_0"></label>
     <p id="md-more" class="muted"></p>
@@ -313,6 +323,14 @@
           <select id="gg-device"><option value="auto">automatic</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select>
         </label>
         <label>GPU adapter <select id="gg-adapter"></select></label>
+      </div>
+      <div class="row">
+        <label class="check"><input id="gg-raw" type="checkbox"> Raw prompt (no chat template)</label>
+        <label>Token ids instead of text <input id="gg-ids" type="text" spellcheck="false" placeholder="1 15043"></label>
+        <label>GPU weights
+          <select id="gg-gpuweights"><option value="">f32 (as loaded)</option><option value="f16">f16</option><option value="q8_0">Q8_0</option><option value="q4_0">Q4_0</option></select>
+        </label>
+        <label>CPU threads <input id="gg-threads" type="number" min="1" placeholder="all"></label>
       </div>
       <label class="block">Stop strings (one per line; \n, \t and \\ are unescaped)
         <textarea id="gg-stop" rows="2" spellcheck="false" placeholder="generation ends before the first match"></textarea>
