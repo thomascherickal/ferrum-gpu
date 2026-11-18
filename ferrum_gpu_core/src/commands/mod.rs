@@ -18,7 +18,6 @@ use crate::session::{DeviceChoice, Session};
 use crate::tokenizer::{decode, encode};
 use ferrum_gguf::Gguf;
 use ferrum_model::checkpoint::atomic_write;
-use ferrum_model::gpt2_gguf::Quant;
 use ferrum_model::llama_gguf::{from_gguf, to_gguf};
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::Gpu;
@@ -362,10 +361,6 @@ pub fn gpu_weights(v: Option<&str>) -> Result<Option<ferrum_wgpu::ops_quant::QKi
     }
 }
 
-fn quant(a: &Args) -> Result<Quant, String> {
-    gpt2::quant(a, "f32")
-}
-
 fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {
     let model = if finetune {
         load(a.need("--model")?)?
@@ -383,7 +378,7 @@ fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {
         seed: a.num("--seed", 1u64)?,
     };
     spec.validate(&model.cfg)?;
-    let q = quant(a)?;
+    let q = gpt2::quant(a, "f32")?;
     let target = a.need("--out")?;
     let app = app(a, Workload::Train)?;
     device_line(out, &app)?;

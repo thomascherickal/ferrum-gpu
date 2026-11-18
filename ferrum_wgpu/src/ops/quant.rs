@@ -56,6 +56,19 @@ impl QKind {
         })
     }
 
+    /// The name reports and tables print.
+    pub fn label(self) -> &'static str {
+        match self {
+            QKind::Q8_0 => "Q8_0",
+            QKind::Q4_0 => "Q4_0",
+            QKind::F16 => "F16",
+            QKind::Fp4 => "MXFP4",
+            QKind::Fp8E4M3 => "FP8 E4M3",
+            QKind::Fp8E5M2 => "FP8 E5M2",
+            QKind::Q2K => "Q2_K",
+        }
+    }
+
     /// Elements per block along the input axis.
     pub fn elems(self) -> usize {
         if self == QKind::Q2K {
@@ -297,7 +310,7 @@ pub enum QPath {
 // before trusting it there (an Apple GPU has not been run).
 pub fn choose(rows: usize, kind: QKind, k: usize, n: usize) -> QPath {
     match (rows, kind) {
-        (_, k) if !k.is_core() => QPath::Naive,
+        (_, kind) if !kind.is_core() => QPath::Naive,
         (1, _) if n <= k => QPath::Gemv,
         (1, _) | (_, QKind::Q4_0) => QPath::Naive,
         _ => QPath::Tiled,
@@ -328,17 +341,17 @@ pub fn linear_q_with(
     need("linear_q y", y, rows * w.n)?;
     let uniform = [rows as u32, w.k as u32, w.n as u32, w.kind.id()];
     let buffers = [x, &w.buf, y];
-    let path = if path == QPath::Auto {
-        choose(rows, w.kind, w.k, w.n)
-    } else {
-        path
-    };
     // ponytail: the formats added after Q8_0/Q4_0/F16 have one kernel (one invocation per output
     // element); a per-column and a tiled variant can be added and chosen from measurements.
     if !w.kind.is_core() {
         let p = pipe!(gpu, "quant/qlinear_ext")?;
         return gpu.dispatch_1d(&p, &buffers, &uniform, rows * w.n);
     }
+    let path = if path == QPath::Auto {
+        choose(rows, w.kind, w.k, w.n)
+    } else {
+        path
+    };
     match path {
         QPath::Naive | QPath::Auto => {
             let p = pipe!(gpu, "quant/qlinear")?;

@@ -94,10 +94,14 @@ pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
             "tensor type {ty} is read-only: it can be loaded but not written"
         )));
     }
-    let mut out = Vec::with_capacity(nbytes(ty, data.len())?);
+    let size = nbytes(ty, data.len())?; // also refuses a length that is not whole blocks
     match ty {
-        GGML_Q2_K => out = crate::q2k::encode(data),
-        GGML_MXFP4 => out = crate::mxfp4::encode(data),
+        GGML_Q2_K => return Ok(crate::q2k::encode(data)),
+        GGML_MXFP4 => return Ok(crate::mxfp4::encode(data)),
+        _ => {}
+    }
+    let mut out = Vec::with_capacity(size);
+    match ty {
         GGML_F32 => data
             .iter()
             .for_each(|v| out.extend_from_slice(&v.to_le_bytes())),

@@ -53,8 +53,6 @@ fn sizes_eligibility_and_the_memory_ratio() {
     assert!(eligible_for(QKind::Fp4, 96) && !eligible_for(QKind::Q2K, 96));
     assert!(eligible_for(QKind::Q2K, 768) && !eligible_for(QKind::Q2K, 0));
     assert_eq!(packed_words(QKind::Q2K, 256, usize::MAX), None, "overflow");
-    // against 1024 bytes of f32 per 256 elements: MXFP4 8 x 20, FP8 8 x 36, Q2_K 88
-    assert!((8.0 * 128.0 / (8.0 * 20.0) - 6.4f64).abs() < 1e-9);
 }
 
 #[test]

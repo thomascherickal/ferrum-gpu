@@ -98,17 +98,7 @@ pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Resul
         return Err(e);
     }
     Ok(Speed {
-        precision: quant
-            .map_or("f32", |q| match q {
-                QKind::Q8_0 => "Q8_0",
-                QKind::Q4_0 => "Q4_0",
-                QKind::F16 => "F16",
-                QKind::Fp4 => "MXFP4",
-                QKind::Fp8E4M3 => "FP8 E4M3",
-                QKind::Fp8E5M2 => "FP8 E5M2",
-                QKind::Q2K => "Q2_K",
-            })
-            .into(),
+        precision: quant.map_or("f32", QKind::label).into(),
         model_mib: plan(&c, quant).total() as f64 / 1048576.0,
         decode_tps: tps(TOKENS, decode_ms),
         prefill_tps: tps(TOKENS, prefill_ms),

@@ -1,7 +1,7 @@
 //! A model wide enough for Q2_K (width 256, hidden 512) in the precisions added after Q4_0, trained
 //! once per test process like the shared fixture.
 
-use super::model::{ferrum_ok, SENTENCE};
+use super::model::{ferrum_ok, s, SENTENCE};
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
@@ -19,10 +19,6 @@ impl Wide {
     pub fn all(&self) -> [(&'static str, &Path); 3] {
         [("f16", &self.f16), ("fp4", &self.fp4), ("q2", &self.q2)]
     }
-}
-
-fn s(p: &Path) -> &str {
-    p.to_str().unwrap()
 }
 
 /// The shared wide fixture (trained on first use).

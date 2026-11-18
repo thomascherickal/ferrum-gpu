@@ -46,7 +46,7 @@ impl Fixture {
     }
 }
 
-fn s(p: &Path) -> &str {
+pub fn s(p: &Path) -> &str {
     p.to_str().unwrap()
 }
 

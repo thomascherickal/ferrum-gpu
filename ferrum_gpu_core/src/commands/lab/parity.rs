@@ -30,18 +30,12 @@ fn config() -> Config {
 /// A model whose matrices are whole 256-element blocks, for Q2_K (the small one has none).
 fn config_k() -> Config {
     Config {
-        vocab: 17,
-        ctx: 10,
         dim: 256,
-        heads: 4,
-        kv_heads: 2,
         head_dim: 64,
         layers: 1,
         hidden: 512,
         rope_dim: 64,
-        rope_base: 10000.0,
-        rope_type: RopeType::Norm,
-        eps: 1e-5,
+        ..config()
     }
 }
 
@@ -63,12 +57,12 @@ fn err(e: impl std::fmt::Display) -> String {
 }
 
 /// Prefill of `w` stored as `kind` on the GPU against the CPU reference over the dequantised model.
-fn quant_check(gpu: &Gpu, w: &Llama, kind: QKind, name: &str) -> Result<Check, String> {
+fn quant_check(gpu: &Gpu, w: &Llama, kind: QKind) -> Result<Check, String> {
     let oracle = dequantised(w, kind).map_err(err)?;
     let want = oracle.forward_logits(&IDS).map_err(err)?;
     let m = GpuLlama::new(gpu, w, Some(kind), None).map_err(err)?;
     Ok(check(
-        &format!("prefill, {name} (against the dequantised reference)"),
+        &format!("prefill, {} (against the dequantised reference)", kind.label()),
         max_rel_err(&m.forward_all(&IDS).map_err(err)?, &want),
     ))
 }
@@ -94,18 +88,18 @@ pub fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
     }
     out.push(check("decode with the KV cache, f32", worst));
 
-    for (kind, name) in [
-        (QKind::F16, "F16"),
-        (QKind::Q8_0, "Q8_0"),
-        (QKind::Q4_0, "Q4_0"),
-        (QKind::Fp4, "MXFP4"),
-        (QKind::Fp8E4M3, "FP8 E4M3"),
-        (QKind::Fp8E5M2, "FP8 E5M2"),
+    for kind in [
+        QKind::F16,
+        QKind::Q8_0,
+        QKind::Q4_0,
+        QKind::Fp4,
+        QKind::Fp8E4M3,
+        QKind::Fp8E5M2,
     ] {
-        out.push(quant_check(gpu, &w, kind, name)?);
+        out.push(quant_check(gpu, &w, kind)?);
     }
     let wk = Llama::random(config_k(), 12, true, false);
-    out.push(quant_check(gpu, &wk, QKind::Q2K, "Q2_K")?);
+    out.push(quant_check(gpu, &wk, QKind::Q2K)?);
 
     let whole = GpuLlama::new(gpu, &w, None, None).map_err(err)?;
     let cut = GpuLlama::with_binding_limit(gpu, &w, None, None, BLOCK_LIMIT).map_err(err)?;
