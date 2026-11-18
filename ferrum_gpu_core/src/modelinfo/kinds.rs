@@ -18,6 +18,7 @@ const TYPES: &[(u32, &str, u64, u64)] = &[
     (14, "Q6_K", 256, 210),
     (15, "Q8_K", 256, 292),
     (30, "BF16", 1, 2),
+    (39, "MXFP4", 32, 17),
 ];
 
 /// The name of a tensor type, or `type N` for one this table does not know.

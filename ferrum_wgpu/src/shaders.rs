@@ -156,6 +156,10 @@ pub static SOURCES: &[(&str, &str)] = &[
     ("quant/qgemv", include_str!("shaders/quant/qgemv.wgsl")),
     ("quant/qlinear", include_str!("shaders/quant/qlinear.wgsl")),
     (
+        "quant/qlinear_ext",
+        include_str!("shaders/quant/qlinear_ext.wgsl"),
+    ),
+    (
         "quant/qlinear_tiled",
         include_str!("shaders/quant/qlinear_tiled.wgsl"),
     ),

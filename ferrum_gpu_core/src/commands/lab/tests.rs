@@ -67,8 +67,8 @@ fn the_text_report_on_an_available_adapter_passes_and_names_everything() {
     .unwrap();
     assert!(r.passed(), "{}", r.text());
     assert_eq!(r.when, "2026-11-17");
-    assert_eq!(r.checks.len(), 6);
-    assert_eq!(r.speeds.len(), 4);
+    assert_eq!(r.checks.len(), 10);
+    assert_eq!(r.speeds.len(), 8);
     assert!(r.cpu_prefill_tps.unwrap() > 0.0);
     assert_eq!(r.adapter.as_ref().unwrap().name, gpu.info().name);
     assert!(r.adapter.as_ref().unwrap().budget.contains("memory"));

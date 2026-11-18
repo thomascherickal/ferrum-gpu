@@ -14,7 +14,7 @@ mod tests;
 
 use crate::gpt2_gguf::Quant;
 use ferrum_gguf::quant::encode;
-use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value, GGML_F32, GGML_Q4_0, GGML_Q8_0, QK};
+use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value};
 use ferrum_ref::llama::{transpose, Block, Config, Llama, RopeScaling, RopeType};
 
 fn err(m: impl Into<String>) -> GgufError {
@@ -224,11 +224,7 @@ impl Out {
         if self.skip.iter().any(|s| s == name) {
             return;
         }
-        let ty = match self.quant {
-            Quant::Q8_0 if ne0.is_multiple_of(QK) => GGML_Q8_0,
-            Quant::Q4_0 if ne0.is_multiple_of(QK) => GGML_Q4_0,
-            _ => GGML_F32,
-        };
+        let ty = self.quant.tensor_type(ne0);
         let bytes = encode(ty, data).expect("block-aligned by the check above");
         self.b
             .tensor_raw(name, &[ne0 as u64, rows as u64], ty, bytes);

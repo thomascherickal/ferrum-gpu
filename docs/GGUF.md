@@ -8,8 +8,8 @@ ferrum-gpu reads and writes GGUF **v3**. The container code is in `ferrum_gguf`;
 - **Parser:** `Gguf::parse(bytes)` is safe against hostile input: every read is bounds-checked, sizes use
   checked arithmetic, and nothing is allocated from a header number before it is shown to fit in the file.
   Malformed files are `GgufError` values, never panics.
-- **Element types read:** F32, F16, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, Q8_1 (blocks of 32) and the k-quants Q2_K, Q3_K, Q4_K, Q5_K, Q6_K (super-blocks of 256). The block types other than Q8_0/Q4_0 are **read only**: they are dequantized to f32 on load (formulas from ggml, cross-checked against ferrum-cpu's dequantizers; unit-tested on hand-computed blocks, not yet against a real downloaded file, because none is kept in this repository) and can be re-written with `export-gguf`. Integer types I16 and I32 are accepted as raw bytes for token files. Any other ggml tensor type (for example Q8_K, IQ formats, BF16) is refused with `unsupported ggml tensor type N`.
-- **Element types written:** F32, Q8_0, Q4_0.
+- **Element types read:** F32, F16, Q8_0, Q4_0, Q4_1, Q5_0, Q5_1, Q8_1 (blocks of 32) and the k-quants Q2_K, Q3_K, Q4_K, Q5_K, Q6_K (super-blocks of 256). The block types other than Q8_0, Q4_0, MXFP4 and Q2_K are **read only**: they are dequantized to f32 on load (formulas from ggml, cross-checked against ferrum-cpu's dequantizers; unit-tested on hand-computed blocks, not yet against a real downloaded file, because none is kept in this repository) and can be re-written with `export-gguf`. Integer types I16 and I32 are accepted as raw bytes for token files. Any other ggml tensor type (for example Q8_K, IQ formats, BF16) is refused with `unsupported ggml tensor type N`.
+- **Element types written:** F32, F16, Q8_0, Q4_0, MXFP4 (type 39) and Q2_K (type 10); see [quantization.md](quantization.md). ferrum-cpu cannot read F16, MXFP4 or Q2_K tensors; llama.cpp can.
 - **Writer:** `GgufBuilder` builds files for exports, fixtures and checkpoints. Default alignment is 32.
 - **Codecs:** `quant::{decode, encode}` and `f16`. Encoding rounds half away from zero and stores the block
   scale as an f16, so `encode(decode(x))` is value-idempotent (the bytes can differ for blocks whose f16
@@ -41,7 +41,7 @@ Read by `ferrum_model::llama_gguf::from_gguf`, written by `to_gguf(model, Quant)
 | Grouped-query attention | `attention.head_count_kv` smaller than `head_count`, with `attention.key_length` for the head size |
 | RoPE | `rope.freq_base`, `rope.dimension_count` (partial rotary supported) |
 | RoPE scaling | Supported: none, `linear` (`rope.scaling.factor` or `scale_linear`) and a `rope_freqs.weight` tensor. **Refused:** `yarn`, `longrope`, and any `attn_factor` other than 1, because running them unscaled would be silently wrong |
-| Quantisation on write | `Quant::F32`, `Q8_0` or `Q4_0`; matrices whose input dimension is not a multiple of 32 stay F32 |
+| Quantisation on write | `Quant::F32`, `F16`, `Q8_0`, `Q4_0`, `Fp4` (MXFP4) or `Q2K`; a matrix whose input dimension is not a whole number of blocks stays F32 (Q2_K falls back to Q4_0 at multiples of 32) |
 
 Anything outside this table is reported as an error that names the problem; a model that loads is a model
 that runs correctly.

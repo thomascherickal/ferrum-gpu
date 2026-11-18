@@ -158,7 +158,7 @@
         <label>Dropout <input id="gt-dropout" type="number" step="any" min="0" max="0.99" placeholder="0"></label>
         <label class="check"><input id="gt-qat" type="checkbox" checked> Quantisation-aware training</label>
         <label>Save as
-          <select id="gt-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+          <select id="gt-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option><option value="f16">f16 (half size)</option><option value="fp4">FP4 (MXFP4)</option><option value="q2">Q2_K (2-bit)</option></select>
         </label>
       </div>
       <h3>Validation and stopping</h3>
@@ -257,7 +257,7 @@
         <label>Time limit (seconds) <input id="ft-maxsec" type="number" step="any" min="1"></label>
         <label class="check"><input id="ft-qat" type="checkbox" checked> Quantisation-aware training</label>
         <label>Save as
-          <select id="ft-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+          <select id="ft-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option><option value="f16">f16 (half size)</option><option value="fp4">FP4 (MXFP4)</option><option value="q2">Q2_K (2-bit)</option></select>
         </label>
         <label>Run on
           <select id="ft-device"><option value="auto">automatic</option><option value="gpu">GPU</option><option value="cpu">CPU</option></select>
@@ -288,7 +288,7 @@
     <div class="row">
       <label>Window (tokens) <input id="ev-ctx" type="number" min="2" placeholder="model context"></label>
       <label>Precision
-        <select id="ev-quant"><option value="">as saved</option><option value="f32">f32</option><option value="int8">int8</option><option value="int4">int4</option></select>
+        <select id="ev-quant"><option value="">as saved</option><option value="f32">f32</option><option value="int8">int8</option><option value="int4">int4</option><option value="f16">f16</option><option value="fp4">FP4 (MXFP4)</option><option value="q2">Q2_K</option></select>
       </label>
       <label>Write a JSON report <input id="ev-json" type="text" spellcheck="false" placeholder="result.json"></label>
       <button id="ev-start" type="button">Evaluate</button>
@@ -328,7 +328,7 @@
         <label class="check"><input id="gg-raw" type="checkbox"> Raw prompt (no chat template)</label>
         <label>Token ids instead of text <input id="gg-ids" type="text" spellcheck="false" placeholder="1 15043"></label>
         <label>GPU weights
-          <select id="gg-gpuweights"><option value="">f32 (as loaded)</option><option value="f16">f16</option><option value="q8_0">Q8_0</option><option value="q4_0">Q4_0</option></select>
+          <select id="gg-gpuweights"><option value="">f32 (as loaded)</option><option value="f16">f16</option><option value="q8_0">Q8_0</option><option value="q4_0">Q4_0</option><option value="fp4">FP4 (MXFP4)</option><option value="fp8">FP8 (E4M3)</option><option value="fp8e5m2">FP8 (E5M2)</option><option value="q2_k">Q2_K</option></select>
         </label>
         <label>CPU threads <input id="gg-threads" type="number" min="1" placeholder="all"></label>
       </div>
@@ -353,7 +353,7 @@
     <div class="row">
       <label>Write to <input id="exg-out" type="text" spellcheck="false" placeholder="my-model-int4.gguf"></label>
       <label>Precision
-        <select id="exg-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option></select>
+        <select id="exg-quant"><option value="">int8 (default)</option><option value="int8">int8</option><option value="int4">int4</option><option value="f32">f32 (exact)</option><option value="f16">f16 (half size)</option><option value="fp4">FP4 (MXFP4)</option><option value="q2">Q2_K (2-bit)</option></select>
       </label>
       <button id="exg-run" type="button">Export GGUF</button>
     </div>

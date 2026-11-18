@@ -7,6 +7,7 @@ pub mod model;
 pub mod ollama_server;
 pub mod proc;
 pub mod tools;
+pub mod wide;
 
 /// Print why a test is skipped and return from it: `skip!("no llama.cpp")`.
 #[macro_export]

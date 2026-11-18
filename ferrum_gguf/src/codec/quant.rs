@@ -1,9 +1,12 @@
-//! Tensor element encodings: sizes, decode to f32 and encode from f32 (F32, F16, Q8_0, Q4_0).
+//! Tensor element encodings: sizes, decode to f32 and encode from f32 (F32, F16, Q8_0, Q4_0, Q2_K,
+//! MXFP4).
 
 use crate::blocks::{dequant, layout};
 use crate::f16::{f16_to_f32, f32_to_f16};
 use crate::reader::GgufError;
-use crate::{GGML_F16, GGML_F32, GGML_I16, GGML_I32, GGML_Q4_0, GGML_Q8_0, QK};
+use crate::{
+    GGML_F16, GGML_F32, GGML_I16, GGML_I32, GGML_MXFP4, GGML_Q2_K, GGML_Q4_0, GGML_Q8_0, QK,
+};
 
 fn err(m: impl Into<String>) -> GgufError {
     GgufError(m.into())
@@ -86,13 +89,15 @@ pub fn decode(ty: u32, bytes: &[u8], n: usize) -> Result<Vec<f32>, GgufError> {
 
 /// Encode f32 data as type `ty` (round-half-away for Q8_0, like llama.cpp's reference quantiser).
 pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
-    if layout(ty).is_some() {
+    if layout(ty).is_some() && !matches!(ty, GGML_Q2_K | GGML_MXFP4) {
         return Err(err(format!(
             "tensor type {ty} is read-only: it can be loaded but not written"
         )));
     }
     let mut out = Vec::with_capacity(nbytes(ty, data.len())?);
     match ty {
+        GGML_Q2_K => out = crate::q2k::encode(data),
+        GGML_MXFP4 => out = crate::mxfp4::encode(data),
         GGML_F32 => data
             .iter()
             .for_each(|v| out.extend_from_slice(&v.to_le_bytes())),
@@ -130,13 +135,12 @@ pub fn encode(ty: u32, data: &[f32]) -> Result<Vec<u8>, GgufError> {
 mod tests {
     #[test]
     fn read_only_block_types_have_sizes_and_decode_but_cannot_be_encoded() {
-        use crate::{GGML_Q2_K, GGML_Q4_1, GGML_Q4_K, GGML_Q5_0, GGML_Q5_1, GGML_Q6_K, GGML_Q8_1};
+        use crate::{GGML_Q4_1, GGML_Q4_K, GGML_Q5_0, GGML_Q5_1, GGML_Q6_K, GGML_Q8_1};
         for (ty, bytes, elems) in [
             (GGML_Q4_1, 20, 32),
             (GGML_Q5_0, 22, 32),
             (GGML_Q5_1, 24, 32),
             (GGML_Q8_1, 36, 32),
-            (GGML_Q2_K, 84, 256),
             (GGML_Q4_K, 144, 256),
             (GGML_Q6_K, 210, 256),
         ] {
@@ -148,6 +152,21 @@ mod tests {
                 "length is checked"
             );
             assert!(encode(ty, &vec![0.0; elems]).is_err());
+        }
+    }
+
+    #[test]
+    fn q2_k_and_mxfp4_have_sizes_and_can_be_written_and_read_back() {
+        for (ty, bytes, elems) in [(GGML_Q2_K, 84, 256), (GGML_MXFP4, 17, 32)] {
+            assert_eq!(nbytes(ty, elems * 3).unwrap(), bytes * 3);
+            assert!(nbytes(ty, elems + 1).unwrap_err().0.contains("multiple"));
+            let data = (0..elems * 2)
+                .map(|i| ((i * 37 % 101) as f32 - 50.0) / 13.0)
+                .collect::<Vec<_>>();
+            let enc = encode(ty, &data).unwrap();
+            assert_eq!(enc.len(), bytes * 2);
+            assert_eq!(decode(ty, &enc, data.len()).unwrap().len(), data.len());
+            assert!(encode(ty, &data[..elems + 1]).is_err(), "whole blocks only");
         }
     }
 

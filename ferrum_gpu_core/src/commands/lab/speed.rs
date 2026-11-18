@@ -103,6 +103,10 @@ pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Resul
                 QKind::Q8_0 => "Q8_0",
                 QKind::Q4_0 => "Q4_0",
                 QKind::F16 => "F16",
+                QKind::Fp4 => "MXFP4",
+                QKind::Fp8E4M3 => "FP8 E4M3",
+                QKind::Fp8E5M2 => "FP8 E5M2",
+                QKind::Q2K => "Q2_K",
             })
             .into(),
         model_mib: plan(&c, quant).total() as f64 / 1048576.0,
@@ -123,11 +127,20 @@ pub fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
     fault.map_or(Ok(tps(TOKENS, ms)), Err)
 }
 
-/// All three precisions.
+/// Every precision.
 pub fn run(gpu: &Gpu, size: Size, reps: usize) -> Result<(Vec<Speed>, f64), String> {
     let w = Llama::random(size.config(), 5, false, false);
     let mut speeds = Vec::new();
-    for q in [None, Some(QKind::F16), Some(QKind::Q8_0), Some(QKind::Q4_0)] {
+    for q in [
+        None,
+        Some(QKind::F16),
+        Some(QKind::Q8_0),
+        Some(QKind::Q4_0),
+        Some(QKind::Fp4),
+        Some(QKind::Fp8E4M3),
+        Some(QKind::Fp8E5M2),
+        Some(QKind::Q2K),
+    ] {
         speeds.push(measure(gpu, &w, q, reps)?);
     }
     Ok((speeds, cpu_prefill(&w, reps)?))

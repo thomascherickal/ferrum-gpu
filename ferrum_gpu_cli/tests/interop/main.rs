@@ -8,6 +8,8 @@
 //! - `gguf`: the file's structure, checked against what llama.cpp's loader requires (no tool needed).
 //! - `llamacpp`: tokenizer ids and greedy text agree with `llama-tokenize` / `llama-completion`
 //!   for f32, Q8_0 and Q4_0 files; files `llama-quantize` writes are read here.
+//! - `formats`: F16, MXFP4 and Q2_K files have the ggml types llama.cpp expects, llama.cpp continues
+//!   the prompt as we do, and our Q2_K encoder is as accurate as `llama-quantize`'s.
 //! - `ollama`: `export-ollama` registers a model with a real `ollama serve` (private HOME and model
 //!   directory, CPU only) and its raw greedy text equals ours.
 //! - `lmstudio`: `export-lmstudio` runs the right `lms` commands (a fake `lms`: the real one writes
@@ -15,6 +17,7 @@
 
 #![cfg(unix)]
 
+mod formats;
 mod gguf;
 mod llamacpp;
 mod lmstudio;

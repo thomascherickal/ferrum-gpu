@@ -37,6 +37,7 @@ eq(one({ dropout: '0.1' }), ['--dropout', '0.1']);
 eq(one({ qat: true }), []);                                          // on is the CLI default
 eq(one({ qat: false }), ['--no-qat']);
 eq(one({ quant: 'int4' }), ['--quant', 'int4']);
+for (const q of ['f16', 'fp4', 'q2']) eq(one({ quant: q }), ['--quant', q]);
 eq(one({ val: '0.1' }), ['--val', '0.1']);
 eq(one({ val: '0.1', patience: '3' }), ['--val', '0.1', '--patience', '3']);
 eq(one({ maxSeconds: '60' }), ['--max-seconds', '60']);

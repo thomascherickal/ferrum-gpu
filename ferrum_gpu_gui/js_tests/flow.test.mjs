@@ -80,6 +80,15 @@ eq(generateArgs({ ...g0, gpuWeights: 'f32' }), { args: ['--model', 'm.gguf', '--
 ok(generateArgs({ ...g0, gpuWeights: 'q5' }).error.includes('GPU weights must be one of'));
 ok(generateArgs({ ...g0, threads: '0' }).error.includes('Threads'));
 
+// ---- the new precisions are accepted everywhere a precision is chosen
+for (const q of ['f16', 'fp4', 'q2']) {
+  eq(evalArgs({ model: 'm', data: 'd', quant: q }).args.slice(-2), ['--quant', q]);
+  eq(finetuneArgs({ ...ft, quant: q }).args.slice(-2), ['--quant', q]);
+}
+for (const w of ['fp4', 'fp8', 'fp8e5m2', 'q2_k']) {
+  eq(generateArgs({ model: 'm.gguf', prompt: 'hi', gpuWeights: w }).args.slice(-2), ['--gpu-weights', w]);
+}
+
 // ---- the eval sentence
 eq(resultText(null), '');
 eq(resultText({ tokens: 4096, loss: 2.34567, perplexity: 10.4421 }), 'perplexity 10.442 · loss 2.3457 · over 4096 tokens');

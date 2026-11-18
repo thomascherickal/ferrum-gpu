@@ -1,4 +1,5 @@
 use super::*;
+use ferrum_gguf::{GGML_F32, GGML_Q4_0, GGML_Q8_0};
 
 fn cfg(ty: RopeType) -> Config {
     Config {

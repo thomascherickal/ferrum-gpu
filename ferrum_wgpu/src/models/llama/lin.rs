@@ -5,7 +5,7 @@ use super::shard::{blocks, column_block};
 use crate::device::{Gpu, GpuError};
 use crate::matmul::Matmul;
 use crate::ops;
-use crate::ops_quant::{linear_q, packed_words, upload_quantised, QKind, QWeight};
+use crate::ops_quant::{effective, linear_q, packed_words, upload_quantised, QKind, QWeight};
 use crate::tensor::GpuBuf;
 
 /// A weight matrix `[k, n]` resident on the device.
@@ -34,6 +34,7 @@ impl Lin {
         quant: Option<QKind>,
         limit: u64,
     ) -> Result<Lin, GpuError> {
+        let quant = quant.map(|q| effective(q, k));
         let col_bytes = match quant.filter(|&q| packed_words(q, k, n).is_some()) {
             Some(q) => packed_words(q, k, 1).unwrap_or(k) as u64 * 4,
             None => k as u64 * 4,

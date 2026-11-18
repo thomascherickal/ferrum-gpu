@@ -85,7 +85,7 @@ fn errors_name_the_problem() {
     ))
     .contains("unknown preset"));
     assert!(run_err(&format!(
-        "train --arch llama --device cpu --data {data} --out {out} --quant q2"
+        "train --arch llama --device cpu --data {data} --out {out} --quant fp9"
     ))
     .contains("--quant"));
     assert!(run_err(&format!(

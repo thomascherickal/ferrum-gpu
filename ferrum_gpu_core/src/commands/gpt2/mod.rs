@@ -129,16 +129,13 @@ impl Sizes {
     }
 }
 
-/// `--quant`: ferrum-cpu's `int8`/`int4`/`f32` or our `q8_0`/`q4_0`.
+/// The precisions `--quant` takes, for the error message.
+pub const QUANT_NAMES: &str = "f32, f16, int8/q8_0, int4/q4_0, fp4/mxfp4, q2/q2_k";
+
+/// `--quant`: ferrum-cpu's `int8`/`int4`/`f32`, our `q8_0`/`q4_0`, and `f16`, `fp4` (MXFP4), `q2` (Q2_K).
 pub fn quant(a: &Args, default: &str) -> Result<Quant, String> {
-    match a.get("--quant").unwrap_or(default) {
-        "f32" => Ok(Quant::F32),
-        "q8_0" | "int8" => Ok(Quant::Q8_0),
-        "q4_0" | "int4" => Ok(Quant::Q4_0),
-        o => Err(format!(
-            "--quant: unknown '{o}' (f32, int8/q8_0, int4/q4_0)"
-        )),
-    }
+    let v = a.get("--quant").unwrap_or(default);
+    Quant::parse(v).ok_or_else(|| format!("--quant: unknown '{v}' ({QUANT_NAMES})"))
 }
 
 /// Model-size flags.

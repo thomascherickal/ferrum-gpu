@@ -258,7 +258,7 @@ export async function run(params) {
     if (/no usable|needs a GPU/.test(labState)) {
       steps.push('gpulab:no-adapter');
     } else {
-      check(/PASS: 6 of 6 parity checks passed/.test($('gl-summary').textContent), `lab summary: ${$('gl-summary').textContent} / ${labState}`);
+      check(/PASS: 10 of 10 parity checks passed/.test($('gl-summary').textContent), `lab summary: ${$('gl-summary').textContent} / ${labState}`);
       check(JSON.parse($('gl-report').value).format === 1, 'the JSON report is in the box');
       steps.push('gpulab');
     }

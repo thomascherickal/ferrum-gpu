@@ -43,7 +43,7 @@ $ ferrum-gpu generate --model m.gguf --prompt "the c" --max-new 24
 the cat sat on the mat. the c
 ```
 
-`generate` prints the prompt followed by the new tokens. `eval` runs on the CPU oracle over non-overlapping windows of the context, and measures the same corpus it trained on (no held-out split). Fine-tuning a GGUF file is `finetune-gguf --model m.gguf --data ... --out g.gguf` with the same training flags; `--quant q8_0|q4_0` quantises the file that is written.
+`generate` prints the prompt followed by the new tokens. `eval` runs on the CPU oracle over non-overlapping windows of the context, and measures the same corpus it trained on (no held-out split). Fine-tuning a GGUF file is `finetune-gguf --model m.gguf --data ... --out g.gguf` with the same training flags; `--quant q8_0|q4_0` quantises the file that is written (`f16`, `fp4` and `q2` too; see [quantization.md](quantization.md)).
 
 ### Memory pre-flight
 
@@ -181,3 +181,10 @@ Our file is byte-identical to the one ferrum-cpu's `tokenize` wrote (`ferrum_mod
 On the 7-document corpus in `fixtures/prepare/` the three split files are byte-identical to what ferrum-cpu's `prepare` wrote, and the manifest hashes and counts are equal (a test). Not verified: a large corpus run against ferrum-cpu. Not ported: progress callbacks and the stop hook.
 
 `dvc.yaml`, `params.yaml` and `scripts/fetch.sh` give the fetch, prepare, train, eval pipeline. DVC itself was not run (not installed here); the same stages were run by hand on the BPE fixture corpus: prepare, train (loss 5.6535), eval (perplexity 278.05).
+
+## Precisions (2026-11-18)
+
+`--quant` (train, finetune-gguf, export-gguf, eval) takes `f32`, `f16`, `int8`/`q8_0`, `int4`/`q4_0`, `fp4`/`mxfp4` and
+`q2`/`q2_k`. `--gpu-weights` (how a GPU decoder stores weights, converted at load) takes `f32`, `f16`, `q8_0`, `q4_0`,
+`fp4`, `fp8` (E4M3), `fp8e5m2` and `q2_k`; FP8 exists only there, never in a file. Details, the llama.cpp checks and
+what was not run: [quantization.md](quantization.md).

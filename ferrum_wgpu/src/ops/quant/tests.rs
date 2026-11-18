@@ -24,7 +24,7 @@ fn nasty(n: usize) -> Vec<f32> {
 
 /// What the CPU sees for a quantised `[k, n]` weight: decode of the GGUF bytes, `[n, k]` rows.
 fn decoded_rows(kind: QKind, bytes: &[u8], k: usize, n: usize) -> Vec<f32> {
-    decode(kind.ggml(), bytes, k * n).unwrap()
+    decode(kind.ggml().unwrap(), bytes, k * n).unwrap()
 }
 
 #[test]

@@ -9,7 +9,7 @@
 pub mod codec;
 pub mod io;
 
-pub use codec::{blocks, f16, quant};
+pub use codec::{blocks, f16, fp8, mxfp4, q2k, quant};
 pub use io::{reader, writer};
 
 pub use reader::{Gguf, GgufError, TensorInfo, Value};
@@ -49,6 +49,8 @@ pub const GGML_Q5_K: u32 = 13;
 pub const GGML_Q6_K: u32 = 14;
 /// ggml tensor type: 8-bit blocks of 32 with an f16 scale.
 pub const GGML_Q8_0: u32 = 8;
+/// ggml tensor type: MXFP4, blocks of 32 4-bit E2M1 floats sharing an E8M0 scale.
+pub const GGML_MXFP4: u32 = 39;
 /// Values per quantisation block.
 pub const QK: usize = 32;
 /// Values per k-quant super-block.

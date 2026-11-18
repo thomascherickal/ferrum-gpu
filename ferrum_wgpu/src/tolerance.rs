@@ -25,6 +25,13 @@ pub fn max_rel_err(got: &[f32], want: &[f32]) -> f32 {
     })
 }
 
+/// Relative tolerance for a whole forward pass of a model stored as Q2_K. Looser than [`FORWARD`]
+/// because a Q2_K value is `d * q - m`: the two terms nearly cancel, so one fused multiply-subtract on
+/// the device against two roundings on the CPU is a larger relative difference in the value, which
+/// WGSL cannot be told to avoid. Calibrated 2026-11-18: worst observed 1.15e-5 on the MX330,
+/// 1.29e-5 on the Intel Xe and 1.04e-5 on llvmpipe; about 4x margin.
+pub const Q2K_FORWARD: f32 = 5e-5;
+
 #[cfg(test)]
 mod tests {
     use super::*;

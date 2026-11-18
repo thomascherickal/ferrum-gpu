@@ -11,11 +11,11 @@ const err = (r, needle) => { ok(r.error && r.error.includes(needle), `${JSON.str
 // ---- export-gguf
 eq(exportGgufArgs({ model: 'a.gguf', out: 'b.gguf' }), { args: ['--model', 'a.gguf', '--out', 'b.gguf'] });
 eq(exportGgufArgs({ model: ' a.gguf ', out: ' b.gguf ', quant: 'int4' }).args, ['--model', 'a.gguf', '--out', 'b.gguf', '--quant', 'int4']);
-for (const q of ['f32', 'int8', 'int4']) ok(exportGgufArgs({ model: 'a', out: 'b', quant: q }).args);
+for (const q of ['f32', 'int8', 'int4', 'f16', 'fp4', 'q2']) ok(exportGgufArgs({ model: 'a', out: 'b', quant: q }).args);
 err(exportGgufArgs({ out: 'b' }), 'model to export');
 err(exportGgufArgs({ model: 'a' }), 'new file');
 err(exportGgufArgs({ model: 'a', out: 'a' }), 'different file');
-err(exportGgufArgs({ model: 'a', out: 'b', quant: 'q8_0' }), 'f32, int8 or int4');
+err(exportGgufArgs({ model: 'a', out: 'b', quant: 'q8_0' }), 'int8, int4, f32, f16, fp4, q2');
 
 // ---- export-ollama
 eq(exportOllamaArgs({ model: 'a.gguf', name: 'my-model' }), { args: ['--model', 'a.gguf', '--name', 'my-model'] });

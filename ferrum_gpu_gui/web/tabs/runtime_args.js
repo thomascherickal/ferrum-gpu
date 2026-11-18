@@ -1,6 +1,8 @@
 // Argument builders for the Export and Serve tabs, with the same refusals the server applies, so a
 // mistake is caught before a job is started. Pure: `{ args }` or `{ error }`, tested under node.
 
+import { QUANTS } from './train_args.js';
+
 const blank = (v) => String(v ?? '').trim() === '';
 const text = (v) => String(v ?? '').trim();
 
@@ -18,7 +20,7 @@ export function exportGgufArgs(f) {
   if (text(f.out) === text(f.model)) return { error: 'The new file must be a different file from the model.' };
   const args = ['--model', text(f.model), '--out', text(f.out)];
   if (!blank(f.quant)) {
-    if (!['f32', 'int8', 'int4'].includes(f.quant)) return { error: 'Precision must be f32, int8 or int4.' };
+    if (!QUANTS.includes(f.quant)) return { error: `Precision must be one of ${QUANTS.join(', ')}.` };
     args.push('--quant', f.quant);
   }
   return { args };

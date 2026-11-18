@@ -8,6 +8,8 @@
 mod embed;
 mod forward;
 mod lin;
+#[cfg(test)]
+mod quant_ext_tests;
 mod shard;
 #[cfg(test)]
 mod sharded_tests;
@@ -19,10 +21,11 @@ use crate::device::{Gpu, GpuError};
 use crate::matmul::{Matmul, Variant};
 use crate::ops;
 use crate::ops_llama;
-use crate::ops_quant::{eligible, packed_words, quantise_matrix, QKind};
+use crate::ops_quant::{
+    dequantise_bytes, effective, eligible_for, packed_words, quantise_matrix, QKind,
+};
 use crate::tensor::GpuBuf;
 use embed::Embedding;
-use ferrum_gguf::quant::decode;
 use ferrum_ref::llama::{rope_tables, transpose, Config, Llama};
 use lin::Lin;
 
@@ -95,6 +98,7 @@ fn f32s(n: usize) -> u64 {
 /// Bytes a `k x n` matrix occupies on the device under `quant`.
 fn matrix_bytes(quant: Option<QKind>, k: usize, n: usize) -> u64 {
     quant
+        .map(|q| effective(q, k))
         .and_then(|q| packed_words(q, k, n))
         .map_or(f32s(k * n), f32s)
 }
@@ -183,11 +187,12 @@ pub fn plan_limited(c: &Config, quant: Option<QKind>, limit: u64) -> BufferPlan 
 /// this is the oracle for a quantised run of an f32 model.
 pub fn dequantised(m: &Llama, quant: QKind) -> Result<Llama, GpuError> {
     let snap = |w: &[f32], k: usize, n: usize| -> Result<Vec<f32>, GpuError> {
-        if !eligible(k) {
+        let quant = effective(quant, k);
+        if !eligible_for(quant, k) {
             return Ok(w.to_vec());
         }
         let bytes = quantise_matrix(quant, w, k, n)?;
-        let rows = decode(quant_ggml(quant), &bytes, k * n).map_err(|e| err(e.to_string()))?;
+        let rows = dequantise_bytes(quant, &bytes, k * n)?;
         Ok(transpose(&rows, n, k))
     };
     let c = &m.cfg;
@@ -205,14 +210,6 @@ pub fn dequantised(m: &Llama, quant: QKind) -> Result<Llama, GpuError> {
     out.tied = out.tied && head == m.head;
     out.head = head;
     Ok(out)
-}
-
-fn quant_ggml(q: QKind) -> u32 {
-    match q {
-        QKind::Q8_0 => ferrum_gguf::GGML_Q8_0,
-        QKind::Q4_0 => ferrum_gguf::GGML_Q4_0,
-        QKind::F16 => ferrum_gguf::GGML_F16,
-    }
 }
 
 impl<'g> GpuLlama<'g> {

@@ -6,7 +6,8 @@ fn every_check_passes_on_an_available_adapter() {
         return;
     };
     let checks = run(&gpu).unwrap();
-    assert_eq!(checks.len(), 6, "{checks:?}");
+    // f32 prefill, decode, six precisions on the small model, Q2_K on the wide one, blocks
+    assert_eq!(checks.len(), 10, "{checks:?}");
     for c in &checks {
         assert!(
             c.ok(),

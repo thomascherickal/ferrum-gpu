@@ -144,7 +144,21 @@ fn quant_accepts_both_spellings() {
     assert_eq!(q("--quant int8").unwrap(), Quant::Q8_0);
     assert_eq!(q("--quant f32").unwrap(), Quant::F32);
     assert_eq!(q("").unwrap(), Quant::Q8_0);
-    assert!(q("--quant q2").unwrap_err().contains("unknown"));
+    for (s, want) in [
+        ("--quant f16", Quant::F16),
+        ("--quant fp16", Quant::F16),
+        ("--quant fp4", Quant::Fp4),
+        ("--quant mxfp4", Quant::Fp4),
+        ("--quant q2", Quant::Q2K),
+        ("--quant q2_k", Quant::Q2K),
+    ] {
+        assert_eq!(q(s).unwrap(), want, "{s}");
+    }
+    let e = q("--quant fp9").unwrap_err();
+    assert!(
+        e.contains("unknown 'fp9'") && e.contains(QUANT_NAMES),
+        "{e}"
+    );
 }
 
 #[test]

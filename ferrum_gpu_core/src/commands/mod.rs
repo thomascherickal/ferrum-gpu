@@ -29,7 +29,7 @@ use std::sync::{Arc, Mutex};
 pub const USAGE: &str = "usage: ferrum-gpu <command> [flags]\n\
 commands:\n  \
 info          [--model F.gguf]\n  \
-train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|int8|int4]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie --dropout RATE --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
+train         --data FILE --out F.gguf [--arch gpt2|llama] [--preset tiny|small|medium] [--steps N | --epochs N | --tokens N] [--lr X] [--batch N] [--context N] [--seed N] [--quant f32|f16|int8|int4|fp4|q2]\n                gpt2 only: --embed --heads --blocks --hidden --vocab --stride --weight_decay --cosine --warmup --clip --no-qat --tie --dropout RATE --vocab 0 (character-level bytes) --tokenizer F --checkpoint F --checkpoint-every N --resume F --val X --patience N --max-seconds X --metrics-csv F --verbose --sample\n  \
 finetune-gguf --model F.gguf --data FILE --out G.gguf [same training flags]\n  \
 run           --data FILE --model F.gguf --prompt TEXT [train and generate flags]   (trains F.gguf on FILE if it does not exist, then generates; a model that exists is loaded as is)\n  \
 generate      --model F.gguf --prompt TEXT [--max-new N] [--temperature X] [--top-k N] [--seed N]\n                gpt2 files also: --top-p X --repetition-penalty X --stop S (repeatable) --stream --ids \"1 2 3\" (aliases --temp --gen-seed --max-tokens --chars)\n  \
@@ -38,10 +38,10 @@ prepare       --input FILE|DIR (repeatable) --out DIR [--nfkc] [--lowercase] [--
 tokenize      --data FILE|DIR --tokenizer TOK.gguf --out TOKENS.gguf [--doc-sep S]   (a token file trains with `train --data TOKENS.gguf --tokenizer TOK.gguf`, windows read from disk)\n  \
 export-ollama --model F.gguf --name NAME [--bin P] [--modelfile-only OUT]   (GPT-2 files; needs the `ollama` tool)\n  \
 export-lmstudio --model F.gguf [--repo publisher/name] [--bin P]   (GPT-2 files; needs the `lms` tool)\n  \
-export-gguf   --model F.gguf --out G.gguf [--quant f32|int8|int4]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
-eval          --model F.gguf --data FILE [--ctx N] [--quant f32|int8|int4] [--json F]   (alias: eval-gguf)\n  \
+export-gguf   --model F.gguf --out G.gguf [--quant f32|f16|int8|int4|fp4|q2]   (re-write a model in another precision; reads Q4_1/Q5_*/Q8_1/K-quant files too)\n  \
+eval          --model F.gguf --data FILE [--ctx N] [--quant f32|f16|int8|int4|fp4|q2] [--json F]   (alias: eval-gguf)\n  \
 lab           [--gpu-adapter NAME] [--size small|medium] [--reps N] [--parity-only] [--json]   (GPU against the CPU reference, speed per precision, adapter facts; --json is the file to send back)\n\
-device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --gpu-weights f32|f16|q8_0|q4_0 (how a GPU decoder stores weights; converted at load)  --threads N";
+device flags (info, train, finetune-gguf, generate, run-gguf): --device cpu|gpu|auto  --gpu-adapter NAME  --gpu-mem-mb N  --gpu-weights f32|f16|q8_0|q4_0|fp4|fp8|fp8e5m2|q2_k (how a GPU decoder stores weights; converted at load; fp8 is never written to a file)  --threads N";
 
 const DEVICE: [Flag; 5] = [
     val("--gpu-weights"),
@@ -352,19 +352,18 @@ pub fn gpu_weights(v: Option<&str>) -> Result<Option<ferrum_wgpu::ops_quant::QKi
         "f16" => Ok(Some(QKind::F16)),
         "q8_0" => Ok(Some(QKind::Q8_0)),
         "q4_0" => Ok(Some(QKind::Q4_0)),
+        "fp4" | "mxfp4" => Ok(Some(QKind::Fp4)),
+        "fp8" | "fp8e4m3" => Ok(Some(QKind::Fp8E4M3)),
+        "fp8e5m2" => Ok(Some(QKind::Fp8E5M2)),
+        "q2" | "q2_k" => Ok(Some(QKind::Q2K)),
         o => Err(format!(
-            "--gpu-weights: unknown '{o}' (f32, f16, q8_0, q4_0)"
+            "--gpu-weights: unknown '{o}' (f32, f16, q8_0, q4_0, fp4, fp8 (E4M3), fp8e5m2, q2_k)"
         )),
     }
 }
 
 fn quant(a: &Args) -> Result<Quant, String> {
-    match a.get("--quant").unwrap_or("f32") {
-        "f32" => Ok(Quant::F32),
-        "q8_0" => Ok(Quant::Q8_0),
-        "q4_0" => Ok(Quant::Q4_0),
-        o => Err(format!("--quant: unknown '{o}' (f32, q8_0, q4_0)")),
-    }
+    gpt2::quant(a, "f32")
 }
 
 fn train(a: &Args, out: &mut dyn Write, finetune: bool) -> Result<(), String> {

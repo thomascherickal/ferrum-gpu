@@ -9,20 +9,11 @@
 //! A missing `output.weight` means the head is tied to `token_embd.weight`.
 
 use ferrum_gguf::quant::encode;
-use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value, GGML_F32, GGML_Q4_0, GGML_Q8_0, QK};
+use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value};
 use ferrum_ref::gpt2::{Block, Config, Gpt2};
 use ferrum_ref::nn::LN_EPS;
 
-/// On-disk precision for matrices (vectors are always F32).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Quant {
-    /// 32-bit float.
-    F32,
-    /// Q8_0 where the input dimension is a multiple of 32, else F32.
-    Q8_0,
-    /// Q4_0 where the input dimension is a multiple of 32, else F32.
-    Q4_0,
-}
+pub use super::quant::Quant;
 
 fn err(m: impl Into<String>) -> GgufError {
     GgufError(m.into())
@@ -149,11 +140,7 @@ impl Out {
 
     /// `rows` GGML rows of `ne0` values, quantised per the precision when `ne0 % 32 == 0`.
     fn rows(&mut self, name: &str, data: &[f32], rows: usize, ne0: usize) {
-        let ty = match self.quant {
-            Quant::Q8_0 if ne0.is_multiple_of(QK) => GGML_Q8_0,
-            Quant::Q4_0 if ne0.is_multiple_of(QK) => GGML_Q4_0,
-            _ => GGML_F32,
-        };
+        let ty = self.quant.tensor_type(ne0);
         let bytes = encode(ty, data).expect("block-aligned by the check above");
         self.b
             .tensor_raw(name, &[ne0 as u64, rows as u64], ty, bytes);
@@ -199,17 +186,7 @@ pub fn to_gguf_with(m: &Gpt2, quant: Quant, tok: Option<&ferrum_tok::ByteBpeToke
     o.b.meta("general.name", Value::Str("ferrum-gpu Transformer".into()));
     o.b.meta("general.quantization_version", Value::U32(2));
     o.b.meta("ferrum.format", Value::U32(1));
-    o.b.meta(
-        "ferrum.quant",
-        Value::Str(
-            match quant {
-                Quant::F32 => "f32",
-                Quant::Q8_0 => "int8",
-                Quant::Q4_0 => "int4",
-            }
-            .into(),
-        ),
-    );
+    o.b.meta("ferrum.quant", Value::Str(quant.tag().into()));
     o.b.meta("ferrum.normalizer", Value::Str(String::new()));
     o.b.meta("ferrum.metadata", Value::Str(ferrum_metadata(c)));
     if let Some(t) = tok {
@@ -258,6 +235,7 @@ pub fn to_gguf_with(m: &Gpt2, quant: Quant, tok: Option<&ferrum_tok::ByteBpeToke
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ferrum_gguf::{GGML_F32, GGML_Q8_0};
 
     fn cfg(dim: usize) -> Config {
         Config {
