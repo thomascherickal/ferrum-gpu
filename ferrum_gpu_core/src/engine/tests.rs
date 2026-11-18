@@ -371,3 +371,30 @@ fn a_gpu_decoder_with_stored_weights_stays_close_to_the_f32_one() {
         assert_eq!(b.generate(&w, &prompt, &opts).unwrap().len(), 4, "{q:?}");
     }
 }
+
+#[test]
+fn the_gpu_gpt2_decoder_matches_the_cpu_one_token_by_token() {
+    use ferrum_ref::gpt2::{Config as GptConfig, Gpt2};
+    let Some(g) = open_for_test() else { return };
+    let w = Gpt2::init(
+        GptConfig {
+            vocab: 20,
+            ctx: 8,
+            dim: 32,
+            heads: 4,
+            layers: 1,
+            hidden: 64,
+        },
+        5,
+    );
+    let (cpu, gpu) = (CpuBackend::new(1), GpuBackend::new(Arc::new(g)));
+    let (mut fc, mut fg) = (cpu.gpt2_decoder(&w).unwrap(), gpu.gpt2_decoder(&w).unwrap());
+    for t in [1usize, 5, 3, 9] {
+        let (a, b) = (fc(t).unwrap(), fg(t).unwrap());
+        let worst = ferrum_wgpu::tolerance::max_rel_err(&b, &a);
+        assert!(
+            worst < ferrum_wgpu::tolerance::FORWARD,
+            "token {t}: {worst}"
+        );
+    }
+}
