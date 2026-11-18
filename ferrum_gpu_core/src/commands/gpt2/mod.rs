@@ -6,7 +6,7 @@
 //! one used for imported Llama/Qwen files and `--arch llama`.
 
 #[cfg(test)]
-mod error_paths;
+pub(crate) mod error_paths;
 mod extras;
 pub mod gen;
 mod hooks;

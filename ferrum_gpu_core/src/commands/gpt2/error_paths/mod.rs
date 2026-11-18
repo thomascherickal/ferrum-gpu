@@ -3,7 +3,7 @@
 //! about ten thousand parameters.
 
 mod generate;
-mod sweep;
+pub(crate) mod sweep;
 mod train;
 
 use crate::commands::run;
@@ -79,13 +79,13 @@ pub(super) fn run_failing(cmd: &str, budget: usize) -> Result<(), String> {
 
 /// A writer that succeeds for `n` writes and then fails every write: the `n`-th place a command
 /// writes its output is the first one to fail.
-pub(super) struct FailNth {
+pub(crate) struct FailNth {
     n: usize,
     calls: usize,
 }
 
 impl FailNth {
-    pub(super) fn new(n: usize) -> Self {
+    pub(crate) fn new(n: usize) -> Self {
         FailNth { n, calls: 0 }
     }
 }

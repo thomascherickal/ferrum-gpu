@@ -9,7 +9,7 @@ use std::io::Write;
 
 /// Run `cmd` with the output failing from write `n` for every `n` until it succeeds; returns how
 /// many writes the successful run made (so a command that never writes is noticed).
-fn sweep(cmd: &str) -> usize {
+pub(crate) fn sweep(cmd: &str) -> usize {
     for n in 0..400 {
         match run(&words(cmd), &mut FailNth::new(n)) {
             Ok(()) => return n,
@@ -60,6 +60,12 @@ fn info_generate_eval_and_export_report_a_closed_output_at_every_write() {
             "tokenize --data {c} --tokenizer {t} --out {d}/c.tok.gguf"
         )) > 0
     );
+    // `run` on a model that exists loads it instead of training
+    assert!(
+        sweep(&format!(
+            "run --device cpu --data {c} --model {m} --prompt the --max-new 3"
+        )) > 0
+    );
     // prepare wants at least three documents
     let docs = format!("{d}/docs.txt");
     let text: Vec<String> = (0..12)
@@ -78,7 +84,7 @@ fn training_reports_a_closed_output_at_every_write() {
     let (d, c) = scratch("sweep_train");
     let (c, d) = (c.display(), d.display());
     let gpt2 = format!(
-        "train {FAST} --epochs 2 --vocab 300 --val 0.2 --patience 1 --sample --verbose --data {c} --out {d}/g.gguf --tokenizer {d}/g.tok.gguf"
+        "train {FAST} --epochs 2 --vocab 300 --val 0.2 --patience 1 --sample --verbose --dropout 0.99 --data {c} --out {d}/g.gguf --tokenizer {d}/g.tok.gguf"
     );
     assert!(sweep(&gpt2) > 0);
     let llama = format!("train --arch llama --device cpu --preset tiny --steps 3 --batch 2 --context 16 --data {c} --out {d}/l.gguf");
