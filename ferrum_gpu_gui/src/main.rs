@@ -42,9 +42,7 @@ fn main() {
         Ok(server) => {
             say!("ferrum-gpu GUI: {}", server.url());
             say!("press Ctrl-C to stop");
-            loop {
-                std::thread::park();
-            }
+            ferrum_gpu_core::hold::hold();
         }
         Err(e) => {
             eprintln!("{e}");

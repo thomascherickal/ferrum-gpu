@@ -21,6 +21,7 @@ pub mod capacity;
 pub mod commands;
 pub mod engine;
 pub mod fsapi;
+pub mod hold;
 pub mod http;
 pub mod jobs;
 pub mod json;

@@ -258,6 +258,8 @@ fn bad_input_gets_a_clear_error_and_never_a_crash() {
     assert!(err(post(p, "/api/model", r#"{"seed":-1}"#)).contains("seed"));
     assert!(err(call(p, "POST", "/api/model", &[0xff, 0xfe])).contains("UTF-8"));
     assert_eq!(post(p, "/api/model", r#"{"preset":"tiny"}"#).status, 200);
+    assert!(err(post(p, "/api/train", "{")).contains("bad JSON"));
+    assert!(err(post(p, "/api/generate", "{")).contains("bad JSON"));
     assert!(err(post(p, "/api/train", "{}")).contains("'text'"));
     assert!(err(post(p, "/api/train", r#"{"text":"short"}"#)).contains("needs more"));
     assert!(err(post(
@@ -502,4 +504,24 @@ fn the_browser_self_test_result_is_stored_and_returned() {
     );
     assert_eq!(get(p, "/api/selftest/result").text(), r#"{"pass":true}"#);
     srv.stop();
+}
+
+#[test]
+fn a_model_over_the_parameter_limit_is_refused_with_413_and_the_old_model_stays() {
+    // a tiny model, exported from one server and imported into another whose limit is lower
+    let (a, _app) = serve(cpu_app());
+    post(a.addr.port(), "/api/model", r#"{"preset":"tiny","seed":3}"#);
+    let gguf = get(a.addr.port(), "/api/model.gguf?quant=f32").body;
+    let mut small = cpu_app();
+    small.max_params = 10;
+    let (b, _app) = serve(small);
+    let r = call(b.addr.port(), "PUT", "/api/model.gguf", &gguf);
+    assert_eq!(r.status, 413, "{}", r.text());
+    assert!(r.text().contains("holds at most 10"), "{}", r.text());
+    // under the limit the same file is accepted
+    let (c, _app) = serve(cpu_app());
+    assert_eq!(
+        call(c.addr.port(), "PUT", "/api/model.gguf", &gguf).status,
+        200
+    );
 }

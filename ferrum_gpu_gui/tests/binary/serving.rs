@@ -48,3 +48,18 @@ fn the_first_lines_name_the_device_and_the_address() {
     child.kill().ok();
     child.wait().ok();
 }
+
+#[test]
+fn with_a_serve_time_it_serves_then_exits_normally() {
+    let o = std::process::Command::new(env!("CARGO_BIN_EXE_ferrum_gpu_gui"))
+        .args(["--port", "0", "--device", "auto", "--threads", "1"])
+        .env("FERRUM_SERVE_SECONDS", "1")
+        .output()
+        .unwrap();
+    let out = String::from_utf8_lossy(&o.stdout);
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    assert!(
+        out.contains("ferrum-gpu GUI: http://127.0.0.1:") && out.contains("press Ctrl-C"),
+        "{out}"
+    );
+}

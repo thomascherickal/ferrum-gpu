@@ -34,7 +34,12 @@ fn status_json(s: &Status) -> Json {
 }
 
 fn tool(name: &str, env: &str, fallback: &str) -> Json {
-    let (path, note) = match find_tool(None, env, name, fallback) {
+    tool_json(name, find_tool(None, env, name, fallback))
+}
+
+/// How the page is told about a tool: where it is, or why it was not found.
+fn tool_json(name: &str, found: Result<std::path::PathBuf, String>) -> Json {
+    let (path, note) = match found {
         Ok(p) => (Json::Str(p.to_string_lossy().into_owned()), Json::Null),
         Err(e) => (Json::Null, Json::Str(e)),
     };

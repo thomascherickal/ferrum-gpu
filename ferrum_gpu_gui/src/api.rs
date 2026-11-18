@@ -329,11 +329,12 @@ fn import(app: &App, req: &Request) -> Response {
         .map_err(|e| e.to_string())
         .and_then(|g| from_gguf(&g).map_err(|e| e.to_string()));
     match parsed {
-        Ok(m) if m.num_params() > MAX_PARAMS => Response::error(
+        Ok(m) if m.num_params() > app.max_params => Response::error(
             413,
             &format!(
-                "the model has {} parameters; the GUI holds at most {MAX_PARAMS}",
-                m.num_params()
+                "the model has {} parameters; the GUI holds at most {}",
+                m.num_params(),
+                app.max_params
             ),
         ),
         Ok(m) => {

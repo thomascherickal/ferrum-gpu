@@ -13,9 +13,7 @@ fn main() {
         return;
     }
     match boot(&args, &mut std::io::stdout()) {
-        Ok(_running) => loop {
-            std::thread::park();
-        },
+        Ok(_running) => ferrum_gpu_core::hold::hold(),
         Err(e) => {
             eprintln!("{e}");
             std::process::exit(2);

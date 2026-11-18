@@ -61,6 +61,8 @@ pub struct App {
     pub jobs: crate::jobs::Jobs,
     /// The JSON server the Serve tab can run in this process.
     pub serve: ferrum_gpu_core::serving::host::ServeSlot,
+    /// Most parameters a model imported over HTTP may have (a larger one is refused with 413).
+    pub max_params: usize,
 }
 
 /// Lock, recovering the data if a worker panicked while holding the lock.
@@ -121,17 +123,14 @@ impl App {
             selftest: Mutex::new(None),
             jobs: crate::jobs::Jobs::default(),
             serve: ferrum_gpu_core::serving::host::ServeSlot::new(),
+            max_params: crate::api::MAX_PARAMS,
         }
     }
 
-    /// Start a training run on a copy of the current model. Errors if there is no model, a run
-    /// is already going, or the spec does not fit the model.
-    pub fn start_training(self: &Arc<Self>, spec: TrainSpec) -> Result<(), String> {
-        self.start_training_validated(spec, 0.0)
-    }
-
-    /// [`App::start_training`] holding out the last `val_fraction` of the text: the run trains on
-    /// the rest, and its progress reports the loss on the held-out part before and after.
+    /// Start a training run on a copy of the current model, holding out the last `val_fraction` of the
+    /// text (`0.0` holds nothing out): the run trains on the rest, and its progress reports the loss on
+    /// the held-out part before and after. Errors if there is no model, a run is already going, or the
+    /// spec does not fit the model.
     pub fn start_training_validated(
         self: &Arc<Self>,
         mut spec: TrainSpec,
