@@ -212,7 +212,7 @@ impl Decoder for Gpt2Decoder {
             self.model.cfg.ctx,
             &self.tok.encode_docs(prompt),
             &o,
-            &mut |_| {},
+            None,
         )
     }
 

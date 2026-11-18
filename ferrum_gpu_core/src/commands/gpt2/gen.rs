@@ -109,8 +109,13 @@ pub fn run(
     ctx: usize,
     prompt: &[usize],
     o: &Opts,
-    emit: &mut dyn FnMut(&str),
+    mut emit: Option<&mut dyn FnMut(&str)>,
 ) -> Result<(String, usize), String> {
+    let mut send = |s: &str| {
+        if let Some(e) = emit.as_mut() {
+            e(s);
+        }
+    };
     if prompt.is_empty() {
         return Err("the prompt is empty".into());
     }
@@ -154,7 +159,7 @@ pub fn run(
             text.len()
         };
         if o.stream && safe > shown {
-            emit(&text[shown..safe]);
+            send(&text[shown..safe]);
             shown = safe;
         }
         if history.len() < ctx && new.len() < o.max_new {
@@ -162,7 +167,7 @@ pub fn run(
         }
     }
     if o.stream && text.len() > shown {
-        emit(&text[shown..]);
+        send(&text[shown..]);
     }
     Ok((text, new.len()))
 }
@@ -186,15 +191,7 @@ pub fn sample_text(
     let p = tok.encode(prompt);
     Ok(format!(
         "{prompt}{}",
-        run(
-            &mut *feed,
-            &|ids| tok.decode(ids),
-            m.cfg.ctx,
-            &p,
-            &o,
-            &mut |_| {}
-        )?
-        .0
+        run(&mut *feed, &|ids| tok.decode(ids), m.cfg.ctx, &p, &o, None)?.0
     ))
 }
 
@@ -231,11 +228,11 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
         l.model.cfg.ctx,
         &prompt,
         &o,
-        &mut |s| {
+        Some(&mut |s| {
             if let Err(e) = write!(out, "{s}") {
                 werr.get_or_insert(e.to_string());
             }
-        },
+        }),
     )?;
     if let Some(e) = werr {
         return Err(e);

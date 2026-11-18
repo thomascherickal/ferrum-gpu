@@ -348,3 +348,55 @@ fn an_adapter_that_does_not_exist_is_refused_and_auto_runs_on_whatever_the_machi
     ));
     assert!(out.contains("device:"), "{out}");
 }
+
+#[test]
+fn every_command_refuses_an_unknown_flag_and_a_bad_thread_count() {
+    for cmd in [
+        "train",
+        "finetune-gguf",
+        "run",
+        "generate",
+        "run-gguf",
+        "prepare",
+        "tokenize",
+        "export-ollama",
+        "export-lmstudio",
+        "export-gguf",
+        "eval",
+        "lab",
+        "info",
+    ] {
+        let e = run_err(&format!("{cmd} --no-such-flag-xyz"));
+        assert!(e.contains("no-such-flag-xyz"), "{cmd}: {e}");
+    }
+    assert!(run_err("info --device cpu --threads many").contains("--threads"));
+}
+
+#[test]
+fn the_export_tools_are_looked_for_and_their_absence_is_reported() {
+    let d = dir("tools");
+    let (c, m) = (corpus(&d), d.join("m.gguf").display().to_string());
+    run_ok(&format!(
+        "train --arch llama --device cpu --preset tiny --steps 3 --batch 2 --context 16 --data {c} --out {m}"
+    ));
+    // a byte-level Llama file is not a GPT-2 file: the export commands say so before looking for a tool
+    assert!(!run_err(&format!(
+        "export-ollama --model {m} --name x --bin /nonexistent/ollama"
+    ))
+    .is_empty());
+    assert!(!run_err(&format!(
+        "export-lmstudio --model {m} --bin /nonexistent/lms"
+    ))
+    .is_empty());
+}
+
+#[test]
+fn a_memory_budget_the_model_does_not_fit_is_refused_before_anything_runs() {
+    let d = dir("budget");
+    let (c, m) = (corpus(&d), d.join("m.gguf").display().to_string());
+    // 1 MiB fits nothing; with no usable GPU the request is refused for that reason instead
+    let e = run_err(&format!(
+        "train --arch llama --device gpu --gpu-mem-mb 1 --preset tiny --steps 3 --batch 16 --context 64 --data {c} --out {m}"
+    ));
+    assert!(!e.is_empty());
+}

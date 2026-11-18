@@ -134,11 +134,11 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
         l.model.cfg.ctx,
         &prompt,
         &o,
-        &mut |s| {
+        Some(&mut |s| {
             if let Err(e) = write!(out, "{s}") {
                 werr.get_or_insert(e.to_string());
             }
-        },
+        }),
     )?;
     if let Some(e) = werr {
         return Err(e);

@@ -839,7 +839,7 @@ fn the_token_loop_stops_at_once_when_the_request_is_cancelled() {
         }
         Ok(vec![0.0, 1.0, 0.5])
     };
-    let e = gen::run(&mut feed, &|_| String::new(), 100, &[1, 2], &o, &mut |_| {}).unwrap_err();
+    let e = gen::run(&mut feed, &|_| String::new(), 100, &[1, 2], &o, None).unwrap_err();
     assert_eq!(e, crate::cancel::MESSAGE);
     assert!(fed <= 5, "stopped within a token of the flag: fed {fed}");
 }
@@ -864,4 +864,39 @@ fn the_files_of_a_tokenizer_without_end_of_text_are_joined_with_no_separator_tok
     ));
     let f = ferrum_model::token_file::TokenFile::open(o.to_str().unwrap()).unwrap();
     assert_eq!(f.read(0, 4).unwrap(), vec![97, 98, 99, 100]);
+}
+
+#[test]
+fn a_streamed_reply_that_ends_inside_a_character_still_emits_its_tail() {
+    use ferrum_model::sampling::Params;
+    // byte 0xE2 starts a three-byte character: decoded alone it is U+FFFD, which streaming holds back
+    // in case the next token completes it; when the run ends the held text is emitted
+    let tok = ferrum_tok::ByteBpeTokenizer::byte_level();
+    let mut feed = |_: usize| -> Result<Vec<f32>, String> {
+        let mut l = vec![0.0f32; 256];
+        l[0xE2] = 9.0;
+        Ok(l)
+    };
+    let o = gen::Opts {
+        max_new: 2,
+        params: Params::default(),
+        seed: 1,
+        stops: vec![],
+        stream: true,
+        stop_ids: vec![],
+    };
+    let mut got = String::new();
+    let mut emit = |s: &str| got.push_str(s);
+    let (text, n) = gen::run(
+        &mut feed,
+        &|ids| tok.decode(ids),
+        64,
+        &[1],
+        &o,
+        Some(&mut emit),
+    )
+    .unwrap();
+    assert_eq!(n, 2);
+    assert_eq!(got, text, "everything produced is emitted by the end");
+    assert!(text.contains('\u{fffd}'));
 }

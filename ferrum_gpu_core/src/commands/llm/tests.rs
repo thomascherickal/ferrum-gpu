@@ -242,6 +242,6 @@ fn a_stop_id_ends_the_reply_without_being_printed() {
         stream: false,
         stop_ids: vec![3],
     };
-    let (text, n) = run(&mut feed, &|ids| tok.decode(ids), 64, &[1], &o, &mut |_| {}).unwrap();
+    let (text, n) = run(&mut feed, &|ids| tok.decode(ids), 64, &[1], &o, None).unwrap();
     assert_eq!((text.as_str(), n), ("aa", 2));
 }

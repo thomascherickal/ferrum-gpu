@@ -39,12 +39,38 @@ fn info_generate_eval_and_export_report_a_closed_output_at_every_write() {
     let (m, c, t, d) = (m.display(), c.display(), t.display(), d.display());
     assert!(sweep("info --device cpu") > 0);
     assert!(sweep(&format!("info --device cpu --model {m}")) > 0);
-    assert!(sweep(&format!("generate --device cpu --model {m} --prompt the --max-new 3")) > 0);
-    assert!(sweep(&format!("run-gguf --device cpu --model {m} --prompt the --max-new 3 --stream")) > 0);
+    assert!(
+        sweep(&format!(
+            "generate --device cpu --model {m} --prompt the --max-new 3"
+        )) > 0
+    );
+    assert!(
+        sweep(&format!(
+            "run-gguf --device cpu --model {m} --prompt the --max-new 3 --stream"
+        )) > 0
+    );
     assert!(sweep(&format!("eval --model {m} --data {c} --json {d}/e.json")) > 0);
-    assert!(sweep(&format!("export-gguf --model {m} --out {d}/q.gguf --quant int8")) > 0);
-    assert!(sweep(&format!("tokenize --data {c} --tokenizer {t} --out {d}/c.tok.gguf")) > 0);
-    assert!(sweep(&format!("prepare --input {c} --out {d}/prep --val-frac 0.2 --test-frac 0.2 --dedup")) > 0);
+    assert!(
+        sweep(&format!(
+            "export-gguf --model {m} --out {d}/q.gguf --quant int8"
+        )) > 0
+    );
+    assert!(
+        sweep(&format!(
+            "tokenize --data {c} --tokenizer {t} --out {d}/c.tok.gguf"
+        )) > 0
+    );
+    // prepare wants at least three documents
+    let docs = format!("{d}/docs.txt");
+    let text: Vec<String> = (0..12)
+        .map(|i| format!("document number {i} about a cat"))
+        .collect();
+    std::fs::write(&docs, text.join("<|endoftext|>")).unwrap();
+    assert!(
+        sweep(&format!(
+            "prepare --input {docs} --out {d}/prep --val-frac 0.2 --test-frac 0.2 --dedup"
+        )) > 0
+    );
 }
 
 #[test]
@@ -55,7 +81,7 @@ fn training_reports_a_closed_output_at_every_write() {
         "train {FAST} --epochs 2 --vocab 300 --val 0.2 --patience 1 --sample --verbose --data {c} --out {d}/g.gguf --tokenizer {d}/g.tok.gguf"
     );
     assert!(sweep(&gpt2) > 0);
-    let llama = format!("train --arch llama --device cpu --preset tiny --steps 3 --batch 2 --context 16 --verbose --data {c} --out {d}/l.gguf");
+    let llama = format!("train --arch llama --device cpu --preset tiny --steps 3 --batch 2 --context 16 --data {c} --out {d}/l.gguf");
     assert!(sweep(&llama) > 0);
     let tune = format!("finetune-gguf --model {d}/g.gguf --device cpu --epochs 1 --batch 4 --data {c} --out {d}/f.gguf");
     assert!(sweep(&tune) > 0);

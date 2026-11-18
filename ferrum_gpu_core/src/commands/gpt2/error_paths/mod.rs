@@ -3,6 +3,7 @@
 //! about ten thousand parameters.
 
 mod generate;
+mod sweep;
 mod train;
 
 use crate::commands::run;
@@ -74,4 +75,30 @@ impl Write for FailAfter {
 /// Run `cmd` writing to a [`FailAfter`] writer.
 pub(super) fn run_failing(cmd: &str, budget: usize) -> Result<(), String> {
     run(&words(cmd), &mut FailAfter { budget })
+}
+
+/// A writer that succeeds for `n` writes and then fails every write: the `n`-th place a command
+/// writes its output is the first one to fail.
+pub(super) struct FailNth {
+    n: usize,
+    calls: usize,
+}
+
+impl FailNth {
+    pub(super) fn new(n: usize) -> Self {
+        FailNth { n, calls: 0 }
+    }
+}
+
+impl Write for FailNth {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.calls += 1;
+        if self.calls > self.n {
+            return Err(std::io::Error::other("output closed"));
+        }
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        Ok(())
+    }
 }
