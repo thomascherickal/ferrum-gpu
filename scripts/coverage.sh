@@ -40,5 +40,8 @@ else
 fi
 status=${PIPESTATUS[0]}
 set -e
+# the exact per-line check (every instrumented line executed); see scripts/lcov_check.py
+cargo llvm-cov report --lcov --output-path target/coverage.lcov > /dev/null 2>&1
+python3 scripts/lcov_check.py target/coverage.lcov || status=1
 python3 scripts/metrics.py --coverage "$summary" --floor "${FLOOR:-none}" || echo "metrics.md was not updated" >&2
 exit "$status"

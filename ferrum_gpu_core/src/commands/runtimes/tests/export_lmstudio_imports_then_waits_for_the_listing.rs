@@ -65,6 +65,18 @@ fn export_lmstudio_imports_then_waits_for_the_listing() {
             .unwrap_err()
             .contains("never listed it")
     );
+    // a tool that exists but cannot be started
+    let noexec = d.join("noexec");
+    std::fs::write(&noexec, "not a program").unwrap();
+    let an = Args::parse(
+        &[
+            crate::commands::flags::val("--model"),
+            crate::commands::flags::val("--bin"),
+        ],
+        &w(&format!("--model {m} --bin {}", noexec.display())),
+    )
+    .unwrap();
+    assert!(export_lmstudio_with(&an, &mut Vec::new(), 1, std::time::Duration::ZERO).is_err());
     // without --repo the repo is ferrum/<file stem>
     let ad = Args::parse(
         &[

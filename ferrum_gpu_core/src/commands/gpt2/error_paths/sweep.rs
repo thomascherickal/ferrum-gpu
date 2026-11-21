@@ -10,16 +10,18 @@ use std::io::Write;
 /// Run `cmd` with the output failing from write `n` for every `n` until it succeeds; returns how
 /// many writes the successful run made (so a command that never writes is noticed).
 pub(crate) fn sweep(cmd: &str) -> usize {
-    for n in 0..400 {
-        match run(&words(cmd), &mut FailNth::new(n)) {
-            Ok(()) => return n,
-            Err(e) => assert!(
-                e.contains("output closed"),
+    let finished = (0..400).find(|&n| match run(&words(cmd), &mut FailNth::new(n)) {
+        Ok(()) => true,
+        Err(e) => {
+            let closed = e.contains("output closed");
+            assert!(
+                closed,
                 "write {n} of `{cmd}` failed for another reason: {e}"
-            ),
+            );
+            false
         }
-    }
-    panic!("`{cmd}` still writes after 400 writes");
+    });
+    finished.expect("a command stops writing within 400 writes")
 }
 
 #[test]

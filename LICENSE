@@ -1,6 +1,6 @@
 ================================================================================
 DUAL-LICENSE FRAMEWORK & COMMERCIAL TERMS
-Project: [Project Name]
+Project: ferrum-gpu
 Copyright (c) 2026 Thomas Cherickal. All rights reserved.
 ================================================================================
 
@@ -17,7 +17,7 @@ you agree to the applicable terms set forth below:
 SECTION 1: ROOT LICENSING NOTICE
 --------------------------------------------------------------------------------
 
-[Project Name] is dual-licensed and made available under two distinct licensing
+ferrum-gpu is dual-licensed and made available under two distinct licensing
 options. You may choose to use, copy, modify, and distribute this software
 under the terms of EITHER Option A or Option B below:
 
@@ -40,7 +40,7 @@ The full text of the Server Side Public License v1.0 is provided in the
 companion file `LICENSE-SSPL.txt` in this repository.
 
 OPTION B: Commercial License
-If you wish to incorporate [Project Name] into a proprietary product, offer it
+If you wish to incorporate ferrum-gpu into a proprietary product, offer it
 as a hosted or managed service without disclosing your entire infrastructure and
 management stack under Section 13 of the SSPL, or receive commercial warranties
 and enterprise support, you must obtain a separate Commercial License from
@@ -73,7 +73,7 @@ terms prior to submitting any Contribution:
      the copyright owner that is making this Agreement with Thomas Cherickal.
    - "Contribution" means any original work of authorship, including any
      modifications or additions to an existing work, that is intentionally
-     submitted by You to Thomas Cherickal for inclusion in [Project Name].
+     submitted by You to Thomas Cherickal for inclusion in ferrum-gpu.
 
 2. Grant of Copyright License:
    Subject to the terms of this Agreement, You hereby grant to Thomas Cherickal
@@ -159,9 +159,9 @@ SECTION 4: SOURCE FILE HEADER TEMPLATE (COPY INTO CODE FILES)
 /*
  * Copyright (c) 2026 Thomas Cherickal. All rights reserved.
  *
- * This file is part of [Project Name].
+ * This file is part of ferrum-gpu.
  *
- * [Project Name] is dual-licensed under the Server Side Public License, v1.0
+ * ferrum-gpu is dual-licensed under the Server Side Public License, v1.0
  * (SSPL) and a Commercial License.
  *
  * - For public/source-available use: You may redistribute and/or modify this file

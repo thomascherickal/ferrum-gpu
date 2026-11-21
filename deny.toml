@@ -24,6 +24,8 @@ allow = [
     "CC0-1.0",
     "MPL-2.0",
     "CDLA-Permissive-2.0",
+    # this project's own licence (SSPL v1.0 or a commercial licence from Thomas Cherickal, see LICENSE)
+    "SSPL-1.0",
 ]
 confidence-threshold = 0.8
 

@@ -39,11 +39,8 @@ fn check_fd(name: &str, x: &[f32], g: &[f32], f: &dyn Fn(&[f32]) -> f32) {
         p[i] += h;
         q[i] -= h;
         let num = (f(&p) - f(&q)) / (2.0 * h);
-        assert!(
-            (g[i] - num).abs() < 2e-3 + 1e-2 * num.abs(),
-            "{name}[{i}]: analytic {} vs numeric {num}",
-            g[i]
-        );
+        let close = (g[i] - num).abs() < 2e-3 + 1e-2 * num.abs();
+        assert!(close, "{name}[{i}]: analytic {} vs numeric {num}", g[i]);
     }
 }
 

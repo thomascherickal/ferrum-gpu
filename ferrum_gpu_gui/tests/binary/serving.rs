@@ -63,3 +63,22 @@ fn with_a_serve_time_it_serves_then_exits_normally() {
         "{out}"
     );
 }
+
+#[test]
+fn an_auto_device_that_falls_back_to_the_cpu_says_why_before_the_address() {
+    let mut child = spawn(&[
+        "--port",
+        "0",
+        "--device",
+        "auto",
+        "--gpu-adapter",
+        "no-such-adapter-xyz",
+    ]);
+    let mut lines = std::io::BufReader::new(child.stdout.take().unwrap()).lines();
+    let device = lines.next().unwrap().unwrap();
+    let note = lines.next().unwrap().unwrap();
+    child.kill().ok();
+    child.wait().ok();
+    assert!(device.starts_with("device: CPU"), "{device}");
+    assert!(note.starts_with("note: no usable GPU"), "{note}");
+}

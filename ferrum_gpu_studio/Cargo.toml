@@ -3,7 +3,7 @@ name = "ferrum_gpu_studio"
 description = "Ferrum GPU Studio: the desktop app (Tauri 2) around the ferrum-gpu engine and its web GUI."
 version = "0.1.0"
 edition = "2021"
-license = "MIT"
+license = "SSPL-1.0 OR LicenseRef-Commercial"
 rust-version = "1.87"
 default-run = "ferrum_gpu_studio"
 

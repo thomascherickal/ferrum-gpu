@@ -21,11 +21,8 @@ fn gpt2_files_have_the_promised_types_and_read_back_close() {
         assert_eq!(g.string("ferrum.quant").unwrap(), q.tag());
         let back = gpt2_gguf::from_gguf(&g).unwrap();
         let (a, b) = (&m.blocks[0].w1, &back.blocks[0].w1);
-        assert!(
-            worst_share(a, b) <= bound(q),
-            "{q:?}: {}",
-            worst_share(a, b)
-        );
+        let worst = worst_share(a, b);
+        assert!(worst <= bound(q), "{q:?}: {worst}");
     }
 }
 
@@ -49,11 +46,8 @@ fn llama_files_have_the_promised_types_and_read_back_close() {
         );
         let back = llama_gguf::from_gguf(&g).unwrap();
         let (a, b) = (&m.blocks[0].gate, &back.blocks[0].gate);
-        assert!(
-            worst_share(a, b) <= bound(q),
-            "{q:?}: {}",
-            worst_share(a, b)
-        );
+        let worst = worst_share(a, b);
+        assert!(worst <= bound(q), "{q:?}: {worst}");
     }
 }
 

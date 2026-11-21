@@ -641,4 +641,9 @@ side load on the other through GGUF fixtures stored in this repository.
 
 ## License
 
-MIT, see [`LICENSE`](LICENSE) (also `license` in the workspace `Cargo.toml`).
+ferrum-gpu is available under **either** of these, as set out in [`LICENSE`](LICENSE):
+
+- the **Server Side Public License v1.0** ([`LICENSE-SSPL.txt`](LICENSE-SSPL.txt)), free of charge, or
+- a paid **commercial license** from Thomas Cherickal, for proprietary, hosted or OEM use.
+
+Every manifest says `SSPL-1.0 OR LicenseRef-Commercial`.

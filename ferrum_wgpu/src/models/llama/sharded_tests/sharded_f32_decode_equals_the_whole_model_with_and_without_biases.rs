@@ -71,11 +71,8 @@ fn the_plan_lists_the_blocks_and_keeps_the_total() {
     assert!(
         cut.rows().iter().any(|r| r.0 == "tok_emb.0") && cut.rows().iter().any(|r| r.0 == "head.1")
     );
-    assert!(
-        cut.rows().iter().all(|r| r.1 <= LIMIT),
-        "{:?}",
-        cut.rows().iter().find(|r| r.1 > LIMIT)
-    );
+    let over = cut.rows().iter().find(|r| r.1 > LIMIT);
+    assert!(over.is_none(), "{over:?}");
     cut.check(LIMIT, None).unwrap();
     // no limit means no change
     assert_eq!(plan_limited(&c, None, u64::MAX).rows(), whole.rows());

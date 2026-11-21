@@ -32,3 +32,17 @@ fn reps_shrink_with_work() {
     assert_eq!(reps_for(256, 256, 256), 20);
     assert_eq!(reps_for(512, 512, 512), 7);
 }
+
+#[test]
+fn mib_rounds_bytes_to_whole_mebibytes() {
+    assert_eq!(mib(1024 * 1024), "1");
+    assert_eq!(mib(1536 * 1024), "2");
+    assert_eq!(mib(0), "0");
+}
+
+#[test]
+fn open_gpu_says_so_and_returns_none_for_an_adapter_that_does_not_exist() {
+    assert!(open_named(Some("no-such-adapter-xyz")).is_none());
+    // the environment-driven entry point opens an adapter or reports there is none, never panics
+    let _ = open_gpu();
+}

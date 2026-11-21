@@ -19,11 +19,8 @@ pub(super) fn adam_step_matches_the_hand_computed_first_update_and_clipping_caps
         "no decay on the norm gain"
     );
     let want = before.head[0] + 0.01 - 0.01 * 0.1 * before.head[0];
-    assert!(
-        (m.head[0] - want).abs() < 1e-6,
-        "decayed head: {} vs {want}",
-        m.head[0]
-    );
+    let head = m.head[0];
+    assert!((head - want).abs() < 1e-6, "decayed head: {head} vs {want}");
     // zero gradient: only the decoupled decay moves a decayed tensor, by lr * wd * p
     for (a, b) in m.tok.iter().zip(&before.tok) {
         assert!((a - (b - 0.01 * 0.1 * b)).abs() < 1e-7);
@@ -55,11 +52,7 @@ pub(super) fn training_a_fixed_batch_drives_the_loss_down() {
         losses.push(tr.step(&ids, &targets, 2, &cfg).unwrap().loss);
     }
     assert_eq!(tr.steps(), 40);
-    assert!(
-        losses[39] < 0.3 * losses[0],
-        "loss {} -> {}",
-        losses[0],
-        losses[39]
-    );
+    let (first, last) = (losses[0], losses[39]);
+    assert!(last < 0.3 * first, "loss {first} -> {last}");
     assert!(losses.iter().all(|l| l.is_finite()));
 }

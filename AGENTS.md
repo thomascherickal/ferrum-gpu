@@ -22,7 +22,7 @@ Project-wide rules and automation standards for all coding agents and contributo
 
 ## 2. Code Quality, Modularity & Optimization
 
-- **File Size Limit**: No source code or test file may exceed **200 lines**. Split larger files into smaller, coherent modules.
+- **File Size Limit**: No source code or test file may exceed **100 lines** (does not apply to non-code files such as markup, JSON, Markdown, or other data/config files). Split larger files into smaller, coherent modules.
 - **Design Principles**: Strictly enforce **DRY** (Don't Repeat Yourself) and **SOLID** principles.
 - **Duplicate Code Detection**: Continuously scan for and eliminate duplicate code.
 - **Per-Commit Code Optimization**: On every commit, review and optimize the code to check whether it can run faster and remove any unnecessary, redundant, or dead blocks of code.
@@ -35,24 +35,26 @@ Project-wide rules and automation standards for all coding agents and contributo
 
 ## 4. Documentation & Project Files
 
-Every project must include and keep up to date (after every push):
+Every project must include and keep up to date (after every commit):
 
 - `readme.md` (both full documentation and a quick-start guide)
 - `next-steps.md` (reusable post-commit/push checklist)
-- `metrics.md` (project health, coverage, performance, and quality metrics)
+- `metrics.md` (project health, coverage, performance, quality metrics, and a tabular line-count report grouped by languages, formats, and test suites, with group totals and the total number of lines in the project)
 - `test-time-report.md` (live timing report tracking how long all tests take to run)
 - `system-profile.md` (CPU and GPU profiling results and resource-usage trends)
 
 > **Naming Convention**: Name all Markdown files in lowercase `kebab-case` (e.g., `readme.md`, `next-steps.md`, `metrics.md`, `test-time-report.md`, `system-profile.md`), keeping uppercase only where strictly required by external tools (`AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, `SKILL.md`).
 
+- **Mermaid Diagrams**: Every documentation page must include **1 useful colored Mermaid diagram** (without text overflowing) for every **200 words**.
+
 ## 5. Licensing
 
-- **Default License**: **AGPL-v3**.
-- **Terms**: Free for internal use; commercial use requires a separate commercial license from **Thomas Cherickal**.
+- **License**: **SSPL v1.0** (`LICENSE-SSPL.txt`) or a paid **commercial license** from **Thomas Cherickal**, as set out in `LICENSE`.
+- **Everywhere**: every `LICENSE` file, every `license` field in a manifest and every license statement in the documentation says this and nothing else.
 
 ## 6. Automation
 
-- Automate all of the above—testing across all applicable categories, 100% coverage verification, 30-minute test-suite runtime enforcement, live `test-time-report.md` updates, 200-line file-length checks, duplicate-code detection, per-commit optimization checks, linting/formatting, CPU/GPU profiling (`system-profile.md`), commit gates, and documentation/metrics updates—via Git hooks and CI/CD pipelines.
+- Automate all of the above—testing across all applicable categories, 100% coverage verification, 30-minute test-suite runtime enforcement, live `test-time-report.md` updates, 100-line file-length checks (source code and test files only), documentation Mermaid diagram checks (1 colored, non-overflowing diagram per 200 words), duplicate-code detection, per-commit optimization checks, linting/formatting, CPU/GPU profiling (`system-profile.md`), commit gates, and documentation/metrics updates—via Git hooks and CI/CD pipelines.
 
 ## 7. Post-Commit / Post-Push Checklist (`next-steps.md`)
 
@@ -61,12 +63,12 @@ Run the following steps after each commit/push:
 1. Verify all functional, edge-case, regression, and applicable expanded tests (unit, integration, smoke, E2E, performance/load, security) pass.
 2. Confirm 100% code coverage with zero regressions.
 3. Verify the complete test suite runs in under 30 minutes and update `test-time-report.md` with live timings.
-4. Verify no code or test file exceeds 200 lines.
+4. Verify no source code or test file exceeds 100 lines (non-code files such as markup, JSON, and Markdown are excluded) and that documentation pages include 1 useful colored Mermaid diagram without text overflowing every 200 words.
 5. Run duplicate-code detection, review for per-commit performance optimizations, and remove any unnecessary or dead code blocks.
 6. Run language-specific linters, formatters, and static analysis checks (DRY/SOLID compliance).
 7. Profile CPU and GPU usage, verify no resource overload or performance regressions, and update `system-profile.md`.
 8. Confirm the commit/CI gate passed cleanly.
-9. Update `metrics.md` with the latest test, coverage, and performance metrics.
+9. Update `metrics.md` with the latest test, coverage, performance metrics, and the tabular line-count report (grouped by languages, formats, and test suites, with group totals and total project lines).
 10. Update `readme.md` (full docs and quick-start) to reflect any changes.
 11. Review and update `next-steps.md` with any follow-up actions for the next iteration.
 12. After all that is done, commit or push the changes to the repository.
@@ -78,7 +80,7 @@ Run the following steps after each commit/push:
 # ferrum-gpu
 
 A GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) for small causal
-Transformers, GGUF in and out. Plan: `plan.md` (index) and `docs/plans/phase-*.md`.
+Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.md`.
 
 ## Independence rule (strict, user decision 2026-11-10)
 
@@ -130,18 +132,18 @@ Transformers, GGUF in and out. Plan: `plan.md` (index) and `docs/plans/phase-*.m
     beside each file, one test file per concern, with shared helpers in the tests' `mod.rs`; user
     decision 2026-11-12: make every new file and test highly modular). Every function and branch gets a unit test, with stubs or fakes for
     anything external (GPU, `nvidia-smi`, the filesystem). Measure line coverage with
-    `cargo llvm-cov` when it is available, record the numbers in `docs/coverage.md`, never
+    `cargo llvm-cov` when it is available, record the numbers in `docs/COVERAGE.md`, never
     claim a figure that was not measured, and raise the floor over time toward 100%. Code that
     can only run on real hardware is isolated in small files so the rest stays fully testable.
 12. **Hand-off file at 98% context (user decision 2026-11-10).** Once the context window reaches
     98% (as reported by the harness or status line; if no figure is visible, when the session is
-    clearly near its limit), stop starting new work and write `handoff.md` in the repository
+    clearly near its limit), stop starting new work and write `HANDOFF.md` in the repository
     root, then commit and push it with any finished work. It must let a fresh agent resume cold:
     the goal; what is done and where (branch, last commit, what is pushed or merged); what was
     in progress and its exact state (uncommitted files, a running command and its output file);
     the next steps in order; open questions and decisions already taken; the commands to run
     first (build, test, coverage); and gotchas learned (tooling quirks, measurements and their
-    caveats). A fresh session reads `handoff.md` first and marks it consumed (a line at the top
+    caveats). A fresh session reads `HANDOFF.md` first and marks it consumed (a line at the top
     saying when and by whom) before continuing. Keep it current at each phase boundary so a
     sudden stop loses little. Do not delete a handoff that has not been consumed.
 
@@ -151,7 +153,7 @@ Transformers, GGUF in and out. Plan: `plan.md` (index) and `docs/plans/phase-*.m
     `remaining_percentage`), records it in `.superpowers/context.json`, and delegates to the
     user's own status-line script so their display is unchanged. `scripts/handoff_check.sh` runs
     as a `PostToolUse` and `UserPromptSubmit` hook; the first time the recorded figure reaches
-    98% (`HANDOFF_AT` overrides) it injects an instruction to write `handoff.md` now, then
+    98% (`HANDOFF_AT` overrides) it injects an instruction to write `HANDOFF.md` now, then
     stays quiet until usage falls under 90%. Both scripts have tests
     (`tests/tests/test_context_scripts.rs`). If that hook message appears, obey it before doing
     anything else.
@@ -204,7 +206,7 @@ Transformers, GGUF in and out. Plan: `plan.md` (index) and `docs/plans/phase-*.m
     members, so do not rely on it. The gate runs the script and CI runs it on Linux. Tests that need an
     outside tool skip with a printed reason when it is absent. The tests that change anything outside
     the repository (a real `lms import` under `~/.lmstudio`) or use the GPU through an outside tool are
-    opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/interop.md`.
+    opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/INTEROP.md`.
 18. **`metrics.md` is always current (user decision 2026-11-18).** The repository root holds `metrics.md`: size, tests,
     structure, dependencies, history, the last gate's timing and the last coverage run. It is generated, never edited by
     hand: the pre-commit hook (`scripts/githooks`, enabled with `git config core.hooksPath scripts/githooks`) refreshes it

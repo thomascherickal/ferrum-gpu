@@ -54,8 +54,11 @@ pub fn mib(bytes: u64) -> String {
 /// The adapter named by `FERRUM_GPU_ADAPTER` (else the default one), or a "nothing to benchmark"
 /// line and `None`.
 pub fn open_gpu() -> Option<crate::device::Gpu> {
-    let want = std::env::var("FERRUM_GPU_ADAPTER").ok();
-    match crate::device::Gpu::open(want.as_deref()) {
+    open_named(std::env::var("FERRUM_GPU_ADAPTER").ok().as_deref())
+}
+
+fn open_named(want: Option<&str>) -> Option<crate::device::Gpu> {
+    match crate::device::Gpu::open(want) {
         Ok(g) => Some(g),
         Err(e) => {
             println!("no GPU adapter ({e}); nothing to benchmark");

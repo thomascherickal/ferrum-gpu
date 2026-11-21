@@ -69,10 +69,6 @@ fn a_dropped_unit_receives_no_gradient() {
     let (_, plain) = run(&m, None);
     let (_, heavy) = run(&m, Dropout::new(0.95, 2));
     let zeros = |g: &Gpt2| g.blocks[0].b1.iter().filter(|&&x| x == 0.0).count();
-    assert!(
-        zeros(&heavy) > zeros(&plain),
-        "{} vs {}",
-        zeros(&heavy),
-        zeros(&plain)
-    );
+    let (z_heavy, z_plain) = (zeros(&heavy), zeros(&plain));
+    assert!(z_heavy > z_plain, "{z_heavy} vs {z_plain}");
 }

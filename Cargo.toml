@@ -6,7 +6,7 @@ exclude  = ["ferrum_gpu_studio"]
 [workspace.package]
 version      = "0.1.0"
 edition      = "2021"
-license      = "MIT"
+license      = "SSPL-1.0 OR LicenseRef-Commercial"
 rust-version = "1.87"
 
 # Tests run unoptimised; the CPU oracle/trainer loops dominated test time (one e2e test took 16s).

@@ -47,6 +47,7 @@ fn what_cannot_start_is_refused_with_a_reason() {
         (format!("--model {g} --port notaport"), "--port"),
         (format!("--model {g} --host 0.0.0.0 --port 0"), "loopback"),
         ("--port 0".to_string(), "--model"),
+        (format!("--model {g} --threads x --port 0"), "--threads"),
         (
             format!("--model {}/missing.gguf --port 0", d.display()),
             "missing.gguf",
