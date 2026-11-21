@@ -2,7 +2,7 @@
 
 **Goal:** train, fine-tune, score and run small causal Transformers on any GPU (NVIDIA, AMD, Intel, Apple Silicon) with GGUF in and out. Behaviour mirrors ferrum-cpu; the code does not depend on it.
 
-**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI, `docs/gui.md`) and 5b (browser WebGPU, `docs/browser-webgpu.md`) are complete; Phase 6 (CLI `ferrum-gpu`, server `ferrum-gpu-server`, the `auto` device rule, the memory pre-flight; `docs/cli.md`) is complete; Phase 7 (device matrix, docs/DEVICES.md) is complete for the hardware available; the follow-on parity work is in MATCHER-PLAN.md. Start with `README.md` for the documentation set.
+**Status:** Phases 0 to 5 complete (training gate met: about 4x to 5x over an 8-thread CPU step on a 23M-parameter model; QAT done; Llama/Qwen inference and fine-tuning on the GPU). Phases 5a (GUI, `docs/gui.md`) and 5b (browser WebGPU, `docs/browser-webgpu.md`) are complete; Phase 6 (CLI `ferrum-gpu`, server `ferrum-gpu-server`, the `auto` device rule, the memory pre-flight; `docs/cli.md`) is complete; Phase 7 (device matrix, docs/devices.md) is complete for the hardware available; the follow-on parity work is in matcher-plan.md. Start with `readme.md` for the documentation set.
 
 ## Independence (supersedes the earlier plan)
 
@@ -27,7 +27,7 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 | Backend | `wgpu` (pinned, 30.0.1 at time of writing) + WGSL. One safe-Rust path to Vulkan, Metal, DX12. |
 | Precision | f32 on device; Q8_0/Q4_0 dequantised in-kernel for inference. No f16 requirement. |
 | Determinism | Bit-identical across repeat runs on the same adapter/driver/wgpu version. CPU-vs-GPU by tolerance. |
-| Default device | `auto` (training on a hardware GPU, decoding on the CPU, from the Phase 3/4 measurements); Phase 7's matrix (docs/DEVICES.md): hardware Vulkan is trusted, OpenGL and software adapters are only used when named. |
+| Default device | `auto` (training on a hardware GPU, decoding on the CPU, from the Phase 3/4 measurements); Phase 7's matrix (docs/devices.md): hardware Vulkan is trusted, OpenGL and software adapters are only used when named. |
 | Layout | Workspace crates: `ferrum_ref` (CPU reference), `ferrum_wgpu` (engine), `ferrum_gpu_gui` (GUI server and in-browser runtime), `ferrum_gpu_cli`, `ferrum_gpu_server`, `tests`. |
 
 ## Baselines
@@ -52,16 +52,16 @@ Round-half-away-from-zero in the Q8_0 snap; f16 scale via integer bit ops; `-1e9
 
 | # | File | Deliverable | Gate |
 |---|---|---|---|
-| 0 | [PHASE-0.md](docs/plans/PHASE-0.md) | Workspace, adapter selection, budget parsers, matmul spike, benchmark | 3x 8-thread CPU matmul at 1024+, else stop |
-| 1 | [PHASE-1.md](docs/plans/PHASE-1.md) | Device, buffers, budget, kernel runtime | Parity on tiny ops, suite passes with no GPU |
-| 2 | [PHASE-2.md](docs/plans/PHASE-2.md) | Forward kernels + CPU reference | Per-kernel parity on adversarial shapes |
-| 3 | [PHASE-3.md](docs/plans/PHASE-3.md) | GGUF I/O, tokenizer, GPT-2 inference | Generate/score match reference |
-| 4 | [PHASE-4.md](docs/plans/PHASE-4.md) | Backward, Adam, QAT, training, checkpoints | Loss curve parity, deterministic, 2x on larger model |
-| 5 | [PHASE-5.md](docs/plans/PHASE-5.md) | Llama/Qwen inference + fine-tune | Parity on tiny llama |
-| 5a | [PHASE-5A.md](docs/plans/PHASE-5A.md) | Local web GUI: device, train, generate, GGUF in/out (std-only server, byte tokenizer) | Same API behaviour on CPU and GPU; headless-Chrome run passes |
-| 5b | [PHASE-5B.md](docs/plans/PHASE-5B.md) | Inference in the browser tab on WebGPU, sharing the native WGSL | Browser logits match the CPU oracle (headless Chrome) |
-| 6 | [PHASE-6.md](docs/plans/PHASE-6.md) | Own CLI and server, `--device`, pre-flight | E2E through the binaries |
-| 7 | [PHASE-7.md](docs/plans/PHASE-7.md) | Verification matrix, default flip | Only classes with a green row |
+| 0 | [phase-0.md](docs/plans/phase-0.md) | Workspace, adapter selection, budget parsers, matmul spike, benchmark | 3x 8-thread CPU matmul at 1024+, else stop |
+| 1 | [phase-1.md](docs/plans/phase-1.md) | Device, buffers, budget, kernel runtime | Parity on tiny ops, suite passes with no GPU |
+| 2 | [phase-2.md](docs/plans/phase-2.md) | Forward kernels + CPU reference | Per-kernel parity on adversarial shapes |
+| 3 | [phase-3.md](docs/plans/phase-3.md) | GGUF I/O, tokenizer, GPT-2 inference | Generate/score match reference |
+| 4 | [phase-4.md](docs/plans/phase-4.md) | Backward, Adam, QAT, training, checkpoints | Loss curve parity, deterministic, 2x on larger model |
+| 5 | [phase-5.md](docs/plans/phase-5.md) | Llama/Qwen inference + fine-tune | Parity on tiny llama |
+| 5a | [phase-5a.md](docs/plans/phase-5a.md) | Local web GUI: device, train, generate, GGUF in/out (std-only server, byte tokenizer) | Same API behaviour on CPU and GPU; headless-Chrome run passes |
+| 5b | [phase-5b.md](docs/plans/phase-5b.md) | Inference in the browser tab on WebGPU, sharing the native WGSL | Browser logits match the CPU oracle (headless Chrome) |
+| 6 | [phase-6.md](docs/plans/phase-6.md) | Own CLI and server, `--device`, pre-flight | E2E through the binaries |
+| 7 | [phase-7.md](docs/plans/phase-7.md) | Verification matrix, default flip | Only classes with a green row |
 
 Not planned: per-vendor backends, f16/mixed precision, multi-GPU, activation recomputation, wasm builds of the engine, browser training.
 

@@ -1,7 +1,7 @@
 use super::*;
 use ferrum_tok::ByteBpeTokenizer;
 
-// Golden files made by ferrum-cpu (commit 56a9d3a, see fixtures/README.md).
+// Golden files made by ferrum-cpu (commit 56a9d3a, see fixtures/readme.md).
 const TOK: &[u8] = include_bytes!("../../../fixtures/bpe/tok.gguf");
 const MODEL: &[u8] = include_bytes!("../../../fixtures/bpe/model.gguf");
 const CORPUS: &str = include_str!("../../../fixtures/bpe/corpus.txt");

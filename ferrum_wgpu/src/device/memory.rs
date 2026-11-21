@@ -6,7 +6,7 @@
 //!
 //! The headroom is taken from measurement, not guessed. On the NVIDIA MX330 (2048 MiB total, 1989 MiB
 //! free) memory plans of up to 1449 MiB (73% of the free memory) loaded and ran, and plans of 1721 MiB
-//! (86%) and above failed with "GPU out of memory" (`CAPABILITY.md`, 2026-11-14): the plan counts the
+//! (86%) and above failed with "GPU out of memory" (`capability.md`, 2026-11-14): the plan counts the
 //! resident buffers, while loading and the driver need room beyond them. So a discrete card's usable
 //! budget is [`VRAM_USABLE_PERCENT`] of its **free** memory. Integrated and unified-memory adapters
 //! share the machine's RAM with everything else, so their budget is a share of the RAM that is still

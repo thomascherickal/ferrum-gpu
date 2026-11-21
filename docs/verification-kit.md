@@ -38,7 +38,7 @@ names and the operating system. Do not edit the numbers.
 
 ## What has not been run, said plainly
 
-- **Apple Silicon (M-series, including M5 Max):** not run. Memory figures for it in `HARDWARE-CAPs.md` are hand estimates. The macOS CI
+- **Apple Silicon (M-series, including M5 Max):** not run. Memory figures for it in `hardware-caps.md` are hand estimates. The macOS CI
   runner's paravirtual GPU already disagrees with the CPU in one test, which is why the checks here carry tolerances and print their errors.
 - **AMD, a larger NVIDIA card, Windows, Direct3D 12:** not run.
 - **Any tensor larger than one buffer binding (about 2 GiB on the adapters here):** the block path is tested by lowering the limit on a

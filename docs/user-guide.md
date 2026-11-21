@@ -1,7 +1,7 @@
 # User guide
 
 Everything you need to train, run and serve models with ferrum-gpu. Real output for these commands is in
-[cli.md](cli.md); how it works inside is in [ARCHITECTURE.md](ARCHITECTURE.md).
+[cli.md](cli.md); how it works inside is in [architecture.md](architecture.md).
 
 ## 1. Install
 
@@ -58,7 +58,7 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 | `tokenize` | Encode a text file or directory into a token file for `train` | `--data`, `--tokenizer`, `--out` | `--doc-sep S` |
 | `export-ollama` | Register a GPT-2 model with Ollama (`ollama create`) or only write the Modelfile | `--model`, `--name` (not with `--modelfile-only`) | `--bin P`, `--modelfile-only OUT` |
 | `export-lmstudio` | Import a GPT-2 model into LM Studio (`lms import`, then wait for `lms ls --json`) | `--model` | `--repo publisher/name` (ferrum/<file stem>), `--bin P` |
-| `export-gguf` | Re-write a model as f32, int8 or int4 (reads every format in docs/GGUF.md) | `--model`, `--out` | `--quant` (int8) |
+| `export-gguf` | Re-write a model as f32, int8 or int4 (reads every format in docs/gguf.md) | `--model`, `--out` | `--quant` (int8) |
 | `eval` | Mean next-token loss and perplexity of a file under a model | `--model`, `--data` | `--ctx N`, `--json F` |
 
 A token file (from `tokenize`) can be given as `--data`; it is detected by content and must come with the `--tokenizer` file it was made with. Windows are read from disk, so the corpus need not fit in memory.
@@ -140,7 +140,7 @@ out of device memory on a large model, which the engine reports as an error valu
 ferrum-gpu finetune-gguf --model base.gguf --data new.txt --out tuned.gguf --steps 200 --lr 0.001 --quant q8_0
 ```
 
-Supported inputs are `llama` and `qwen2` architecture files (see [GGUF.md](GGUF.md) for exactly what loads and
+Supported inputs are `llama` and `qwen2` architecture files (see [gguf.md](gguf.md) for exactly what loads and
 what is refused). The Llama trainer is f32 AdamW and does not support tied output heads: a model whose head is
 tied to the embedding is refused. The CLI trains on raw bytes (ids 0 to 255), so it only makes sense for models whose vocabulary covers
 them; the vocabulary is otherwise not checked against your data's tokenizer, because the CLI has none.
@@ -196,7 +196,7 @@ unauthenticated.
 | `refusing to start on <GPU>: needs N bytes ...` | The pre-flight refused the run. Follow the advice in the message. |
 | `the loss became NaN at step N; lower the learning rate` | Divergence. Lower `--lr` or the batch. |
 | `the text has N bytes but needs more than the context of M` | `--data` is too short for `--context`; give more text or a smaller context. |
-| `rope scaling type 'yarn' is not supported` (or similar) | The GGUF uses a feature that would be silently wrong if ignored; see [GGUF.md](GGUF.md). |
+| `rope scaling type 'yarn' is not supported` (or similar) | The GGUF uses a feature that would be silently wrong if ignored; see [gguf.md](gguf.md). |
 | A GPU run crashes the driver with several runs in parallel | Concurrent device opens can fault some drivers. Run one GPU job at a time (the tests use `--test-threads 1`). |
 | `cannot listen on HOST:PORT` | The port is taken; use `--port 0` for any free port. |
 | `refusing to listen on ...: it is not a loopback address` | Exposing the server needs a token: `--token T` (or `FERRUM_TOKEN`), or `--allow-unauthenticated` if you accept the risk. |
@@ -205,8 +205,8 @@ unauthenticated.
 
 GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,
-Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/PARITY.md).
+Windows and macOS verification. Cross-loading is checked against ferrum-cpu files kept in `fixtures/bpe/` (see docs/parity.md).
 
 ### Ollama and LM Studio
 
-`export-ollama` and `export-lmstudio` accept GPT-2 files only (what `train` writes; Llama-style files have no BPE vocabulary inside). The tools are found by `--bin`, then the `FERRUM_OLLAMA` / `FERRUM_LMS` environment variable, then `PATH`, then `~/.local/bin/ollama` / `~/.lmstudio/bin/lms`. The Modelfile is the one ferrum-cpu writes (`FROM`, a plain `{{ .Prompt }}` template, stop `<|endoftext|>`, temperature 0.8, `num_ctx` from the model). With `--modelfile-only OUT` no tool is needed. `export-ollama` was tested against a real Ollama 0.40.2 server (started with a private HOME and model directory, so nothing under the user's `~/.ollama` is touched); `export-lmstudio` was tested against a fake `lms` script, because a real `lms import` registers models under `~/.lmstudio`, outside this repository. What was run, against which versions, and the llama.cpp and GGUF checks are in [INTEROP.md](INTEROP.md).
+`export-ollama` and `export-lmstudio` accept GPT-2 files only (what `train` writes; Llama-style files have no BPE vocabulary inside). The tools are found by `--bin`, then the `FERRUM_OLLAMA` / `FERRUM_LMS` environment variable, then `PATH`, then `~/.local/bin/ollama` / `~/.lmstudio/bin/lms`. The Modelfile is the one ferrum-cpu writes (`FROM`, a plain `{{ .Prompt }}` template, stop `<|endoftext|>`, temperature 0.8, `num_ctx` from the model). With `--modelfile-only OUT` no tool is needed. `export-ollama` was tested against a real Ollama 0.40.2 server (started with a private HOME and model directory, so nothing under the user's `~/.ollama` is touched); `export-lmstudio` was tested against a fake `lms` script, because a real `lms import` registers models under `~/.lmstudio`, outside this repository. What was run, against which versions, and the llama.cpp and GGUF checks are in [interop.md](interop.md).

@@ -53,6 +53,8 @@ while IFS=$'\t' read -r dir bin; do
   done
 done <<< "$bins"
 
+# every test with its time, for scripts/timing_report.py (test-time-report.md)
+[ -n "${TIMES_OUT:-}" ] && cp "$times" "$TIMES_OUT"
 echo
 echo "== slowest tests (limits: ordinary ${general}s [0 = none], interop ${interop}s) =="
 sort -rn "$times" | head -8

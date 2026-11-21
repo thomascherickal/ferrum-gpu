@@ -11,7 +11,7 @@
 #
 # Build the binary with its output sent outside this repository, for example:
 #   (cd ../ferrum-cpu && CARGO_TARGET_DIR=$SCRATCH/cpu-target cargo build --release -p slm_cli)
-# and never modify ferrum-cpu. Set CPU_COMMIT to the commit it was built from. The script prints the ledger line for fixtures/README.md.
+# and never modify ferrum-cpu. Set CPU_COMMIT to the commit it was built from. The script prints the ledger line for fixtures/readme.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 bin="${1:?binary}"; name="${2:?fixture name}"; shift 2

@@ -2,7 +2,7 @@
 
 **Goal:** everything a user can do with ferrum-cpu (train, fine-tune, run, score, serve, export small causal Transformers as GGUF), they can do with ferrum-gpu, on any GPU or on the CPU, with the same files going both ways.
 
-**Status (2026-11-11):** Phase 7 (device matrix) is complete for the hardware available. M0, M1, M3, M4, M6 and M7 are done as described in their sections below; M2 is done (`tokenize`, token files, `prepare`, `scripts/fetch.sh`, `dvc.yaml`; DVC itself not run); M5 is partly done through M4 (GPT-2 generate/eval options) but the Llama/Qwen `run-gguf` extras are not; M8 has not been done. Everything above is on `main`. 564 tests per run pass; line coverage is 98.12% (docs/COVERAGE.md). The ledger of what matches and what does not is [docs/PARITY.md](docs/PARITY.md).
+**Status (2026-11-11):** Phase 7 (device matrix) is complete for the hardware available. M0, M1, M3, M4, M6 and M7 are done as described in their sections below; M2 is done (`tokenize`, token files, `prepare`, `scripts/fetch.sh`, `dvc.yaml`; DVC itself not run); M5 is partly done through M4 (GPT-2 generate/eval options) but the Llama/Qwen `run-gguf` extras are not; M8 has not been done. Everything above is on `main`. 564 tests per run pass; line coverage is 98.12% (docs/coverage.md). The ledger of what matches and what does not is [docs/parity.md](docs/parity.md).
 
 **Still open, in the order I would take them:**
 1. (done) `prepare`, fetch script, DVC files.
@@ -10,7 +10,7 @@
 3. (done 2026-11-12) `--vocab 0` as a byte-level model, `--tie` and `--dropout` on both engines.
 4. Server: (done 2026-11-12) request cancel on client disconnect; LightEval: ferrum-cpu's adapter (`eval/lighteval/ferrum_model.py`, lighteval 0.13.0) was driven against our server on 2026-11-12 (`max_length`, `loglikelihood`, `loglikelihood_rolling`, `greedy_until` all answered correctly on a tiny CPU-trained model); that found one gap, `/v1/info` lacked `context_len`, now added. The full benchmark tasks (blimp, arc, tinystories_cloze; they download datasets) were not run.
 5. M8: GUI feature check (BPE, validation split, checkpoints), coverage back above 99%, GPU-side scoring if it ever wins.
-6. (CI done 2026-11-12: Linux, Windows and macOS jobs are green on `main`; the first runs found and fixed a server crash on a closed stdout and Windows portability bugs, see docs/DEVICES.md.) Still open: Apple, AMD and Windows hardware rows (Phase 7), and the macOS GPU question: on the hosted runner's paravirtual Apple GPU the GPU/CPU loss curves disagree and the kernel tests hang, so only a real Apple machine can say whether our Metal path is right.
+6. (CI done 2026-11-12: Linux, Windows and macOS jobs are green on `main`; the first runs found and fixed a server crash on a closed stdout and Windows portability bugs, see docs/devices.md.) Still open: Apple, AMD and Windows hardware rows (Phase 7), and the macOS GPU question: on the hosted runner's paravirtual Apple GPU the GPU/CPU loss curves disagree and the kernel tests hang, so only a real Apple machine can say whether our Metal path is right.
 
 ## 0. The independence rule (CRITICAL, unchanged)
 
@@ -20,7 +20,7 @@ This plan changes nothing about [CLAUDE.md](CLAUDE.md). Parity is reached by **r
 2. No `include_str!`, `include_bytes!`, `build.rs` or test that reads outside this repository. Nothing under `../ferrum-cpu`, ever, from code or tests.
 3. **What we may do with ferrum-cpu:** read its source, docs and `--help` output while planning or porting (CLAUDE.md rule 6), and run its binaries with output sent to scratch to *generate golden data*.
 4. **Copying code in:** when a phase starts, copy the file(s) it needs, each with a provenance header (source path, ferrum-cpu commit hash). After the copy it is ours and is not kept in sync. Do not bulk-copy up front.
-5. **Cross-compatibility is proven through files, not code.** Golden fixtures (`fixtures/*.gguf`, token files, expected-output JSON) are produced by a ferrum-cpu binary run in scratch, then copied into `fixtures/` with a `fixtures/README.md` entry (command, ferrum-cpu commit, date, sha256). Our tests read only `fixtures/`. The fixture is data, so it does not create a dependency; losing ferrum-cpu changes nothing about our build or tests.
+5. **Cross-compatibility is proven through files, not code.** Golden fixtures (`fixtures/*.gguf`, token files, expected-output JSON) are produced by a ferrum-cpu binary run in scratch, then copied into `fixtures/` with a `fixtures/readme.md` entry (command, ferrum-cpu commit, date, sha256). Our tests read only `fixtures/`. The fixture is data, so it does not create a dependency; losing ferrum-cpu changes nothing about our build or tests.
 6. ferrum-cpu is never modified. The reverse direction (ferrum-cpu loading a file we wrote) is checked by hand, and the result is recorded in the phase doc with the command and the ferrum-cpu commit; it is not an automated test here.
 7. Dependencies we add must be justified by a measurement or by necessity, be pure-safe-Rust to call, and pass `cargo deny`. Prefer `std` and hand-written code, as ferrum-cpu does.
 8. Every other rule in CLAUDE.md stands: tests first, `#![forbid(unsafe_code)]`, no invented numbers, files under about 500 lines, one feature per commit, nothing merged or pushed to `main` unless asked.
@@ -35,11 +35,11 @@ Parity is measured three ways, never assumed:
 - **File:** a file written by one side loads on the other and gives the same greedy continuation (fixtures one way, manual check the other, per rule 6 above).
 - **Numbers:** loss, perplexity and logits agree within the tolerances already defined (EXACT 1e-6, REDUCING/BACKWARD/FORWARD 1e-5), CPU oracle versus GPU.
 
-Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu RAM guard on GPU, GPU memory pre-flight instead), the difference is written down in `docs/PARITY.md` (created in M0), not hidden.
+Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu RAM guard on GPU, GPU memory pre-flight instead), the difference is written down in `docs/parity.md` (created in M0), not hidden.
 
 ## 2. Gap table (ferrum-gpu today versus ferrum-cpu)
 
-> **Superseded by [docs/PARITY.md](docs/PARITY.md)** (M0). The audit changed three things below: (1) `ferrum-gpu train` writes a Llama-style model while ferrum-cpu writes a GPT-2 model, so M4 adds `train --arch gpt2|llama` with `gpt2` as the default; (2) presets are different models under the same names; (3) ferrum-cpu reads Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K (11 block formats against our 3), and its server also has `/v1/loglikelihood_rolling` and a 32-request in-flight cap. The table below is kept as written for history.
+> **Superseded by [docs/parity.md](docs/parity.md)** (M0). The audit changed three things below: (1) `ferrum-gpu train` writes a Llama-style model while ferrum-cpu writes a GPT-2 model, so M4 adds `train --arch gpt2|llama` with `gpt2` as the default; (2) presets are different models under the same names; (3) ferrum-cpu reads Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K (11 block formats against our 3), and its server also has `/v1/loglikelihood_rolling` and a 32-request in-flight cap. The table below is kept as written for history.
 
 "Have" is from this repository's code. "Gap" rows get a phase.
 
@@ -70,9 +70,9 @@ Each phase ends at a gate. A failed gate is recorded with real numbers and the c
 ### M0: audit and parity ledger (done 2026-11-11)
 
 - Read the ferrum-cpu CLI, server and GGUF code named in the table; correct the table.
-- Create `docs/PARITY.md`: one row per feature, status (have / partial / gap / deliberately different), with the reason for any difference.
-- Create `fixtures/README.md` (empty ledger) and a `scripts/make-fixtures.sh` that *documents* the ferrum-cpu commands to run in scratch; it never runs from tests.
-- **Gate (met):** rows confirmed against source where source was read, otherwise marked "doc" and re-read in their phase; commit hash recorded in PARITY.md.
+- Create `docs/parity.md`: one row per feature, status (have / partial / gap / deliberately different), with the reason for any difference.
+- Create `fixtures/readme.md` (empty ledger) and a `scripts/make-fixtures.sh` that *documents* the ferrum-cpu commands to run in scratch; it never runs from tests.
+- **Gate (met):** rows confirmed against source where source was read, otherwise marked "doc" and re-read in their phase; commit hash recorded in parity.md.
 
 ### M1: BPE tokenizer and GGUF tokenizer metadata (library part done 2026-11-11)
 
@@ -135,10 +135,10 @@ Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 f
 
 ### M8: GUI and docs parity, final matrix
 
-- Compare the GUI's tabs and options to ferrum-cpu's GUI manual section; add what is missing (BPE, validation split, checkpoints, stop strings). **Done 2026-11-12**: the comparison is in docs/PARITY.md; added the validation share and stop strings; checkpoints already existed (Download/Load GGUF); BPE is deliberately not in the GUI (docs/gui.md says why); the other tabs are the CLI's job.
-- Update README, USER-GUIDE, GGUF.md, `docs/PARITY.md` to all-green or an honest list of remaining differences.
-- Re-measure coverage with the new crates and record it in `docs/COVERAGE.md`.
-- **Gate:** `docs/PARITY.md` has no "gap" rows except those marked "deliberately different" with a reason.
+- Compare the GUI's tabs and options to ferrum-cpu's GUI manual section; add what is missing (BPE, validation split, checkpoints, stop strings). **Done 2026-11-12**: the comparison is in docs/parity.md; added the validation share and stop strings; checkpoints already existed (Download/Load GGUF); BPE is deliberately not in the GUI (docs/gui.md says why); the other tabs are the CLI's job.
+- Update README, USER-GUIDE, gguf.md, `docs/parity.md` to all-green or an honest list of remaining differences.
+- Re-measure coverage with the new crates and record it in `docs/coverage.md`.
+- **Gate:** `docs/parity.md` has no "gap" rows except those marked "deliberately different" with a reason.
 
 ## 4. Order and dependencies between phases
 

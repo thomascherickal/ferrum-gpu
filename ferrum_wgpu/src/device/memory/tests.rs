@@ -7,7 +7,7 @@ fn facts() -> MemoryFacts {
     MemoryFacts::default()
 }
 
-/// The measured MX330 outcomes (CAPABILITY.md, 2026-11-14), in MiB of memory plan: these loaded and ran,
+/// The measured MX330 outcomes (capability.md, 2026-11-14), in MiB of memory plan: these loaded and ran,
 /// these failed with "GPU out of memory". The card had 1989 MiB free of 2048.
 const LOADED: [u64; 6] = [279, 557, 729, 864, 956, 1449];
 const FAILED: [u64; 3] = [1721, 1925, 2454];

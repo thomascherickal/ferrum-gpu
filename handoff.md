@@ -92,7 +92,7 @@ scripts/build-studio.sh --debug --run --device cpu  # start the desktop app
   Studio tests.
 - **Tauri's setup hook runs on the first event-loop iteration**, not at `build()`; mock-runtime windows keep no title.
 - A first, all-in-one benchmark process reported false "out of memory" after a failed load: run one shape per process
-  (see `CAPABILITY.md`).
+  (see `capability.md`).
 - Never signal a process group with a bare negative pid (rule 16); jobs no longer spawn processes at all.
 - Apple Silicon, Windows and macOS bundles have not been run by hand; the docs say "not run" and must keep saying it
   until a G5 report from real hardware exists.

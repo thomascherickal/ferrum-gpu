@@ -35,7 +35,7 @@ Commits on top of `main` (ddfd1ce): 5.0 `12278d1`, 5.1 `13a0760`, 5.2 `a4cdfd3`,
   conditioning).
 - **5.4 done**: CPU oracle backward + AdamW (`ferrum_ref::llama::{loss_and_grads, LlamaTrainer}`, checked against finite differences), GPU backward kernels (`ops_llama_bwd`), `llama_train::GpuLlamaTrainer` (own `step`, `LlamaSnapshot`; tied heads refused). Gradients within 7.6e-7 of the oracle; 12-step loss curve within ~3e-7.
 - **5.5 done**: `docs/llama-speed.md` (decode, fine-tune, size table; only shapes up to 32M params were run, larger rows are labelled plan-only). Finding: decode is slower than one CPU thread everywhere; quantised decode is not faster on the GPUs (kernel has no K-split).
-- **Verified**: fmt, clippy `-D warnings`, `cargo deny`, 349 tests pass in each of four configurations (MX330, no GPU, llvmpipe, Intel Xe), coverage 99.35% lines (see `docs/COVERAGE.md`).
+- **Verified**: fmt, clippy `-D warnings`, `cargo deny`, 349 tests pass in each of four configurations (MX330, no GPU, llvmpipe, Intel Xe), coverage 99.35% lines (see `docs/coverage.md`).
 - **Not done / next**: merge `worktree-phase5-llama` into `main` (user decision; not merged); generalise `Engine`/training loop/checkpoint beyond GPT-2 so Llama fine-tuning can use them; K-split quantised GEMV; Llama tied head, micro-batching, QAT; Phase 6 (CLI/server/BPE, a real ferrum-cpu GGUF fixture) and Phase 7 (device matrix).
 
 ## Layout after the 2026-11-11 restructure (read this before opening files)
@@ -48,7 +48,7 @@ State: local `main` is 15+ commits ahead of `origin/main` and has NOT been pushe
 
 ## Phases 5a and 5b (GUI, browser WebGPU) 2026-11-11
 
-Done on branch `worktree-gui-webgpu` (merged to `main` only if the log says so). New crate `ferrum_gpu_gui` (std-only, no new dependencies; `naga` is a dev-dependency of `ferrum_wgpu` for shader validation): `src/{http,json,tokenizer,engine/,app,api,assets,selftest,server}.rs`, `web/{index.html,app.js,style.css,gguf.js,webgpu.js,llama.js,browser.js,selftest.js,bench.js}`, `js_tests/reader.test.mjs`, tests `api.rs`, `browser_ui.rs`, `browser_webgpu.rs`, `browser_bench.rs` (ignored; slow). `ferrum_wgpu::shaders` is the kernel registry served to the browser; `Gguf::tensor_bytes` was added. Docs: `docs/gui.md`, `docs/browser-webgpu.md`, plans `PHASE-5A.md`, `PHASE-5B.md`.
+Done on branch `worktree-gui-webgpu` (merged to `main` only if the log says so). New crate `ferrum_gpu_gui` (std-only, no new dependencies; `naga` is a dev-dependency of `ferrum_wgpu` for shader validation): `src/{http,json,tokenizer,engine/,app,api,assets,selftest,server}.rs`, `web/{index.html,app.js,style.css,gguf.js,webgpu.js,llama.js,browser.js,selftest.js,bench.js}`, `js_tests/reader.test.mjs`, tests `api.rs`, `browser_ui.rs`, `browser_webgpu.rs`, `browser_bench.rs` (ignored; slow). `ferrum_wgpu::shaders` is the kernel registry served to the browser; `Gguf::tensor_bytes` was added. Docs: `docs/gui.md`, `docs/browser-webgpu.md`, plans `phase-5a.md`, `phase-5b.md`.
 
 Things to know: browser tests launch Chrome in its own process group and kill only that group (never `pkill`/`pgrep` by name: the machine also runs the user's own browsers); the group is ended with `kill -s TERM -- -<pgid>` through `common::terminate_group`, never a bare `kill -TERM -<pgid>` (procps-ng 4.0.4 turned that into `kill(-1)` for pids starting with 1 and logged the desktop out; CLAUDE.md rule 16); Chrome only offers real GPUs with `--use-gl=angle --use-angle=vulkan` (otherwise SwiftShader); `CLAUDE_JOB_DIR` is not set in the shell, use full paths; the GUI is loopback-only with no auth; run suites with `--test-threads 1` (concurrent GPU device opens can SIGSEGV a driver). Not done: tokenizer (Phase 6), CLI/server proper (Phase 6), training in the browser, Firefox/Safari/Windows/macOS browser runs.
 
@@ -61,22 +61,22 @@ Things to know: browser tests launch Chrome in its own process group and kill on
 `ferrum-gpu`: a GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) that trains, fine-tunes and
 runs small causal Transformers with GGUF in and out, mirroring ferrum-cpu **without depending on
 it** (code is copied in with provenance headers; ferrum-cpu is never modified). Plan index:
-`PLAN.md`; per-phase files `docs/plans/PHASE-0..7.md`. Reports: `docs/spike-matmul.md`,
-`docs/decode-crossover.md`, `docs/train-speed.md`, `docs/COVERAGE.md`.
+`plan.md`; per-phase files `docs/plans/PHASE-0..7.md`. Reports: `docs/spike-matmul.md`,
+`docs/decode-crossover.md`, `docs/train-speed.md`, `docs/coverage.md`.
 
 ## State of the repo
 
 - At the end of the 2026-11-10 session the user asked for the worktree to be merged and pushed:
   branch `plan/gpu-port` was fast-forwarded into `main` and `main` was pushed to origin, so
   **Phases 0 to 4 and the rule-12 machinery are on `main`**. Verify with
-  `git fetch && git log origin/main -1` (the newest commit mentions NEXT-SESSION.md). The old
+  `git fetch && git log origin/main -1` (the newest commit mentions next-session.md). The old
   worktree `.claude/worktrees/gpu-port-plan` may still exist on disk and can be removed with
   `git worktree remove` once nothing is uncommitted in it. Start new work in a new worktree.
   Never push `main` again without a documented phase gate or an explicit user request.
 - Last verified state: fmt, clippy `-D warnings`, `cargo deny`, **265 tests pass in each of four
   configurations** (MX330, no GPU, llvmpipe, Intel Xe), coverage **99.33% lines (53 missed)**,
   `FLOOR=99 scripts/coverage.sh` passes. Start procedure and the full remaining plan are in
-  `NEXT-SESSION.md`.
+  `next-session.md`.
 
 ## Done
 
@@ -89,7 +89,7 @@ it** (code is copied in with provenance headers; ferrum-cpu is never modified). 
 - Rule 12 machinery: `.claude/settings.json` (tracked) runs `scripts/statusline.sh` as the status
   line (records `.superpowers/context.json`, then delegates to the user's own
   `~/.claude/statusline-command.sh`) and `scripts/handoff_check.sh` as `PostToolUse` and
-  `UserPromptSubmit` hooks; it injects "write HANDOFF.md now" the first time context use reaches
+  `UserPromptSubmit` hooks; it injects "write handoff.md now" the first time context use reaches
   98%. Tested (`tests/tests/test_context_scripts.rs`) and dry-run end to end with the exact
   settings commands. Caveats: the status line only refreshes after assistant messages, so a very
   long tool-heavy turn can cross the threshold before the figure updates; headless (`-p`) runs may
@@ -99,7 +99,7 @@ it** (code is copied in with provenance headers; ferrum-cpu is never modified). 
 ## Next steps, in order
 
 1. If `git status` shows uncommitted work, run the verification commands below and commit it.
-2. **Phase 5** (`docs/plans/PHASE-5.md`): imported Llama/Qwen inference and fine-tuning (RMSNorm,
+2. **Phase 5** (`docs/plans/phase-5.md`): imported Llama/Qwen inference and fine-tuning (RMSNorm,
    RoPE with host-built cos/sin tables for NORM and NEOX plus scaling, grouped-query attention,
    SwiGLU; Q8_0/Q4_0 weights dequantised in-kernel). Copy in (with provenance headers, commit
    `56a9d3a`) the llama tensor mapping from ferrum-cpu `ferrum_core/src/gguf/llama.rs`, `llm.rs`
@@ -112,7 +112,7 @@ it** (code is copied in with provenance headers; ferrum-cpu is never modified). 
    training and batched work go to the GPU), and a real ferrum-cpu-produced GGUF stored as a
    fixture (nothing has loaded one yet: cross-loading is so far verified only against ferrum-cpu's
    source conventions).
-4. **Phase 7**: verification matrix `docs/DEVICES.md`, then flip the default to `auto` only for
+4. **Phase 7**: verification matrix `docs/devices.md`, then flip the default to `auto` only for
    device classes with a green row.
 5. Weight tying and dropout on the GPU remain open (Phase 4 open items).
 
@@ -151,7 +151,7 @@ cargo deny check
   after formatting. Test modules in `train/tests.rs` and `gpt2/tests.rs` are top-level (no `mod`).
 - Tests that need a GPU call `open_for_test()` and skip with a printed reason; adapter selection is
   the `FERRUM_GPU_ADAPTER` name fragment. Test-only fault injection: `Gpu::fail_after`,
-  `Gpu::sweep_faults` (see `docs/COVERAGE.md`).
+  `Gpu::sweep_faults` (see `docs/coverage.md`).
 - Adapters on the dev box: NVIDIA MX330 (discrete), Intel Iris Xe (Vulkan, integrated), llvmpipe,
   plus Mesa Intel via GL. `ExitWorktree` / `EnterWorktree path=` is how to reach the main checkout.
 - Measurements and their caveats live in the `docs/*.md` reports; never quote a number that is not

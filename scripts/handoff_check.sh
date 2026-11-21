@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Hook for CLAUDE.md rule 12. Reads the context figure scripts/statusline.sh recorded and, the first
-# time it reaches HANDOFF_AT percent (default 98), tells the agent to write HANDOFF.md. It fires
+# time it reaches HANDOFF_AT percent (default 98), tells the agent to write handoff.md. It fires
 # once per climb: the flag is cleared when usage drops under 90 (a new session or a compaction).
 #
 #   usage: handoff_check.sh [HookEventName]     (default PostToolUse; also UserPromptSubmit)
@@ -39,7 +39,7 @@ flag="$(dirname "$best_file")/handoff-fired"
 if awk -v u="$used" -v t="$threshold" 'BEGIN { exit !(u >= t) }'; then
     [ -f "$flag" ] && exit 0
     : > "$flag"
-    msg="CONTEXT WINDOW AT ${used}% (rule 12 threshold ${threshold}%). Stop starting new work now. Write HANDOFF.md in the repository root following CLAUDE.md rule 12 (goal, state and branch, work in progress, next steps in order, open questions, commands to run first, gotchas), commit and push it together with any finished work, then stop."
+    msg="CONTEXT WINDOW AT ${used}% (rule 12 threshold ${threshold}%). Stop starting new work now. Write handoff.md in the repository root following CLAUDE.md rule 12 (goal, state and branch, work in progress, next steps in order, open questions, commands to run first, gotchas), commit and push it together with any finished work, then stop."
     jq -n --arg e "$event" --arg m "$msg" \
         '{hookSpecificOutput: {hookEventName: $e, additionalContext: $m}}'
 elif awk -v u="$used" 'BEGIN { exit !(u < 90) }'; then

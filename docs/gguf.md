@@ -65,7 +65,7 @@ The intent is that a model trained on either side loads on the other through the
 been verified with a real file.** The repository contains no stored `.gguf` fixture: tests generate files
 with this project's own writer, and the tensor names, metadata keys and layout rules were checked against
 ferrum-cpu's *source* conventions (commit 56a9d3a), not against a file ferrum-cpu wrote. Adding a stored
-fixture produced by ferrum-cpu is an open item (see `docs/plans/PHASE-3.md`, task 3.1).
+fixture produced by ferrum-cpu is an open item (see `docs/plans/phase-3.md`, task 3.1).
 
 ## Token files and tokenizer files
 

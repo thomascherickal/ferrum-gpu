@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# AGENTS.md: no push without a passing gate. Refreshes next-steps.md (not staged), then refuses the push unless
+# `scripts/gate.sh` passed on a tree equal to HEAD's apart from the generated reports (scripts/gate_ok.py).
+# FERRUM_SKIP_GATE_CHECK=1 allows a docs-only push.
+root=$(git rev-parse --show-toplevel) || exit 0
+cd "$root" || exit 0
+command -v python3 >/dev/null || exit 0
+[ -f scripts/next_steps.py ] && python3 scripts/next_steps.py
+[ "${FERRUM_SKIP_GATE_CHECK:-}" = 1 ] && exit 0
+[ -f scripts/gate_ok.py ] || exit 0
+python3 scripts/gate_ok.py

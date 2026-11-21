@@ -1,6 +1,6 @@
 # Parity ledger: ferrum-gpu versus ferrum-cpu
 
-Written for M0 of [MATCHER-PLAN.md](../MATCHER-PLAN.md). Audited against **ferrum-cpu commit `56a9d3ada59df2a7f3f4e128d04a96b59211581c`** (read-only, 2026-11-11). ferrum-cpu is a reference for behaviour only; nothing here links to it (see the independence rule in MATCHER-PLAN.md section 0).
+Written for M0 of [matcher-plan.md](../matcher-plan.md). Audited against **ferrum-cpu commit `56a9d3ada59df2a7f3f4e128d04a96b59211581c`** (read-only, 2026-11-11). ferrum-cpu is a reference for behaviour only; nothing here links to it (see the independence rule in matcher-plan.md section 0).
 
 **How deep the audit went.** Read in source: the flag tables (`slm_cli/src/args.rs`), presets (`slm_cli/src/preset.rs`), GGUF quantization constants and dequantizers (`ferrum_core/src/gguf/{format,dequant}.rs`), the accepted architectures (`gguf/llama.rs`), the server routes, limits and flags (`slm_server/src/{http,limits,cli}.rs`). Read only as documentation (README, STATUS, `--help` text): behaviour of `prepare`, `tokenize`, checkpoints, the chat template, export commands, LightEval. Those rows say "doc" and are re-read in their own phase before work starts.
 
@@ -51,7 +51,7 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | `finetune-gguf` on a GPT-2 file (ours; ferrum-cpu's is for Llama/Qwen) | no | **have (M4)**, keeps the file's tokenizer | different | |
 | `finetune-gguf` options (`--epochs --lr --batch --seq --weight_decay --dropout --clip --warmup --qat --seed --threads --resume --sample --max-seconds`) | yes | exists, fewer options; ferrum-cpu writes an `.flck` checkpoint, we write a GGUF | partial | M4 |
 | `export-gguf` (`--quant`) | yes | **have (M3)**: f32/int8/int4 out; also f16, fp4 (MXFP4) and q2 (Q2_K), which ferrum-cpu does not offer or read | have | |
-| `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands. **Ollama 0.40.2: tested against a real `ollama serve`** (private HOME and model directory, CPU only): the model registers, Ollama describes it as family `gpt2`, and its raw greedy text equals ours. **LM Studio: fake `lms` in the default suite, plus an opt-in real `lms import` (2026-11-14) that registered the model and ran it in llama.cpp with our text.** Ollama and llama.cpp also verified on the GPU (CUDA, Vulkan). See docs/INTEROP.md | have | |
+| `export-ollama` (`--bin`, `--modelfile-only`), `export-lmstudio` (`--repo`, `--bin`) | yes | **have (M6)**, flag-style (`--model`, `--name`); same Modelfile and `lms` commands. **Ollama 0.40.2: tested against a real `ollama serve`** (private HOME and model directory, CPU only): the model registers, Ollama describes it as family `gpt2`, and its raw greedy text equals ours. **LM Studio: fake `lms` in the default suite, plus an opt-in real `lms import` (2026-11-14) that registered the model and ran it in llama.cpp with our text.** Ollama and llama.cpp also verified on the GPU (CUDA, Vulkan). See docs/interop.md | have | |
 | `eval` (`--json`) | yes | **have (M4)**, plus `--ctx` | have | |
 | `eval-gguf` (`--ctx --quant --resume --force --json`) | yes | **have (M5)**: `eval-gguf` is an alias of `eval`, which takes `--ctx --quant --json` and scores GPT-2 and imported files with their own tokenizers. `--resume` is deliberately different for the same reason as in `run-gguf` (our fine-tuned model is a complete GGUF) | have | |
 | `prepare` (`--input --out --doc-sep --lossy --nfkc --lowercase --strip-gutenberg --min-chars --max-chars --dedup --val-frac --test-frac --seed`) | yes | splits and hashes equal ferrum-cpu on `fixtures/prepare/`; manifest differs only in paths, args and version | done | M2 |
@@ -101,5 +101,5 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | GUI: BPE tokenizer | yes | no: byte-level models only, see docs/gui.md | different, on purpose |
 | GUI: shell | Tauri desktop app | local web page on 127.0.0.1 | different |
 | RAM guard (Linux), `--force` | yes | GPU buffer pre-flight and `--gpu-mem-mb` | different |
-| Determinism | bit-identical across thread counts | bit-identical across repeat runs per adapter | different (stated in ARCHITECTURE.md) |
+| Determinism | bit-identical across thread counts | bit-identical across repeat runs per adapter | different (stated in architecture.md) |
 | Device choice | CPU only | `--device cpu\|gpu\|auto` | GPU-only feature |

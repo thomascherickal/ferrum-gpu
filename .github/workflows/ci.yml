@@ -11,7 +11,7 @@ env:
 
 jobs:
   # Required gate. No GPU on the hosted runner: the suite passes with GPU tests skipping, and the
-  # Mesa software Vulkan driver (lavapipe) gives one real adapter row (docs/DEVICES.md).
+  # Mesa software Vulkan driver (lavapipe) gives one real adapter row (docs/devices.md).
   test:
     name: Lint, deny, test (Linux)
     runs-on: ubuntu-latest
@@ -59,7 +59,7 @@ jobs:
         run: cargo run -q -p ferrum_gpu_cli --locked -- info --device cpu
         continue-on-error: true
       # --no-fail-fast: see every failing test, not just the first binary's. One test thread:
-      # concurrent GPU device opens hang or crash some drivers (HANDOFF.md). The step timeout turns
+      # concurrent GPU device opens hang or crash some drivers (handoff.md). The step timeout turns
       # a hung test into a failure instead of an hour of runner time.
       - name: "Tests (Windows, whatever adapter the runner has)"
         if: runner.os == 'Windows'
@@ -68,7 +68,7 @@ jobs:
       # macOS: the hosted runner's paravirtual Apple GPU hung a test run for 40+ minutes (the step
       # timeout did not even stop it) and gave GPU/CPU loss curves that disagree, so the build and
       # CPU paths are tested with no adapter. (A separate GPU step was tried and removed: it ran
-      # past its timeout-minutes and had to be cancelled by hand. See docs/DEVICES.md.)
+      # past its timeout-minutes and had to be cancelled by hand. See docs/devices.md.)
       - name: "Tests (macOS, no GPU adapter)"
         if: runner.os == 'macOS'
         env:

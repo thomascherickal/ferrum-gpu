@@ -106,7 +106,7 @@ impl std::error::Error for SelectError {}
 /// Choose an adapter index. A name fragment (case-insensitive) wins and may pick a software
 /// adapter. Otherwise: first discrete, else first integrated, else first other; software and
 /// OpenGL-backend adapters are never chosen unprompted (Phase 7: the Mesa GL adapter failed the GELU
-/// parity test, see docs/DEVICES.md).
+/// parity test, see docs/devices.md).
 pub fn choose(list: &[AdapterSummary], name: Option<&str>) -> Result<usize, SelectError> {
     if list.is_empty() {
         return Err(SelectError::NoAdapters);

@@ -1,8 +1,8 @@
 # NEXT-SESSION: how to start, and what to do
 
-Read this first in a fresh session, then `HANDOFF.md` (the exact state and gotchas), then
-`CLAUDE.md` (the binding rules). This file is the *start procedure and the plan*; `HANDOFF.md` is
-the *state*. After you have read both, add a "consumed" line at the top of `HANDOFF.md`.
+Read this first in a fresh session, then `handoff.md` (the exact state and gotchas), then
+`CLAUDE.md` (the binding rules). This file is the *start procedure and the plan*; `handoff.md` is
+the *state*. After you have read both, add a "consumed" line at the top of `handoff.md`.
 
 ## 0. Where things are
 
@@ -38,15 +38,15 @@ the *state*. After you have read both, add a "consumed" line at the top of `HAND
 4. `EnterWorktree` with a new name (for example `phase5-llama`), so edits are isolated.
 5. Confirm the context safety net works: after your first response `.superpowers/context.json`
    should exist (written by `scripts/statusline.sh`). If it does not, the status-line wiring in
-   `.claude/settings.json` is not active in this session; keep `HANDOFF.md` current by hand at each
+   `.claude/settings.json` is not active in this session; keep `handoff.md` current by hand at each
    task boundary.
 
 ## 2. Paste-able starting prompt
 
-> Continue ferrum-gpu. Read NEXT-SESSION.md, HANDOFF.md and CLAUDE.md. Run the start checklist,
-> then execute Phase 5 (docs/plans/PHASE-5.md) task by task in a new worktree, one commit per
+> Continue ferrum-gpu. Read next-session.md, handoff.md and CLAUDE.md. Run the start checklist,
+> then execute Phase 5 (docs/plans/phase-5.md) task by task in a new worktree, one commit per
 > task, tests first, full suite green before each commit. Stay autonomous: take the Recommended
-> option, decide routine questions yourself and say what you decided. Write HANDOFF.md if the
+> option, decide routine questions yourself and say what you decided. Write handoff.md if the
 > context-limit hook fires. Do not merge or push main until a phase gate is met and documented.
 
 ## 3. The plan (what is left)
@@ -55,7 +55,7 @@ Phases 0 to 4 are done and merged. Remaining, in order. Each task ends with: uni
 new file, a CPU parity test, a fault-injection sweep for multi-command ops, a doc update, a
 coverage re-measure (`FLOOR=99`), one commit.
 
-### Phase 5: imported Llama / Qwen models (`docs/plans/PHASE-5.md`)
+### Phase 5: imported Llama / Qwen models (`docs/plans/phase-5.md`)
 
 - **5.0 Copy in the llama GGUF mapping.** Read ferrum-cpu `ferrum_core/src/gguf/llama.rs`,
   `llm.rs` (RmsNorm, RoPE NORM/NEOX, GQA attention, SwiGLU, `LlamaModel`) and `llm_train/`
@@ -85,7 +85,7 @@ coverage re-measure (`FLOOR=99`), one commit.
   oracle, and a measured speed comparison (decode and training) written up like
   `docs/train-speed.md`, including the unflattering numbers.
 
-### Phase 6: front ends (`docs/plans/PHASE-6.md`)
+### Phase 6: front ends (`docs/plans/phase-6.md`)
 
 Our own CLI (`train`, `generate`, `eval`, `run-gguf`, `finetune-gguf`, `info`; flag tables that
 reject unknown flags) and server (`/health`, `/v1/info`, `/v1/generate`, `/v1/loglikelihood`),
@@ -96,9 +96,9 @@ and batched scoring on GPU), pre-flight memory estimates, **a real GGUF produced
 a stored fixture** (so cross-loading is proven, not just argued), end-to-end tests through the
 real binaries on tiny fixtures, and a tutorial with pasted real output.
 
-### Phase 7: verification matrix (`docs/plans/PHASE-7.md`)
+### Phase 7: verification matrix (`docs/plans/phase-7.md`)
 
-`docs/DEVICES.md` with a row per device class (adapter, driver, OS, wgpu version, date, result or
+`docs/devices.md` with a row per device class (adapter, driver, OS, wgpu version, date, result or
 "not run"), CI (lint, deny, guard tests, suite on llvmpipe; macOS and Windows as non-required
 jobs), and the default flip to `auto` only for classes with a green row. Apple Silicon needs a
 Mac or a macOS CI runner with a Metal device: say plainly if it was not run.
@@ -106,7 +106,7 @@ Mac or a macOS CI runner with a Metal device: say plainly if it was not run.
 ### Open items carried over
 
 Weight tying and dropout on the GPU; larger-scale convergence run on real text; driver versions
-not recorded; remaining coverage gaps listed in `docs/COVERAGE.md` (hand-built corrupt GGUF
+not recorded; remaining coverage gaps listed in `docs/coverage.md` (hand-built corrupt GGUF
 fixtures, a shader-compile failure hook, assertion messages that index into results).
 
 ## 4. Working rules in one screen (full text in CLAUDE.md)
@@ -116,9 +116,9 @@ hardware); one feature per commit; fmt, clippy, deny and the four-configuration 
 before each commit; no invented numbers (record adapter, driver, date, and say what was not run);
 files stay under about 500 non-test lines; take the Recommended option instead of asking; never
 force-push; never push `main` without a documented phase gate or an explicit user request; write
-`HANDOFF.md` when the context hook fires at 98%.
+`handoff.md` when the context hook fires at 98%.
 
-## 5. Practical gotchas (more in HANDOFF.md)
+## 5. Practical gotchas (more in handoff.md)
 
 - Shell tool rejects long compound commands in a worktree: write a script file, run `bash file`.
 - `cargo fmt` reflows code, breaking later exact-match edits: re-read after formatting.

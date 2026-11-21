@@ -198,7 +198,7 @@ mod gate_tests {
 
     #[test]
     fn the_preflight_uses_the_cards_free_memory_with_the_measured_headroom() {
-        // CAPABILITY.md: on this card plans up to 1449 MiB loaded and plans from 1721 MiB failed
+        // capability.md: on this card plans up to 1449 MiB loaded and plans from 1721 MiB failed
         let gpu = app(Arc::new(FakeGpu), listed());
         for fits in [279u64, 956, 1449] {
             let mut out = Vec::new();

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the GPU test suite once per adapter (FERRUM_GPU_ADAPTER) and print one DEVICES.md row each.
+# Run the GPU test suite once per adapter (FERRUM_GPU_ADAPTER) and print one devices.md row each.
 # Usage: scripts/device-matrix.sh [adapter-name-fragment ...]   (default: every adapter `info` lists)
 set -uo pipefail
 cd "$(dirname "$0")/.."

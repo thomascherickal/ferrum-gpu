@@ -1,7 +1,7 @@
 # Architecture
 
-How ferrum-gpu is built and why. For usage see the [user guide](USER-GUIDE.md); for the workflow of
-changing it see [DEVELOPING.md](DEVELOPING.md). Measured claims link to the report that holds the numbers.
+How ferrum-gpu is built and why. For usage see the [user guide](user-guide.md); for the workflow of
+changing it see [developing.md](developing.md). Measured claims link to the report that holds the numbers.
 
 ## 1. Layers
 
@@ -196,7 +196,7 @@ were not measured.
 Unit tests per file; functional tests per feature; integration tests per module; a regression test with every
 fix. GPU kernels are tested against the oracle on adversarial shapes and with fault sweeps that pin command
 counts. External things (adapters, `nvidia-smi`, sysfs, Chrome) are injected or skipped with a printed reason.
-Details and coverage are in [DEVELOPING.md](DEVELOPING.md) and [COVERAGE.md](COVERAGE.md).
+Details and coverage are in [developing.md](developing.md) and [coverage.md](coverage.md).
 
 ## 12. Non-goals
 

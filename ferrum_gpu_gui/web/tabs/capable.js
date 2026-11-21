@@ -1,6 +1,6 @@
 // The Capable tab: how large a model a given amount of memory can hold, per precision and for a full
 // fine-tune; the decode-speed ceiling for a model size and a memory bandwidth; and what this machine's
-// own adapters can hold. All figures are estimates (HARDWARE-CAPs.md has the formulas and the caveats).
+// own adapters can hold. All figures are estimates (hardware-caps.md has the formulas and the caveats).
 import { api, withQuery, humanBytes } from '../shell/api.js';
 import { capableQuery, tpsText } from './capable_view.js';
 

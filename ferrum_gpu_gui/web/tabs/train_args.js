@@ -1,6 +1,6 @@
 // Building the `train` command's arguments from the Train tab's form, and refusing bad values before a
 // job is started. Pure: returns `{ args }` or `{ error }` (the first problem found), tested under node.
-// Flag spellings and ranges follow ferrum_gpu_core::commands (docs/USER-GUIDE.md section 3).
+// Flag spellings and ranges follow ferrum_gpu_core::commands (docs/user-guide.md section 3).
 
 const blank = (v) => String(v ?? '').trim() === '';
 const text = (v) => String(v ?? '').trim();

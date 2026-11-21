@@ -1,7 +1,7 @@
 # What this machine can run (measured), and how that scales
 
 Measured on the machine this repository is developed on, **2026-11-14**. Hand-estimated figures for
-other hardware are in [HARDWARE-CAPs.md](HARDWARE-CAPs.md); nothing in this file is an estimate except
+other hardware are in [hardware-caps.md](hardware-caps.md); nothing in this file is an estimate except
 where it says so.
 
 ## The machine
@@ -123,7 +123,7 @@ runtime runs one token); fine-tuning baseline: 8 threads.
   as the model grows. Decode of one token at a time is **not** faster than one CPU thread on shapes up to
   32M parameters on either adapter.
 - Training larger than 32M was **not run**. By the plan, full fine-tuning of the 163M shape needs 2687 MiB,
-  which cannot fit the MX330; see the estimate in [HARDWARE-CAPs.md](HARDWARE-CAPs.md).
+  which cannot fit the MX330; see the estimate in [hardware-caps.md](hardware-caps.md).
 
 ## Findings
 
@@ -144,7 +144,7 @@ runtime runs one token); fine-tuning baseline: 8 threads.
 3. **On a 2 GB card the practical decode ceiling is about 1.1B parameters at Q4_0 or Q8_0**, around
    7 to 11 tokens per second. At the 1.5B-class shape the resident size is above the free memory.
 4. **The memory formula** `M = params x bytes per weight x 1.10 + 300 MB` predicts the measured plans to
-   within -24% to +37% (table in HARDWARE-CAPs.md); it is optimistic for big-vocabulary small models and
+   within -24% to +37% (table in hardware-caps.md); it is optimistic for big-vocabulary small models and
    pessimistic for the smallest shape.
 
 ## Decode model fitted to the MX330 runs

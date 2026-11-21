@@ -74,7 +74,7 @@ default).
   llvmpipe and OpenGL ones are never picked unless named.
 - **Memory is planned before anything is uploaded:** weights, gradients, Adam moments and activations (or
   weights, KV cache and scratch for decoding) are added up and checked against the adapter's per-buffer limit
-  and, with `--gpu-mem-mb`, against a total. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+  and, with `--gpu-mem-mb`, against a total. See [docs/architecture.md](docs/architecture.md).
 
 ## What it does
 
@@ -111,11 +111,11 @@ target/release/ferrum_gpu_gui
 target/release/ferrum-gpu train --arch llama --preset tiny --data corpus.txt --out l.gguf --steps 150 --batch 4 --context 32 --lr 0.01
 ```
 
-`--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/USER-GUIDE.md) for
+`--device cpu|gpu|auto` (default `auto`) picks where it runs; see the [user guide](docs/user-guide.md) for
 what `auto` does and why. Before a GPU run the memory plan is checked against a budget: 80% of a discrete card's
 free memory (read from `nvidia-smi`), or 70% of the available RAM for an integrated or unified-memory adapter
 (both estimates), or `--gpu-mem-mb` if you set it; `ferrum-gpu info` shows each adapter's budget, its features and
-where the figure came from ([CAPABILITY.md](CAPABILITY.md), finding 1). With no figure for an adapter (an AMD card
+where the figure came from ([capability.md](capability.md), finding 1). With no figure for an adapter (an AMD card
 with several GPUs, say) only the per-buffer limit is checked.
 
 ## Commands
@@ -139,7 +139,7 @@ with several GPUs, say) only the per-buffer limit is checked.
 (f16 halves the weight memory and needs no `shader-f16` feature; a weight larger than one buffer binding is stored in blocks).
 
 Training flags, device flags, checkpoint and resume behaviour, and what each refuses are in
-[docs/USER-GUIDE.md](docs/USER-GUIDE.md) and [docs/cli.md](docs/cli.md) (a walkthrough with real output).
+[docs/user-guide.md](docs/user-guide.md) and [docs/cli.md](docs/cli.md) (a walkthrough with real output).
 
 ## The server
 
@@ -172,7 +172,7 @@ the first run picks the adapter and thread count for the machine and saves them 
 
 ## Works with llama.cpp, Ollama, LM Studio and Unsloth
 
-The meeting point is the GGUF file, and it is tested against real tools ([docs/INTEROP.md](docs/INTEROP.md)):
+The meeting point is the GGUF file, and it is tested against real tools ([docs/interop.md](docs/interop.md)):
 
 | Tool | What was checked |
 |---|---|
@@ -192,9 +192,9 @@ RAM): **models up to about 1.1 billion parameters decode on the 2 GB card at Q4_
 0.6 billion on the integrated GPU in what was run; full fine-tuning is measured up to 32 million
 parameters. For other hardware there are hand estimates, clearly separated from measurements:
 
-- **[CAPABILITY.md](CAPABILITY.md)**: what was measured, on which machine, with the method, the limits found, and
+- **[capability.md](capability.md)**: what was measured, on which machine, with the method, the limits found, and
   the real-size shapes that did and did not fit.
-- **[HARDWARE-CAPs.md](HARDWARE-CAPs.md)**: back-of-the-envelope estimates from 2 GB to 512 GB of memory,
+- **[hardware-caps.md](hardware-caps.md)**: back-of-the-envelope estimates from 2 GB to 512 GB of memory,
   discrete VRAM, unified memory (Apple-class up to hypothetical M5-class Max and Ultra rows), integrated GPUs and
   multi-channel server RAM, with the formulas and every assumption stated.
 
@@ -202,7 +202,7 @@ parameters. For other hardware there are hand estimates, clearly separated from 
 
 Linux 7.0, rustc 1.96, `wgpu` 30.0.1, Vulkan, release profile, 2026-11-14. Random weights (speed depends on the
 shape, not the values), single-stream decode, one run per row, one process per row. Full tables, the raw logs in
-`docs/logs/` and the caveats are in [CAPABILITY.md](CAPABILITY.md).
+`docs/logs/` and the caveats are in [capability.md](capability.md).
 
 | Shape (random weights), Q4_0 | params | MX330 (2 GB) tokens/s | Intel Xe tokens/s |
 |---|---|---|---|
@@ -218,11 +218,11 @@ shape, not the values), single-stream decode, one run per row, one process per r
   the GPU is slower than one CPU thread at those sizes. `--device auto` follows this.
 - **Found while measuring:** the memory budget used the card's total memory, about 20% more than a load
   could really use (fixed: it now uses 80% of the free memory), and a failed load leaves buffers allocated
-  until the process ends ([CAPABILITY.md](CAPABILITY.md), findings 1 and 2).
+  until the process ends ([capability.md](capability.md), findings 1 and 2).
 
 ## Hardware estimates
 
-Hand estimates (formulas in [HARDWARE-CAPs.md](HARDWARE-CAPs.md); **only the MX330 and Xe rows above were run**).
+Hand estimates (formulas in [hardware-caps.md](hardware-caps.md); **only the MX330 and Xe rows above were run**).
 Inference at Q4_0, context 2048, `discrete VRAM / unified memory` (90% / 70% of the memory usable); the small-model
 end is optimistic by up to a third, see the notes there:
 
@@ -248,9 +248,9 @@ ferrum-gpu has no tuned CPU inference path.
 Tests first, every file has unit tests, and the suite must pass on a machine with no GPU. At the last full run
 (2026-11-14) 820 tests passed with none over their time limit, in four configurations (the default adapter,
 no GPU, llvmpipe, the Intel Xe), with `cargo fmt`, `cargo clippy -D warnings`, a line-coverage floor of 98%
-and `cargo deny` all green. Coverage figures are in [docs/COVERAGE.md](docs/COVERAGE.md). CI runs on Linux,
+and `cargo deny` all green. Coverage figures are in [docs/coverage.md](docs/coverage.md). CI runs on Linux,
 Windows and macOS (the macOS runner's paravirtual GPU is known to differ from the CPU in one test; see
-[docs/DEVICES.md](docs/DEVICES.md)).
+[docs/devices.md](docs/devices.md)).
 
 ```bash
 scripts/test-all.sh                  # every test, with and without a GPU, plus a coverage summary
@@ -258,15 +258,15 @@ scripts/test-time-limit.sh [LIMIT]   # one test per process: none over the limit
 ```
 
 Tests that need an outside tool (llama.cpp, Ollama, `lms`) skip with a printed reason when it is absent.
-Each real external run is opt-in and logged; see [docs/INTEROP.md](docs/INTEROP.md) and
-[docs/DEVELOPING.md](docs/DEVELOPING.md).
+Each real external run is opt-in and logged; see [docs/interop.md](docs/interop.md) and
+[docs/developing.md](docs/developing.md).
 
 ## Status
 
 Phases 0 to 6 are complete: kernels and parity, GGUF I/O, GPT-2 and Llama/Qwen inference, training and
 fine-tuning, the GUI and browser WebGPU runtime, and the CLI and server. Phase 7 (a verification matrix
 over more devices, then making `auto` the default everywhere) has not started. The plan is in
-[PLAN.md](PLAN.md); per-phase notes and outcomes are in [docs/plans/](docs/plans/).
+[plan.md](plan.md); per-phase notes and outcomes are in [docs/plans/](docs/plans/).
 
 Hardware actually run: NVIDIA GeForce MX330 (2 GB, Vulkan and, through Ollama, CUDA), Intel Iris Xe (Vulkan),
 llvmpipe (software Vulkan), on Linux. **Not run:** Apple Silicon, AMD, desktop NVIDIA, Windows, macOS,
@@ -291,21 +291,21 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 
 | Document | For |
 |---|---|
-| [CAPABILITY.md](CAPABILITY.md) | What this machine can run, measured: model sizes, speeds, limits and findings |
-| [HARDWARE-CAPs.md](HARDWARE-CAPs.md) | Hand-estimated capacity and speed from 4 GB to 512 GB, unified memory and server RAM |
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Using the CLI, server and GUI: devices, training, quantisation, memory, troubleshooting |
-| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | How it is built: layers, the device runtime, kernels, determinism, training, memory planning |
-| [docs/GGUF.md](docs/GGUF.md) | Exactly which GGUF files load and what is refused |
-| [docs/INTEROP.md](docs/INTEROP.md) | llama.cpp, Ollama, LM Studio and Unsloth: versions run, results, how to rerun |
-| [docs/DEVELOPING.md](docs/DEVELOPING.md) | Building, testing, coverage, benchmarks, adding a kernel or a command, project rules |
+| [capability.md](capability.md) | What this machine can run, measured: model sizes, speeds, limits and findings |
+| [hardware-caps.md](hardware-caps.md) | Hand-estimated capacity and speed from 4 GB to 512 GB, unified memory and server RAM |
+| [docs/user-guide.md](docs/user-guide.md) | Using the CLI, server and GUI: devices, training, quantisation, memory, troubleshooting |
+| [docs/architecture.md](docs/architecture.md) | How it is built: layers, the device runtime, kernels, determinism, training, memory planning |
+| [docs/gguf.md](docs/gguf.md) | Exactly which GGUF files load and what is refused |
+| [docs/interop.md](docs/interop.md) | llama.cpp, Ollama, LM Studio and Unsloth: versions run, results, how to rerun |
+| [docs/developing.md](docs/developing.md) | Building, testing, coverage, benchmarks, adding a kernel or a command, project rules |
 | [docs/cli.md](docs/cli.md) | CLI and server walkthrough with real output |
 | [docs/gui.md](docs/gui.md), [docs/browser-webgpu.md](docs/browser-webgpu.md) | The GUI and the in-browser runtime |
 | [docs/gui-studio-plan.md](docs/gui-studio-plan.md) | The Studio and GPU-scale plan: what was built, what was measured, what was not done |
 | [docs/verification-kit.md](docs/verification-kit.md) | Run the lab report on your hardware (Apple Silicon, AMD, Windows) and send it back |
 | [docs/spike-matmul.md](docs/spike-matmul.md), [docs/train-speed.md](docs/train-speed.md), [docs/decode-crossover.md](docs/decode-crossover.md), [docs/llama-speed.md](docs/llama-speed.md) | Measurement reports from earlier phases |
-| [docs/DEVICES.md](docs/DEVICES.md), [docs/PARITY.md](docs/PARITY.md) | The device verification matrix; parity with ferrum-cpu feature by feature |
-| [docs/COVERAGE.md](docs/COVERAGE.md) | Test coverage numbers |
-| [PLAN.md](PLAN.md), [docs/plans/](docs/plans/) | The phase plan and what each phase delivered |
+| [docs/devices.md](docs/devices.md), [docs/parity.md](docs/parity.md) | The device verification matrix; parity with ferrum-cpu feature by feature |
+| [docs/coverage.md](docs/coverage.md) | Test coverage numbers |
+| [plan.md](plan.md), [docs/plans/](docs/plans/) | The phase plan and what each phase delivered |
 | [CLAUDE.md](CLAUDE.md) | The binding project rules |
 
 ## Independence from ferrum-cpu

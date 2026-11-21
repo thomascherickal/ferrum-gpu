@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Back-of-envelope tables for HARDWARE-CAPs.md (run: python3 -I scripts/capability-estimates.py). Every number is arithmetic on the stated inputs;
+"""Back-of-envelope tables for hardware-caps.md (run: python3 -I scripts/capability-estimates.py). Every number is arithmetic on the stated inputs;
 measured inputs come from today's benches (MX330, 2026-11-14), everything else is an assumption."""
 
 MiB = 1024 * 1024

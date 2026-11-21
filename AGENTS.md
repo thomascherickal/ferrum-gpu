@@ -78,7 +78,7 @@ Run the following steps after each commit/push:
 # ferrum-gpu
 
 A GPU engine (wgpu / WGSL, any GPU incl. Apple Silicon) for small causal
-Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.md`.
+Transformers, GGUF in and out. Plan: `plan.md` (index) and `docs/plans/phase-*.md`.
 
 ## Independence rule (strict, user decision 2026-11-10)
 
@@ -130,18 +130,18 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     beside each file, one test file per concern, with shared helpers in the tests' `mod.rs`; user
     decision 2026-11-12: make every new file and test highly modular). Every function and branch gets a unit test, with stubs or fakes for
     anything external (GPU, `nvidia-smi`, the filesystem). Measure line coverage with
-    `cargo llvm-cov` when it is available, record the numbers in `docs/COVERAGE.md`, never
+    `cargo llvm-cov` when it is available, record the numbers in `docs/coverage.md`, never
     claim a figure that was not measured, and raise the floor over time toward 100%. Code that
     can only run on real hardware is isolated in small files so the rest stays fully testable.
 12. **Hand-off file at 98% context (user decision 2026-11-10).** Once the context window reaches
     98% (as reported by the harness or status line; if no figure is visible, when the session is
-    clearly near its limit), stop starting new work and write `HANDOFF.md` in the repository
+    clearly near its limit), stop starting new work and write `handoff.md` in the repository
     root, then commit and push it with any finished work. It must let a fresh agent resume cold:
     the goal; what is done and where (branch, last commit, what is pushed or merged); what was
     in progress and its exact state (uncommitted files, a running command and its output file);
     the next steps in order; open questions and decisions already taken; the commands to run
     first (build, test, coverage); and gotchas learned (tooling quirks, measurements and their
-    caveats). A fresh session reads `HANDOFF.md` first and marks it consumed (a line at the top
+    caveats). A fresh session reads `handoff.md` first and marks it consumed (a line at the top
     saying when and by whom) before continuing. Keep it current at each phase boundary so a
     sudden stop loses little. Do not delete a handoff that has not been consumed.
 
@@ -151,7 +151,7 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     `remaining_percentage`), records it in `.superpowers/context.json`, and delegates to the
     user's own status-line script so their display is unchanged. `scripts/handoff_check.sh` runs
     as a `PostToolUse` and `UserPromptSubmit` hook; the first time the recorded figure reaches
-    98% (`HANDOFF_AT` overrides) it injects an instruction to write `HANDOFF.md` now, then
+    98% (`HANDOFF_AT` overrides) it injects an instruction to write `handoff.md` now, then
     stays quiet until usage falls under 90%. Both scripts have tests
     (`tests/tests/test_context_scripts.rs`). If that hook message appears, obey it before doing
     anything else.
@@ -204,7 +204,7 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     members, so do not rely on it. The gate runs the script and CI runs it on Linux. Tests that need an
     outside tool skip with a printed reason when it is absent. The tests that change anything outside
     the repository (a real `lms import` under `~/.lmstudio`) or use the GPU through an outside tool are
-    opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/INTEROP.md`.
+    opt-in (`FERRUM_INTEROP_LMS=1`, `FERRUM_INTEROP_GPU=1`) and log every step; see `docs/interop.md`.
 18. **`metrics.md` is always current (user decision 2026-11-18).** The repository root holds `metrics.md`: size, tests,
     structure, dependencies, history, the last gate's timing and the last coverage run. It is generated, never edited by
     hand: the pre-commit hook (`scripts/githooks`, enabled with `git config core.hooksPath scripts/githooks`) refreshes it

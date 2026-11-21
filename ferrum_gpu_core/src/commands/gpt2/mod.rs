@@ -2,7 +2,7 @@
 //! learned positions, LayerNorm and GELU, a byte-level BPE tokenizer stored inside the GGUF, so
 //! llama.cpp and ferrum-cpu can run the file.
 //!
-//! Sizes, defaults and flag spellings follow ferrum-cpu (docs/PARITY.md); the `llama` path is the
+//! Sizes, defaults and flag spellings follow ferrum-cpu (docs/parity.md); the `llama` path is the
 //! one used for imported Llama/Qwen files and `--arch llama`.
 
 #[cfg(test)]

@@ -12,7 +12,7 @@ fn bytes_per_weight_follow_the_block_layouts() {
 
 #[test]
 fn the_formulas_give_the_documented_examples() {
-    // 16 GB discrete: 14.4 GB usable; Q4_0 holds 22.8B and a full f32 fine-tune 816M (HARDWARE-CAPs.md)
+    // 16 GB discrete: 14.4 GB usable; Q4_0 holds 22.8B and a full f32 fine-tune 816M (hardware-caps.md)
     let r = row(16.0, false);
     assert!((r.usable - 14.4e9).abs() < 1.0);
     assert_eq!(format_params(r.infer[0]), "22.8B");

@@ -1,5 +1,5 @@
 //! Request limits and the fixed server-side caps. Defaults and names follow ferrum-cpu's
-//! `ferrum-serve` (docs/PARITY.md).
+//! `ferrum-serve` (docs/parity.md).
 
 /// Most POST requests the server holds at once; more get an immediate 503.
 // ponytail: fixed; make it a `Limits` field if a multi-client deployment needs more.

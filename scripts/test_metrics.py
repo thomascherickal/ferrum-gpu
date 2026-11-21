@@ -34,7 +34,7 @@ class Collect(unittest.TestCase):
 
     def test_crates_members_and_packages(self):
         self.assertEqual(mc.crate_of("ferrum_a/src/x.rs"), "ferrum_a")
-        self.assertEqual(mc.crate_of("README.md"), "(root)")
+        self.assertEqual(mc.crate_of("readme.md"), "(root)")
         self.assertEqual(mc.workspace_members('[workspace]\nmembers = ["a", "b/c"]\n'), ["a", "b/c"])
         self.assertEqual(mc.workspace_members("[package]\n"), [])
         self.assertEqual(mc.lock_packages('[[package]]\nname="a"\n[[package]]\nname="b"\n'), 2)

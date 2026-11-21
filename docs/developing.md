@@ -1,14 +1,14 @@
 # Developing ferrum-gpu
 
 The binding rules are in [CLAUDE.md](../CLAUDE.md); this page explains how to work within them. For the design
-see [ARCHITECTURE.md](ARCHITECTURE.md).
+see [architecture.md](architecture.md).
 
 ## 1. Setup
 
 ```bash
 rustc --version        # 1.87 or newer
 cargo install cargo-deny cargo-llvm-cov   # optional but used by the gates
-git config core.hooksPath scripts/githooks   # once per clone: every commit refreshes metrics.md
+git config core.hooksPath scripts/githooks   # once per clone: the commit gate, metrics.md and next-steps.md
 git config merge.ours.driver true            # once per clone: a merge keeps its own metrics.md
 ```
 
@@ -63,7 +63,7 @@ FLOOR=99 scripts/coverage.sh    # needs cargo-llvm-cov; run alone
 It merges a real-GPU run with a no-GPU run (the skip branches only run in the second) and fails below
 `FLOOR`. Raise the floor only to a figure a real run has met. Every coverage run also rewrites the coverage section of [metrics.md](../metrics.md) (commit, date, totals, per crate, least covered files). Current numbers and what they do and do not
 mean (the browser JavaScript has no line coverage; the thin `main.rs` files are uncovered) are in
-[COVERAGE.md](COVERAGE.md). Phase 6 code has not yet been added to that measurement.
+[coverage.md](coverage.md). Phase 6 code has not yet been added to that measurement.
 
 ## 5. Benchmarks
 
@@ -75,7 +75,7 @@ cargo bench -p ferrum_wgpu --bench decode          # cached single-token decode,
 cargo bench -p ferrum_wgpu --bench train           # full training step, CPU vs GPU
 cargo bench -p ferrum_wgpu --bench llama           # Llama decode, fine-tune, size table
 cargo bench -p ferrum_wgpu --bench profile_train   # where a training step spends its time
-cargo bench -p ferrum_wgpu --bench capability   # real-size shapes (135M to 1.78B, random weights): what fits and how fast; see CAPABILITY.md
+cargo bench -p ferrum_wgpu --bench capability   # real-size shapes (135M to 1.78B, random weights): what fits and how fast; see capability.md
 ```
 
 Rules for reporting: record the adapter, backend, driver if known, OS, `wgpu` version, profile and date; give
@@ -105,7 +105,7 @@ in `ferrum_ref::tuned`, never the simple oracle.
 - **CLI:** declare the flag table (`val`, `switch`) in `ferrum_gpu_cli/src/cmds/mod.rs`, add the match arm in
   `run`, implement the command as `fn(&Args, &mut dyn Write) -> Result<(), String>`, and test it with the CPU
   backend in `cmds/tests.rs`. Put anything that touches a device behind the `Backend` trait so a fake can
-  stand in; use `cmds::gate` for the memory pre-flight. Update `USAGE`, [USER-GUIDE.md](USER-GUIDE.md) and, if
+  stand in; use `cmds::gate` for the memory pre-flight. Update `USAGE`, [user-guide.md](user-guide.md) and, if
   you have real output, [cli.md](cli.md).
 - **Server route:** add the arm in `ferrum_gpu_server/src/routes.rs`, validate every field with a range, return
   `{"error": ...}` with a 4xx status for bad input, and cover it in `routes/tests.rs` against `StubDecoder`.
@@ -116,7 +116,7 @@ in `ferrum_ref::tuned`, never the simple oracle.
 
 Add it to the CPU model and the GGUF mapping first (and refuse, rather than approximate, anything you do not
 support), then the GPU path with parity tests at every position of a full context. See
-[GGUF.md](GGUF.md) for the refusal policy.
+[gguf.md](gguf.md) for the refusal policy.
 
 ## 9. Scripts
 
@@ -127,15 +127,15 @@ support), then the GPU path with parity tests at every position of a full contex
 | `scripts/githooks/pre-commit` | Runs `metrics.py --next-commit` and adds `metrics.md` to the commit; never blocks a commit |
 | `scripts/gate.sh` | The full gate (fmt, clippy, adapters, interop, coverage, deny, desktop app); records its timing in `metrics.md` |
 | `scripts/statusline.sh` | Records the context-window usage from the status-line JSON in `.superpowers/context.json`, then delegates to your own status line (`FERRUM_STATUSLINE_DELEGATE`) |
-| `scripts/handoff_check.sh` | Hook that, once usage reaches 98% (`HANDOFF_AT` overrides), tells the agent to write `HANDOFF.md` |
+| `scripts/handoff_check.sh` | Hook that, once usage reaches 98% (`HANDOFF_AT` overrides), tells the agent to write `handoff.md` |
 
 Both context scripts have tests in `tests/tests/test_context_scripts.rs`.
 
 ## 10. Hand-offs between sessions
 
-`HANDOFF.md` holds the exact state (what is merged, what is in progress, gotchas); `NEXT-SESSION.md` holds the
+`handoff.md` holds the exact state (what is merged, what is in progress, gotchas); `next-session.md` holds the
 start procedure and the remaining plan. A fresh session reads them in that order plus `CLAUDE.md`, then adds a
-"consumed" line at the top of `HANDOFF.md`. Keep `HANDOFF.md` current at each phase boundary.
+"consumed" line at the top of `handoff.md`. Keep `handoff.md` current at each phase boundary.
 
 ## 11. Documentation standards
 
@@ -143,7 +143,7 @@ start procedure and the remaining plan. A fresh session reads them in that order
   warning-free.
 - Docs state what was and was not run. Do not write a number you did not measure; link the report that holds
   it.
-- Keep `PLAN.md`, the phase file and `HANDOFF.md` in step with reality when a phase moves.
+- Keep `plan.md`, the phase file and `handoff.md` in step with reality when a phase moves.
 
 ## One command for the full test run and coverage
 
@@ -152,4 +152,17 @@ scripts/test-all.sh            # all tests in all crates, twice (real GPU, then 
 FLOOR=98 scripts/test-all.sh   # also fail (exit 2) if total line coverage is below 98
 ```
 
-It prints a per-run test summary and the lowest-covered files to the console and writes two files in the repository root, overwritten on every run: `LAST-TEST-RESULTS.md` (passed, failed and ignored per test binary for each run, and the names of failed tests) and `LAST-COVERAGE-RESULTS.md` (total and per-file line, region and function coverage). Exit code: 0 all pass, 1 a test failed, 2 coverage below `FLOOR`. Needs `cargo-llvm-cov` and `python3`; run it alone. Test binaries with the same name in different crates (`api`, `e2e`) are summed in one row. JavaScript under `ferrum_gpu_gui/web/` and the `benches/` programs are not instrumented.
+It prints a per-run test summary and the lowest-covered files to the console and writes two files in the repository root, overwritten on every run: `last-test-results.md` (passed, failed and ignored per test binary for each run, and the names of failed tests) and `last-coverage-results.md` (total and per-file line, region and function coverage). Exit code: 0 all pass, 1 a test failed, 2 coverage below `FLOOR`. Needs `cargo-llvm-cov` and `python3`; run it alone. Test binaries with the same name in different crates (`api`, `e2e`) are summed in one row. JavaScript under `ferrum_gpu_gui/web/` and the `benches/` programs are not instrumented.
+
+## The rules of AGENTS.md, and what enforces them
+
+| Rule | Enforced by |
+|---|---|
+| No source or test file over 200 lines; Markdown names lowercase kebab-case; the five required files exist | `scripts/rules_check.py` (pre-commit and gate). Files already over the limit are recorded as debt in `scripts/rules-baseline.json`: they may only shrink, new files may not be over. `--report` lists the debt, `--update` records progress |
+| No duplicated code | `scripts/dup_check.py` (pre-commit and gate), same ratchet in `scripts/dup-baseline.json` |
+| Formatting, lints, static analysis | `cargo fmt --check` in pre-commit; clippy `-D warnings`, `cargo deny` in the gate |
+| 100% coverage, all tests green, suite under 30 minutes | `scripts/gate.sh` (floor 100, every test in its own process, per-test times in `test-time-report.md`) |
+| CPU and GPU profile | the gate samples every 2 s (`scripts/system_profile.py`) into `system-profile.md` |
+| No push without a passing gate | `scripts/githooks/pre-push` runs `scripts/gate_ok.py`: a gate must have passed on a tree equal to HEAD's apart from the generated reports |
+| `metrics.md`, `next-steps.md` current | the pre-commit hook adds them to every commit; the pre-push hook refreshes `next-steps.md` |
+

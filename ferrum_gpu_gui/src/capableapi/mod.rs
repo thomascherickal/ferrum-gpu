@@ -1,5 +1,5 @@
 //! The Capable tab's API: what a given amount of memory can hold, and what this machine can hold.
-//! The formulas are `ferrum_gpu_core::capacity` (the ones in `HARDWARE-CAPs.md`); everything is an estimate.
+//! The formulas are `ferrum_gpu_core::capacity` (the ones in `hardware-caps.md`); everything is an estimate.
 //!
 //! | route | answers |
 //! |---|---|

@@ -2,7 +2,7 @@
 // bash scripts with unix file modes: not built on Windows (the independence guard still is)
 #![cfg(unix)]
 //! Tests for `scripts/statusline.sh` and `scripts/handoff_check.sh`, the machinery behind
-//! CLAUDE.md rule 12 (write HANDOFF.md at 98% context). They run the real scripts under bash with
+//! CLAUDE.md rule 12 (write handoff.md at 98% context). They run the real scripts under bash with
 //! jq, a stub delegate and temp directories; without jq they skip with a printed reason.
 
 use std::io::Write;
@@ -237,7 +237,7 @@ fn the_hook_fires_once_at_98_then_again_only_after_usage_falls() {
     let (out, code) = run_hook(&d, &[], &[]);
     assert_eq!(code, 0);
     assert!(
-        out.contains("additionalContext") && out.contains("HANDOFF.md") && out.contains("rule 12"),
+        out.contains("additionalContext") && out.contains("handoff.md") && out.contains("rule 12"),
         "{out}"
     );
     assert!(
@@ -258,7 +258,7 @@ fn the_hook_fires_once_at_98_then_again_only_after_usage_falls() {
     assert_eq!(run_hook(&d, &[], &[]).0, "");
     assert!(!d.join(".superpowers/handoff-fired").exists());
     write_context(&d, 99.0, 0);
-    assert!(run_hook(&d, &[], &[]).0.contains("HANDOFF.md"));
+    assert!(run_hook(&d, &[], &[]).0.contains("handoff.md"));
     let _ = std::fs::remove_dir_all(&d);
 }
 
@@ -289,7 +289,7 @@ fn the_hook_ignores_a_stale_figure_and_garbage() {
     assert!(
         run_hook(&d, &[], &[("HANDOFF_MAX_AGE", "7200")])
             .0
-            .contains("HANDOFF.md"),
+            .contains("handoff.md"),
         "unless the age limit is raised"
     );
     let _ = std::fs::remove_file(d.join(".superpowers/handoff-fired"));
