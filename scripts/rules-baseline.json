@@ -89,13 +89,6 @@
   "ferrum_wgpu/src/shaders/sources/sources_x.rs": 203,
   "ferrum_wgpu/src/training/gpt2/record/part/part_x.rs": 176,
   "ferrum_wgpu/src/training/llama/record/part/part_x/part.rs": 186,
-  "scripts/capability-estimates.py": 117,
-  "scripts/metrics.py": 132,
-  "scripts/metrics_collect.py": 126,
-  "scripts/metrics_reports.py": 114,
-  "scripts/next_steps.py": 141,
-  "scripts/system_profile.py": 129,
-  "scripts/test_metrics.py": 155,
   "tests/tests/test_context_scripts/main.rs": 119,
   "tests/tests/test_independence/main.rs": 131
  },

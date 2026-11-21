@@ -2,12 +2,15 @@
 """Back-of-envelope tables for hardware-caps.md (run: python3 -I scripts/capability-estimates.py). Every number is arithmetic on the stated inputs;
 measured inputs come from today's benches (MX330, 2026-11-14), everything else is an assumption."""
 
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # -I mode: the script directory is not on the path
 MiB = 1024 * 1024
 # --- measured (capability bench, one process per row, MX330, Q4_0): (params, plan MiB, ms/token)
 meas_q4 = [(163e6, 279, 40.4), (409e6, 557, 62.4), (630e6, 864, 60.2), (1100e6, 956, 94.7)]
 meas_q8 = [(409e6, 729, 84.5), (630e6, 1099, 85.2), (1100e6, 1449, 137.1)]
 BPP = {"f32": 4.0, "Q8_0": 34 / 32, "Q4_0": 18 / 32}  # bytes per weight (block formats include scales)
-
 def linfit(pts):
     n = len(pts); sx = sum(x for x, _ in pts); sy = sum(y for _, y in pts)
     sxx = sum(x * x for x, _ in pts); sxy = sum(x * y for x, y in pts)
@@ -75,27 +78,7 @@ def tps(p_b, bw, prec="Q4_0"):
     est = 1000.0 / (per_layer_ms * LAYERS[p_b] + mb / (eff_gbps * bw / 56.0))
     return roof, est
 
-hw = [  # name, memory GB, bandwidth GB/s, note
- ("MX330 (this machine, measured)", 2, 56, "discrete, 64-bit GDDR5, published peak"),
- ("Entry laptop dGPU, 4 GB", 4, 112, "assumed class (128-bit GDDR5/6 around 112 to 128)"),
- ("Mid dGPU, 8 GB", 8, 256, "assumed class (GDDR6, 128-bit to 256-bit)"),
- ("Upper-mid dGPU, 16 GB", 16, 448, "assumed class (GDDR6/6X, 256-bit)"),
- ("High dGPU, 24 GB", 24, 936, "class of the RTX 3090 and 4090 (936 to 1008 GB/s, published)"),
- ("Top dGPU, 32 GB", 32, 1792, "class of the RTX 5090 (published, from memory)"),
- ("x86 iGPU, DDR4-3200 dual channel", 16, 51.2, "3200 MT/s x 16 B"),
- ("x86 iGPU, DDR5-5600 dual channel", 32, 89.6, "5600 MT/s x 16 B"),
- ("Apple M1, 16 GB", 16, 68, "published 68.25 GB/s"),
- ("Apple M-series base (M2/M3), 24 GB", 24, 100, "published 100 GB/s"),
- ("Apple M4, 32 GB", 32, 120, "published 120 GB/s"),
- ("Apple M-series Pro, 48 GB", 48, 273, "M4 Pro published 273 GB/s"),
- ("Apple M-series Max, 128 GB", 128, 546, "M4 Max published 546 GB/s (top bin)"),
- ("Apple M-series Ultra, 192 GB", 192, 819, "M3 Ultra published 819 GB/s"),
- ("Hypothetical M5-class Max, 128 GB", 128, 600, "ASSUMPTION: Max-class bandwidth near 600 GB/s; no M5 Max spec was checked"),
- ("Hypothetical M5-class Ultra, 256 GB", 256, 1200, "ASSUMPTION: two Max dies, 2 x 600 GB/s"),
- ("LPDDR5X-8000 256-bit unified APU, 128 GB", 128, 256, "8000 MT/s x 32 B (Strix-Halo-class)"),
- ("Server 8-channel DDR5-4800, 512 GB", 512, 307, "4800 MT/s x 64 B (one socket)"),
- ("Server 2 x 12-channel DDR5-4800, 1 TB+", 1024, 921.6, "2 x 4800 MT/s x 96 B; NUMA cuts this in practice"),
-]
+from capability_hardware import hw  # noqa: E402
 w("### Decode speed (tokens per second, single stream) for a model that fits\n")
 w(f"Ceiling = bandwidth / weight bytes (each token reads every weight once). ferrum-gpu estimate = 1 / (layers x {per_layer_ms:.1f} ms + weight bytes / effective bandwidth), layers 24/28/32/40/48/80 for 0.5/1.5/7/13/34/70B, with effective bandwidth scaled from the MX330 fit ({eff_gbps:.1f} GB/s at 56 GB/s peak, i.e. {eff_gbps/56*100:.0f}%). Q4_0 weights. **The estimate is calibrated on one card and extrapolated; no other row was run.**\n")
 sizes = [0.5, 1.5, 7, 13, 34, 70]
