@@ -1,4 +1,0 @@
-use super::*;
-
-mod a_model_is_described_by_its_header_metadata_and_tensors_x;
-mod a_model_with_no_name_or_architecture_still_inspects;

@@ -15,8 +15,8 @@ mod rejection_tests {
         }
     }
 }
-mod rng_x;
-pub use rng_x::*;
+mod generator;
+pub use generator::*;
 
 #[cfg(test)]
 mod tests;

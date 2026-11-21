@@ -37,5 +37,7 @@ fn cpu_gqa(
     out
 }
 
+mod attention_refuses_bad_shapes;
 mod gqa_attention_matches_cpu_for_every_group_ratio;
 mod rmsnorm_matches_cpu_on_odd_shapes;
+mod rope_refuses_bad_shapes;

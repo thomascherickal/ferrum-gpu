@@ -11,8 +11,10 @@ use std::sync::{Arc, Mutex};
 
 /// Cut `text` before the first of `stops` (shared with the GUI).
 pub use crate::stop::cut_at_stop;
-mod info_m;
-pub use info_m::*;
+mod info;
+pub use info::*;
+mod gpt2decoder;
+pub use gpt2decoder::*;
 mod stubdecoder;
 pub use stubdecoder::*;
 

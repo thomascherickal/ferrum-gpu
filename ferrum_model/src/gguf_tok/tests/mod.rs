@@ -48,5 +48,6 @@ fn bpe() -> GgufTokenizer {
     .unwrap()
 }
 
+mod add_bos_follows_the_file_then_llama_cpps_defaults;
 mod bpe_applies_merges_in_rank_order_and_decodes_exactly;
 mod edge_branches_leftovers_non_byte_chars_odd_metadata_and_pre_defaults;

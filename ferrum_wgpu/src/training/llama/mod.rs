@@ -18,11 +18,14 @@ use ferrum_ref::trainer::{StepConfig, StepStats};
 
 pub use plan::{activation_plan, param_sizes, static_plan, static_plan_for};
 mod acts;
-mod err_m;
+mod err;
 mod plan;
 mod record;
-pub use err_m::*;
-mod part_m;
+pub use err::*;
+mod construct;
+mod host_snapshot;
+mod loss_and_step;
+mod validate;
 
 #[cfg(test)]
 mod tests;

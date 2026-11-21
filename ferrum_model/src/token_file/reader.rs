@@ -7,5 +7,6 @@ use std::io::{Read, Seek, SeekFrom};
 use std::sync::Mutex;
 mod is_token_file;
 pub use is_token_file::*;
-mod part;
-mod part_2;
+mod metadata;
+mod open;
+mod token_source;

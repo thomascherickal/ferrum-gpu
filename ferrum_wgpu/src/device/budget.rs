@@ -4,6 +4,8 @@
 use std::path::Path;
 mod source;
 pub use source::*;
+mod sysfs_vram_mb;
+pub use sysfs_vram_mb::*;
 mod bufferplan;
 pub use bufferplan::*;
 

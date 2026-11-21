@@ -88,5 +88,6 @@ fn wait_state(a: &App, id: u64, want: &str) -> Json {
     }
 }
 
+mod a_failing_command_is_an_error_job_with_the_message_as_a_line;
 mod only_the_jobs_paths_are_handled;
 mod the_api_router_sends_jobs_paths_here;

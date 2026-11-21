@@ -4,7 +4,7 @@ use ferrum_ref::gpt2::Gpt2;
 
 /// Mean cross-entropy of `ids` over non-overlapping windows of at most `ctx` tokens, and the
 /// number of predicted tokens. Needs at least two tokens.
-pub fn mean_loss(m: &Gpt2, ids: &[usize], ctx: usize) -> Result<(f64, usize), String> {
+pub(super) fn mean_loss(m: &Gpt2, ids: &[usize], ctx: usize) -> Result<(f64, usize), String> {
     let (mut sum, mut n) = (0.0f64, 0usize);
     let v = m.cfg.vocab;
     for w in ids.chunks(ctx.clamp(2, m.cfg.ctx)) {

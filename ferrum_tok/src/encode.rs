@@ -4,7 +4,7 @@
 use crate::pretokenize::pretokenize;
 use crate::train::merge_pair;
 use crate::{ByteBpeTokenizer, BASE_VOCAB, DOC_SEP};
-mod part;
+mod chunks;
 
 #[cfg(test)]
 mod tests;

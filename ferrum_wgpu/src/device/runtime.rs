@@ -4,9 +4,12 @@ use crate::budget::{Budget, BufferPlan};
 use crate::device::{block_on, Gpu, GpuError};
 use crate::tensor::GpuBuf;
 use std::sync::atomic::Ordering;
-mod map_error_m;
-pub use map_error_m::*;
-mod part;
+mod map_error;
+pub use map_error::*;
+mod copy_and_alloc;
+mod dispatch;
+mod fault_injection;
+mod pipeline_cache;
 
 #[cfg(test)]
 mod tests;

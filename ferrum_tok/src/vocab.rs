@@ -5,7 +5,8 @@ use crate::error::{InferError, Result};
 use crate::pretokenize::byte_to_unicode;
 use crate::{ByteBpeTokenizer, BASE_VOCAB};
 use std::collections::HashMap;
-mod part;
+mod from_gguf;
+mod gguf_export;
 
 #[cfg(test)]
 mod tests;

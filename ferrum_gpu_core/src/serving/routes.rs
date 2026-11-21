@@ -12,10 +12,18 @@ use crate::json::Json;
 use crate::serving::decoder::{Decoder, GenReq};
 use crate::serving::limits::{Limits, DEFAULT_MAX_TOKENS, MAX_STOPS, MAX_STOP_BYTES};
 use crate::serving::score::{pair, rolling};
-mod num_m;
-pub use num_m::*;
-mod loglikelihood_rolling_m;
-use loglikelihood_rolling_m::*;
+mod num;
+pub(crate) use num::*;
+mod route;
+pub use route::*;
+mod loglikelihood;
+pub(crate) use loglikelihood::*;
+mod loglikelihood_rolling;
+pub(crate) use loglikelihood_rolling::*;
+mod gen_request;
+pub(crate) use gen_request::*;
+mod generate;
+pub(crate) use generate::*;
 
 #[cfg(test)]
 mod tests;

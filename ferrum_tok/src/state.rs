@@ -4,7 +4,7 @@
 use crate::error::bounded;
 use crate::error::{InferError, Result};
 use crate::ByteBpeTokenizer;
-mod part;
+mod state_codec;
 
 #[cfg(test)]
 mod tests;

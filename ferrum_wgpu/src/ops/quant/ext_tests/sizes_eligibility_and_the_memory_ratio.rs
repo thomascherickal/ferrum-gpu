@@ -1,3 +1,86 @@
 use super::*;
-mod requantising_dequantised_weights_stays_close;
-mod sizes_eligibility_and_the_memory_ratio_x;
+
+#[test]
+pub(super) fn sizes_eligibility_and_the_memory_ratio() {
+    assert_eq!(QKind::Fp4.words() * 4, 20);
+    assert_eq!(QKind::Fp8E4M3.words() * 4, 36);
+    assert_eq!(QKind::Fp8E5M2.words() * 4, 36);
+    assert_eq!(
+        QKind::Q2K.words() * 4,
+        88,
+        "d, dmin, 16 scale bytes, 64 quant bytes"
+    );
+    assert_eq!((QKind::Fp4.elems(), QKind::Q2K.elems()), (32, 256));
+    assert_eq!(packed_words(QKind::Fp4, 64, 3), Some(2 * 3 * 5));
+    assert_eq!(packed_words(QKind::Fp8E4M3, 64, 3), Some(2 * 3 * 9));
+    assert_eq!(packed_words(QKind::Q2K, 512, 3), Some(2 * 3 * 22));
+    // Q2_K needs 256; the 32-element formats accept it too
+    assert_eq!(packed_words(QKind::Q2K, 96, 3), None);
+    assert!(eligible_for(QKind::Fp4, 96) && !eligible_for(QKind::Q2K, 96));
+    assert!(eligible_for(QKind::Q2K, 768) && !eligible_for(QKind::Q2K, 0));
+    assert_eq!(packed_words(QKind::Q2K, 256, usize::MAX), None, "overflow");
+}
+
+#[test]
+pub(super) fn only_the_formats_llama_cpp_has_are_ggml_types() {
+    assert!(QKind::Fp8E4M3.ggml().is_none() && QKind::Fp8E5M2.ggml().is_none());
+    for k in [QKind::Q8_0, QKind::Q4_0, QKind::F16, QKind::Fp4, QKind::Q2K] {
+        assert!(k.ggml().is_some(), "{k:?}");
+    }
+}
+
+#[test]
+pub(super) fn pack_puts_the_scale_first_and_keeps_the_quants() {
+    // MXFP4: the scale byte becomes the f32 half scale; the 16 nibble bytes follow
+    let mut b = vec![130u8];
+    b.extend(0..16u8);
+    let w = pack(QKind::Fp4, &b, 32, 1).unwrap();
+    assert_eq!(w.len(), 5);
+    assert_eq!(
+        f32::from_bits(w[0]),
+        2f32.powi(2),
+        "e = 130 -> 2^(130 - 128)"
+    );
+    assert_eq!(w[1], u32::from_le_bytes([0, 1, 2, 3]));
+    assert_eq!(w[4], u32::from_le_bytes([12, 13, 14, 15]));
+    // FP8: like Q8_0, the f16 scale widened, then the 32 codes
+    let mut b = f32_to_f16(0.25).to_le_bytes().to_vec();
+    b.extend((0..32u8).map(|i| i * 3));
+    let w = pack(QKind::Fp8E4M3, &b, 32, 1).unwrap();
+    assert_eq!((w.len(), f32::from_bits(w[0])), (9, 0.25));
+    assert_eq!(w[8], u32::from_le_bytes([84, 87, 90, 93]));
+    // Q2_K: the file holds scales, quants, d, dmin; the device d, dmin, scales, quants
+    let mut b: Vec<u8> = (0..80u8).collect();
+    b.extend(f32_to_f16(1.5).to_le_bytes());
+    b.extend(f32_to_f16(0.5).to_le_bytes());
+    let w = pack(QKind::Q2K, &b, 256, 1).unwrap();
+    assert_eq!(w.len(), 22);
+    assert_eq!((f32::from_bits(w[0]), f32::from_bits(w[1])), (1.5, 0.5));
+    assert_eq!(w[2], u32::from_le_bytes([0, 1, 2, 3]), "first scale word");
+    assert_eq!(
+        w[6],
+        u32::from_le_bytes([16, 17, 18, 19]),
+        "first quant word"
+    );
+    assert_eq!(w[21], u32::from_le_bytes([76, 77, 78, 79]));
+}
+
+#[test]
+pub(super) fn pack_and_quantise_refuse_bad_shapes() {
+    for kind in EXT {
+        let k = kind.elems();
+        assert!(pack(kind, &[0; 100], k + 1, 1)
+            .unwrap_err()
+            .to_string()
+            .contains("whole"));
+        assert!(pack(kind, &[0; 3], k, 1)
+            .unwrap_err()
+            .to_string()
+            .contains("needs"));
+        assert!(quantise_matrix(kind, &vec![0.0; k + 1], k + 1, 1).is_err());
+        assert!(quantise_matrix(kind, &vec![0.0; 2 * k - 1], k, 2).is_err());
+    }
+    // 32 divides 96 but 256 does not
+    assert!(quantise_matrix(QKind::Q2K, &[0.0; 96], 96, 1).is_err());
+    assert!(quantise_matrix(QKind::Fp4, &[0.0; 96], 96, 1).is_ok());
+}

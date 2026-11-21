@@ -9,8 +9,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::Instant;
 mod validation;
-pub use validation::*;
-mod part;
+pub(super) use validation::*;
+mod run_hooks;
 
 #[cfg(test)]
 mod tests;

@@ -37,3 +37,5 @@ fn train_on(backend: &dyn Backend, steps: usize) -> (Llama, Vec<f32>) {
 mod generate_with_stops_at_once_when_the_request_is_cancelled;
 mod generation_respects_limits_and_the_sampler;
 mod presets_are_valid_models_and_unknown_names_are_refused;
+mod the_cpu_backend_learns_a_repeating_text_and_continues_it;
+mod the_loop_reports_progress_follows_the_schedule_and_can_be_stopped;

@@ -10,8 +10,10 @@ use ferrum_ref::llama::{rope_tables, Config, Llama, RopeScaling, RopeType};
 use ferrum_wgpu::ops::quant::{pack, QKind};
 mod b64;
 pub use b64::*;
-mod probe_m;
-pub use probe_m::*;
+mod bench_config;
+pub use bench_config::*;
+mod probe;
+pub use probe::*;
 
 #[cfg(test)]
 mod tests;

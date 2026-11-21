@@ -34,4 +34,6 @@ fn rows_of(kind: QKind, bytes: &[u8], k: usize, n: usize) -> Vec<f32> {
 }
 
 mod linear_matches_the_cpu_matmul_on_the_dequantised_weights;
+mod requantising_dequantised_weights_stays_close;
 mod sizes_eligibility_and_the_memory_ratio;
+mod the_kernel_choice_for_the_extra_formats_follows_the_measurements;

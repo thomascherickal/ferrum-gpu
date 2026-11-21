@@ -3,7 +3,7 @@
 //! Reserved special tokens (BOS / EOS / PAD / UNK and custom).
 use crate::error::{InferError, Result};
 use crate::{ByteBpeTokenizer, BASE_VOCAB, TOK_BOS, TOK_EOS, TOK_PAD, TOK_UNK};
-mod part;
+mod special_tokens;
 
 #[cfg(test)]
 mod tests;

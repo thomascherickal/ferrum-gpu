@@ -10,4 +10,5 @@ fn acc_src(g: &Gpu, n: usize) -> GpuBuf {
 }
 
 mod adam_update_matches_the_cpu_over_several_steps_with_and_without_decay;
+mod global_norm_and_clip_scale_match_cpu_across_chunk_boundaries;
 mod the_dispatch_limit_is_enforced_without_needing_a_huge_tensor;

@@ -37,9 +37,16 @@ const FIX_CORPUS: &[u8] = include_bytes!("../../../../../fixtures/bpe/corpus.txt
 const FIX_TOKENS: &[u8] = include_bytes!("../../../../../fixtures/bpe/corpus.tok.gguf");
 
 mod a_file_without_a_tokenizer_but_with_256_tokens_uses_bytes;
+mod export_gguf_changes_precision_and_keeps_the_tokenizer;
+mod finetune_continues_from_a_gpt2_file_with_its_tokenizer;
+mod generate_options_stop_stream_ids_and_aliases;
+mod metrics_csv_verbose_stop_file_and_max_seconds;
+mod prepare_writes_splits_and_a_manifest_and_explains_its_usage;
 mod sizes_follow_ferrum_cpu_defaults_presets_and_explicit_flags;
 mod the_files_of_a_tokenizer_without_end_of_text_are_joined_with_no_separator_token;
+mod tie_trains_a_shared_embedding_and_head_that_the_file_stores_once;
 mod tokenize_reads_directories_custom_separators_and_refuses_bad_input;
+mod tokenize_writes_the_same_file_as_ferrum_cpu;
 mod train_writes_a_gpt2_file_with_its_tokenizer_and_generate_uses_it;
 mod training_from_a_token_file_equals_training_from_the_text;
 mod validation_keeps_the_best_epoch_and_can_stop_early;

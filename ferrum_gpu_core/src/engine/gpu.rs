@@ -14,4 +14,4 @@ use ferrum_wgpu::Gpu;
 use std::sync::{Arc, Mutex};
 mod gpubackend;
 pub use gpubackend::*;
-mod part;
+mod backend;

@@ -7,10 +7,14 @@ use crate::json::Json;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-mod modelfile_m;
-pub use modelfile_m::*;
-mod export_lmstudio_m;
-pub use export_lmstudio_m::*;
+mod modelfile;
+pub use modelfile::*;
+mod find_tool_in;
+pub(crate) use find_tool_in::*;
+mod export_ollama;
+pub use export_ollama::*;
+mod export_lmstudio;
+pub use export_lmstudio::*;
 
 #[cfg(test)]
 mod tests;

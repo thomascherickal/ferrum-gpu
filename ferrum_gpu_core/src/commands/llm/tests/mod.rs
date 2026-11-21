@@ -71,3 +71,4 @@ const TOKS: [&str; 12] = [
 
 mod a_chat_model_is_wrapped_in_its_template_and_prints_only_the_reply;
 mod a_stop_id_ends_the_reply_without_being_printed;
+mod eval_scores_with_the_tokenizer_and_validates_ctx_and_quant;

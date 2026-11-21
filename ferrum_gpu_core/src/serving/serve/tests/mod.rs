@@ -55,4 +55,5 @@ impl Decoder for SlowDecoder {
 }
 
 mod a_client_that_leaves_stops_the_generation_and_frees_its_slot;
+mod loopback_detection_and_the_exposure_rule;
 mod serves_over_real_sockets_and_refuses_foreign_hosts;

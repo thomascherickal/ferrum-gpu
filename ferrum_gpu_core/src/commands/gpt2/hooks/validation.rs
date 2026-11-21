@@ -1,37 +1,37 @@
 use super::*;
 
 /// Held-out tokens and the early-stopping rule.
-pub struct Validation {
+pub(in super::super) struct Validation {
     /// Tokens held out from the end of the corpus.
-    pub tokens: Vec<usize>,
+    pub(in super::super) tokens: Vec<usize>,
     /// Stop after this many epochs without improvement (`0` = never stop early).
-    pub patience: usize,
+    pub(in super::super) patience: usize,
 }
 
 /// The step hook of `train`.
-pub struct Run<'a> {
-    pub out: &'a mut dyn Write,
-    pub verbose: bool,
-    pub csv: Option<Box<dyn Write>>,
-    pub started: Instant,
-    pub max_seconds: Option<f64>,
-    pub stop_file: PathBuf,
-    pub checkpoint: Option<PathBuf>,
-    pub sched: Option<Schedule>,
-    pub lr: f32,
-    pub tokens_per_step: usize,
-    pub steps_per_epoch: u64,
-    pub total: u64,
-    pub val: Option<Validation>,
+pub(in super::super) struct Run<'a> {
+    pub(in super::super) out: &'a mut dyn Write,
+    pub(in super::super) verbose: bool,
+    pub(in super::super) csv: Option<Box<dyn Write>>,
+    pub(in super::super) started: Instant,
+    pub(in super::super) max_seconds: Option<f64>,
+    pub(in super::super) stop_file: PathBuf,
+    pub(in super::super) checkpoint: Option<PathBuf>,
+    pub(in super::super) sched: Option<Schedule>,
+    pub(in super::super) lr: f32,
+    pub(in super::super) tokens_per_step: usize,
+    pub(in super::super) steps_per_epoch: u64,
+    pub(in super::super) total: u64,
+    pub(in super::super) val: Option<Validation>,
     /// Best validation loss so far and the weights that gave it.
-    pub best: Option<(f64, Gpt2)>,
-    pub bad_epochs: usize,
+    pub(in super::super) best: Option<(f64, Gpt2)>,
+    pub(in super::super) bad_epochs: usize,
     /// The most recent weights seen at a checkpoint.
-    pub last: Option<Gpt2>,
+    pub(in super::super) last: Option<Gpt2>,
     /// Why the run stopped early, if it did.
-    pub reason: Option<String>,
+    pub(in super::super) reason: Option<String>,
     /// A write failed; reported after the run.
-    pub error: Option<String>,
+    pub(in super::super) error: Option<String>,
 }
 
 impl Run<'_> {

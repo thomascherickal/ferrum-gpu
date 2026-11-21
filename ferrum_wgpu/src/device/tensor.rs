@@ -2,7 +2,8 @@
 use crate::device::{Gpu, GpuError};
 mod gpubuf;
 pub use gpubuf::*;
-mod part;
+mod alloc;
+mod upload;
 
 #[cfg(test)]
 mod tests;

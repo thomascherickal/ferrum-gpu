@@ -11,4 +11,5 @@ fn small() -> ByteBpeTokenizer {
 }
 
 mod a_model_written_with_a_tokenizer_reads_back_with_it;
+mod rejects_missing_wrong_and_disagreeing_keys;
 mod round_trips_through_a_tokenizer_file;

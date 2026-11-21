@@ -4,8 +4,8 @@
 
 mod byte_to_unicode;
 pub use byte_to_unicode::*;
-mod pretokenize_x;
-pub(crate) use pretokenize_x::*;
+mod word_split;
+pub(crate) use word_split::*;
 
 #[cfg(test)]
 mod tests;

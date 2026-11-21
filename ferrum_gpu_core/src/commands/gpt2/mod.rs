@@ -18,12 +18,16 @@ pub mod gen;
 mod hooks;
 pub mod prepare;
 mod preset;
+pub use preset::*;
+mod quant_names;
+pub use quant_names::*;
+mod train_flags;
+pub use train_flags::*;
+mod only_gpt2;
 mod score;
 mod tokenize;
 mod train;
-pub use preset::*;
-mod only_gpt2_m;
-pub use only_gpt2_m::*;
+pub use only_gpt2::*;
 
 #[cfg(test)]
 mod tests;

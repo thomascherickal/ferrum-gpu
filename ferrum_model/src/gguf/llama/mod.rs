@@ -13,12 +13,18 @@ use crate::gpt2_gguf::Quant;
 use ferrum_gguf::quant::encode;
 use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value};
 use ferrum_ref::llama::{transpose, Block, Config, Llama, RopeScaling, RopeType};
-mod err_m;
-mod from_gguf_m;
-pub use from_gguf_m::*;
-mod metadata_m;
-use err_m::*;
-pub use metadata_m::*;
+mod block_from_gguf;
+mod config_from_gguf;
+mod from_gguf;
+mod tensor_read;
+pub use from_gguf::*;
+mod out;
+pub(crate) use out::*;
+mod metadata;
+use block_from_gguf::load_block;
+use config_from_gguf::read_config;
+pub use metadata::*;
+use tensor_read::*;
 
 #[cfg(test)]
 mod tests;

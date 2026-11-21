@@ -21,6 +21,8 @@ fn serve_work(
     (port, stop, t)
 }
 
+mod a_client_that_disconnects_mid_request_cancels_the_work;
+mod a_stalled_client_times_out_with_408;
 mod parses_a_get_with_query_and_headers;
 mod the_close_watcher_tells_a_close_a_reset_and_silence_apart;
 mod the_guard_accepts_only_this_loopback_server;

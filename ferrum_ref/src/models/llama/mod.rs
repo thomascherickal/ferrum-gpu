@@ -12,14 +12,16 @@ pub use train::{adam_step, global_norm, LlamaTrainer, Moments};
 use crate::matmul::matmul;
 use crate::nn;
 mod config;
+pub use config::*;
+mod block;
+pub use block::*;
 mod grad;
 #[cfg(test)]
 mod grad_tests;
+mod linear;
 mod ops;
 mod params;
 mod train;
-pub use config::*;
-mod linear_m;
 
 #[cfg(test)]
 mod tests;

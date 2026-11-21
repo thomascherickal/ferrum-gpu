@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::str::FromStr;
 mod flag;
 pub use flag::*;
-mod part;
+mod args;
 
 #[cfg(test)]
 mod tests;

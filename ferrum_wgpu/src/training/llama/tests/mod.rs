@@ -63,3 +63,4 @@ fn step_cfg(lr: f32) -> StepConfig {
 
 mod bad_input_and_tied_models_are_refused;
 mod loss_and_every_gradient_match_the_cpu_oracle;
+mod snapshot_and_restore_resume_a_run_exactly;

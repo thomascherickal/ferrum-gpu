@@ -17,8 +17,12 @@ use crate::tensor::GpuBuf;
 use embed::Embedding;
 use ferrum_ref::llama::{rope_tables, transpose, Config, Llama};
 use lin::Lin;
+mod device_model;
 mod embed;
-mod err_m;
+pub use device_model::*;
+mod plan_limited;
+pub use plan_limited::*;
+mod dequantised;
 mod forward;
 mod lin;
 #[cfg(test)]
@@ -26,10 +30,11 @@ mod quant_ext_tests;
 mod shard;
 #[cfg(test)]
 mod sharded_tests;
-pub use err_m::*;
-mod dequantised_m;
-pub use dequantised_m::*;
-mod part;
+pub use dequantised::*;
+mod accessors;
+mod construct;
+mod feed;
+mod limits;
 
 #[cfg(test)]
 mod tests;

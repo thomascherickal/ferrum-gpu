@@ -2,4 +2,5 @@
 use super::{Block, Config, Gpt2};
 mod is_matrix_in_block;
 pub use is_matrix_in_block::*;
-mod part;
+mod init;
+mod param_list;

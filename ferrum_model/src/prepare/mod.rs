@@ -18,10 +18,16 @@ mod clean;
 mod input;
 mod json;
 mod prepareoptions;
-mod split;
 pub use prepareoptions::*;
-mod build_m;
-use build_m::*;
+mod run;
+pub use run::*;
+mod build;
+mod decode;
+mod filters;
+mod ingest;
+mod manifest;
+mod split;
+pub(crate) use build::*;
 
 #[cfg(test)]
 mod tests;

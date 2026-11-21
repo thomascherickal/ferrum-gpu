@@ -6,12 +6,19 @@ use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
-mod max_head;
-pub use max_head::*;
-mod read_request_m;
-pub use read_request_m::*;
-mod serve_with_m;
-pub use serve_with_m::*;
+mod message;
+pub use message::*;
+mod bad;
+pub use bad::*;
+mod head;
+mod read_request;
+pub use read_request::*;
+mod write_response;
+pub use write_response::*;
+mod serve_with;
+pub use serve_with::*;
+mod handle_watched;
+pub(crate) use handle_watched::*;
 
 #[cfg(test)]
 mod tests;

@@ -7,10 +7,13 @@ pub use params::{is_matrix_in_block, param_lens};
 use crate::matmul::{matmul, rand_vec};
 use crate::nn;
 mod config;
-mod decode;
-mod params;
 pub use config::*;
-mod part;
+mod weights;
+pub use weights::*;
+mod decode;
+mod forward;
+mod head;
+mod params;
 
 #[cfg(test)]
 mod tests;

@@ -27,6 +27,10 @@ fn corpus(d: &std::path::Path) -> String {
     p.display().to_string()
 }
 
-mod gate_tests;
+mod budget;
+mod decoder_plan;
+mod fixtures;
 mod gpu_weights_names_parse_and_unknown_ones_list_the_choices;
 mod help_and_unknown_commands;
+mod passes;
+mod the_export_tools_are_looked_for_and_their_absence_is_reported;

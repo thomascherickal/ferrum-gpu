@@ -10,7 +10,7 @@ use crate::QK;
 mod block;
 pub use block::*;
 mod encode;
-mod part;
+mod fp8_convert;
 pub use encode::*;
 
 #[cfg(test)]

@@ -1,4 +1,0 @@
-use super::*;
-
-mod a_tied_trainer_keeps_the_head_exactly_the_embedding_transposed_and_still_learns_x;
-mod resuming_from_a_snapshot_equals_an_uninterrupted_run;

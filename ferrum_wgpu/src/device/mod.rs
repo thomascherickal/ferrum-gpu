@@ -14,8 +14,8 @@ pub mod runtime;
 pub mod select;
 pub mod tensor;
 pub use gpuerror::*;
-mod wait_for_loss_m;
-pub use wait_for_loss_m::*;
+mod wait_for_loss;
+pub use wait_for_loss::*;
 
 #[cfg(test)]
 mod tests;

@@ -10,12 +10,12 @@
 //! Rust's `wrapping_*`; the final `u32 >> 8` to `f32` is exact), so CPU and GPU masks are
 //! bit-identical.
 
-mod dropout_x;
 #[cfg(test)]
 mod grad_tests;
 #[cfg(test)]
 mod hash_tests;
-pub use dropout_x::*;
+mod mask;
+pub use mask::*;
 
 #[cfg(test)]
 mod tests;

@@ -18,3 +18,5 @@ fn sample() -> Vec<u8> {
 
 mod a_header_only_parse_checks_extents_against_the_file_length;
 mod hostile_array_and_tensor_sizes_are_rejected;
+mod typed_getters_report_what_is_wrong;
+mod uint_accepts_every_integer_width_and_rejects_negatives;

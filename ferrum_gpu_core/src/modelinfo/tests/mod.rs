@@ -37,4 +37,6 @@ fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
 }
 
 mod a_model_is_described_by_its_header_metadata_and_tensors;
+mod a_model_with_no_name_or_architecture_still_inspects;
+mod a_scan_stops_at_the_file_limit_and_at_the_depth_limit;
 mod files_that_are_not_models_are_refused_with_the_path_in_the_message;

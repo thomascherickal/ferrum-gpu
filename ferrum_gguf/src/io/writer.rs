@@ -4,7 +4,7 @@ use crate::reader::Value;
 use crate::{DEFAULT_ALIGNMENT, GGML_F32, MAGIC};
 mod ggufbuilder;
 pub use ggufbuilder::*;
-mod part;
+mod builder;
 
 #[cfg(test)]
 mod tests;

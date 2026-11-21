@@ -16,3 +16,4 @@ const SCALES_D2_M0: [u8; 12] = [2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2];
 
 mod layout_covers_exactly_the_read_only_types;
 mod q6_k_scales_are_signed_and_sub_blocks_are_independent;
+mod scale_min_unpacks_every_sub_block;

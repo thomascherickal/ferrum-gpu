@@ -20,9 +20,11 @@ pub mod progress;
 pub mod runner;
 pub mod view;
 pub use max_lines::*;
-mod job_types;
-pub use job_types::*;
-mod part;
+mod job_poll;
+mod job_state;
+mod job_table;
+pub use job_table::*;
+mod registry;
 
 #[cfg(test)]
 mod tests;

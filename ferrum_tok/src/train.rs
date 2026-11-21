@@ -6,8 +6,12 @@ use crate::pretokenize::pretokenize;
 use crate::{ByteBpeTokenizer, BASE_VOCAB, DOC_SEP, TOK_EOS};
 use std::cmp::Reverse;
 use std::collections::{BinaryHeap, HashMap};
+mod corpus;
+mod from_reader;
 mod merge;
-mod part;
+mod merge_step;
+use merge_step::{apply_deltas, merge_in_words};
+mod word_counts;
 pub(crate) use merge::merge_pair;
 
 #[cfg(test)]

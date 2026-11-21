@@ -24,12 +24,18 @@ pub mod runtimes;
 pub mod sysmem;
 mod usage;
 pub use usage::*;
-mod dispatch_m;
-mod gate_m;
-pub use gate_m::*;
-mod train_m;
-use dispatch_m::*;
-pub use train_m::*;
+mod dispatch;
+pub(crate) use dispatch::*;
+mod app;
+use app::*;
+mod gate;
+pub use gate::*;
+mod adapter_lines;
+pub use adapter_lines::*;
+mod train;
+pub(crate) use train::*;
+mod mean_loss;
+pub use mean_loss::*;
 
 #[cfg(test)]
 mod tests;

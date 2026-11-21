@@ -4,5 +4,7 @@
 use crate::http::Response;
 mod csp;
 pub use csp::*;
+mod web_modules;
+pub use web_modules::*;
 mod serve;
 pub use serve::*;

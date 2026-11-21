@@ -19,4 +19,6 @@ fn spread(n: usize, seed: u64, by: f32) -> Vec<f32> {
 }
 
 mod bad_shapes_are_refused_and_multi_command_ops_fail_cleanly;
+mod gqa_attention_bwd_matches_cpu_for_every_group_ratio;
 mod rmsnorm_bwd_matches_cpu_on_odd_shapes;
+mod rope_with_a_negated_sine_table_is_the_cpu_backward;

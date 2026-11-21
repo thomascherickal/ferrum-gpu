@@ -1,5 +1,0 @@
-use super::*;
-
-mod a_panic_ends_the_job_not_the_process;
-mod stop_raises_the_cancel_flag_the_command_polls_and_the_job_ends_stopped;
-mod the_command_gets_its_name_first_and_its_arguments_after_x;

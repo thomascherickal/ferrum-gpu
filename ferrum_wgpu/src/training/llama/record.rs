@@ -1,12 +1,53 @@
 //! The forward and backward dispatch sequence of one Llama training step.
 use super::GpuLlamaTrainer;
 use crate::device::{Gpu, GpuError};
-use crate::ops::{self, add};
-use crate::ops_bwd::{colsum, embed_bwd, matmul_ex};
-use crate::ops_llama::{attention_gqa, gather_rows, rmsnorm, rope, swiglu};
-use crate::ops_llama_bwd::{attention_gqa_bwd, rmsnorm_bwd, swiglu_bwd};
+use crate::ops_bwd::matmul_ex;
 use crate::tensor::GpuBuf;
 use ferrum_ref::llama::BLOCK_PARAMS;
-mod part;
-mod pi_m;
-use pi_m::*;
+mod backward;
+mod forward;
+mod param_index;
+use param_index::*;
+
+/// The sizes both passes use: `r = batch * t` rows, model width `d`, feed-forward width `h`,
+/// query and key/value widths `qd` and `kvd`, head size `hd`.
+struct Dims {
+    b: usize,
+    t: usize,
+    nl: usize,
+    r: usize,
+    d: usize,
+    h: usize,
+    v: usize,
+    hd: usize,
+    qd: usize,
+    kvd: usize,
+}
+
+impl GpuLlamaTrainer<'_> {
+    /// Record the forward and backward dispatches (a batch must be open).
+    pub(crate) fn record(
+        &self,
+        ids_host: &[usize],
+        ids: &GpuBuf,
+        targets: &GpuBuf,
+    ) -> Result<(), GpuError> {
+        let a = self.acts.as_ref().expect("allocated");
+        let c = &self.cfg;
+        let (b, t) = (a.batch, a.t);
+        let dims = Dims {
+            b,
+            t,
+            nl: c.layers,
+            r: b * t,
+            d: c.dim,
+            h: c.hidden,
+            v: c.vocab,
+            hd: c.head_dim,
+            qd: c.q_dim(),
+            kvd: c.kv_dim(),
+        };
+        self.record_forward(&dims, ids, targets)?;
+        self.record_backward(&dims, ids_host)
+    }
+}

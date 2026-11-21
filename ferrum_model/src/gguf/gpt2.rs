@@ -13,10 +13,14 @@ use ferrum_ref::gpt2::{Block, Config, Gpt2};
 use ferrum_ref::nn::LN_EPS;
 
 pub use super::quant::Quant;
-mod err_m;
-pub use err_m::*;
-mod ferrum_metadata_m;
-pub use ferrum_metadata_m::*;
+mod err;
+pub use err::*;
+mod from_gguf;
+pub use from_gguf::*;
+mod to_gguf;
+pub use to_gguf::*;
+mod ferrum_metadata;
+pub use ferrum_metadata::*;
 
 #[cfg(test)]
 mod tests;

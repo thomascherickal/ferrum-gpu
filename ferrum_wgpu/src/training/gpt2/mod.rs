@@ -20,13 +20,18 @@ pub use ferrum_ref::trainer::{Engine, Snapshot, StepConfig, StepStats};
 mod acts;
 mod dropout;
 mod engine;
-mod err_m;
+mod err;
 mod plan;
 mod qat;
 mod record;
 mod tie;
-pub use err_m::*;
-mod part_m;
+pub use err::*;
+mod construct;
+mod load;
+mod loss_and_step;
+mod micro_batch;
+mod optimize;
+mod split_step;
 
 #[cfg(test)]
 mod tests;

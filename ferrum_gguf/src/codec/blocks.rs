@@ -11,8 +11,12 @@ use crate::{
 };
 mod q4_1_block;
 pub use q4_1_block::*;
-mod q5_k_m;
-use q5_k_m::*;
+mod q5;
+pub(crate) use q5::*;
+mod q5_k;
+pub(crate) use q5_k::*;
+mod q3_k;
+pub(crate) use q3_k::*;
 
 #[cfg(test)]
 mod tests;

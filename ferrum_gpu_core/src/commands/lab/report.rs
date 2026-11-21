@@ -5,9 +5,12 @@
 use crate::json::Json;
 mod adapterfacts;
 pub use adapterfacts::*;
-mod date_of_m;
-mod rate_m;
-pub use date_of_m::*;
+mod date_of;
+mod rate;
+mod report_json;
+mod report_text;
+pub use date_of::*;
+pub(crate) use rate::*;
 
 #[cfg(test)]
 mod tests;

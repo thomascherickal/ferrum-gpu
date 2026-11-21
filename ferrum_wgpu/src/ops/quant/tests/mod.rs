@@ -27,5 +27,7 @@ fn decoded_rows(kind: QKind, bytes: &[u8], k: usize, n: usize) -> Vec<f32> {
     decode(kind.ggml().unwrap(), bytes, k * n).unwrap()
 }
 
+mod dequantised_values_are_bit_identical_to_the_cpu_decode;
 mod sizes_and_eligibility;
+mod the_kernel_choice_follows_the_measurements;
 mod the_packed_weight_is_smaller_by_the_claimed_ratio;

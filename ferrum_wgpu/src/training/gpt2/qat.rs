@@ -10,7 +10,7 @@ use crate::tensor::GpuBuf;
 use ferrum_ref::gpt2::Config;
 mod snap;
 pub use snap::*;
-mod part;
+mod qat_toggle;
 
 #[cfg(test)]
 mod tests;

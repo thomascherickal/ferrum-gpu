@@ -35,5 +35,7 @@ fn script(path: &Path, body: &str) -> String {
 }
 
 mod a_tool_that_is_not_there_stops_both_export_commands_with_its_path;
+mod export_lmstudio_imports_then_waits_for_the_listing;
+mod only_gpt2_files_are_exported_and_inputs_are_checked;
 mod the_modelfile_matches_ferrum_cpus_text;
 mod tools_are_found_in_flag_env_path_then_home_order;

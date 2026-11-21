@@ -11,8 +11,11 @@ use ferrum_gguf::{Gguf, Value};
 use std::collections::HashMap;
 mod spm_space;
 pub use spm_space::*;
-mod part;
+mod bpe;
+mod loading;
 mod pretok;
+mod queries;
+mod spm;
 use pretok::*;
 
 #[cfg(test)]

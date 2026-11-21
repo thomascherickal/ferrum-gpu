@@ -20,7 +20,7 @@
 //! ```
 
 /// Verbose progress output is not part of this crate (ferrum-cpu prints from here); the calls
-/// stay so the copied trainer is unchanged, and they compile to nothing.
+/// stay so the copied trainer is unchanged and compile to nothing.
 // ponytail: no-op; a CLI `--verbose` for tokenizer training would route this to stderr.
 macro_rules! vprintln {
     ($($t:tt)*) => {};
@@ -28,6 +28,7 @@ macro_rules! vprintln {
 
 mod encode;
 pub mod error;
+mod names;
 mod pretokenize;
 mod special;
 mod state;
@@ -35,13 +36,10 @@ mod state;
 mod test_support;
 mod train;
 mod vocab;
-
 pub use self::pretokenize::byte_to_unicode;
-
+use names::BASE_VOCAB;
+pub use names::{DOC_SEP, TOK_BOS, TOK_EOS, TOK_PAD, TOK_UNK};
 use std::collections::HashMap;
-
-/// Number of base tokens (one per byte value).
-const BASE_VOCAB: usize = 256;
 
 /// A trained byte-level BPE tokenizer.
 ///
@@ -65,24 +63,6 @@ pub struct ByteBpeTokenizer {
     /// decode to the empty string.
     special: Vec<String>,
 }
-
-/// Conventional names for the four standard special tokens (K3).
-/// Name of the beginning-of-sequence special token.
-pub const TOK_BOS: &str = "<bos>";
-
-/// Name of the end-of-sequence special token.
-pub const TOK_EOS: &str = "<|endoftext|>";
-
-/// Name of the padding special token.
-pub const TOK_PAD: &str = "<pad>";
-
-/// Name of the unknown special token.
-pub const TOK_UNK: &str = "<unk>";
-
-/// Document separator used by prepared corpora (`train_transformer prepare`)
-/// and TinyStories. [`ByteBpeTokenizer::encode_docs`] maps it to the EOS special
-/// token, and [`ByteBpeTokenizer::train_with_docs`] keeps it out of the merges.
-pub const DOC_SEP: &str = TOK_EOS; // "<|endoftext|>" since Phase 0-G GT
 
 impl ByteBpeTokenizer {
     /// A tokenizer with no merges: pure byte-level (vocab = 256).
@@ -117,22 +97,4 @@ impl ByteBpeTokenizer {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::ByteBpeTokenizer;
-
-    #[test]
-    fn byte_level_roundtrip() {
-        let tok = ByteBpeTokenizer::byte_level();
-        let text = "hello 🌸 мир\n";
-        let ids = tok.encode(text);
-        assert_eq!(ids.len(), text.len()); // one token per byte
-        assert_eq!(tok.decode(&ids), text);
-    }
-
-    #[test]
-    fn token_bytes_lookup() {
-        let tok = ByteBpeTokenizer::byte_level();
-        assert_eq!(tok.token_bytes(b'a' as usize), Some(&b"a"[..]));
-        assert_eq!(tok.token_bytes(999), None);
-    }
-}
+mod tests;

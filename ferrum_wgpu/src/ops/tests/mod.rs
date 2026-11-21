@@ -15,5 +15,9 @@ fn spread(n: usize, seed: u64, by: f32) -> Vec<f32> {
 }
 
 mod add_and_bias_match_cpu;
+mod attention_decode_matches_the_last_row_of_full_attention;
+mod attention_matches_cpu;
 mod cross_entropy_matches_cpu;
+mod gelu_matches_cpu_including_saturation;
+mod multi_command_ops_report_a_fault_at_each_of_their_commands;
 mod shape_mismatches_are_errors_not_dispatches;

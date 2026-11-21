@@ -5,6 +5,7 @@ use super::hooks::{Run, Validation};
 use super::{quant, Sizes};
 use crate::commands::flags::Args;
 use crate::commands::{device_line, gate, mem_mb, say};
+use crate::session::Session;
 use ferrum_model::checkpoint::{atomic_write, from_bytes};
 use ferrum_model::gpt2_gguf::to_gguf_with;
 use ferrum_model::sha256::sha256_hex;
@@ -13,13 +14,22 @@ use ferrum_model::tokenizer_gguf;
 use ferrum_ref::gpt2::{Config, Gpt2};
 use ferrum_ref::optim::Schedule;
 use ferrum_ref::trainer::{
-    steps_per_epoch, train as run_loop, window_starts, Prefix, RunShape, TokenSource, TrainConfig,
+    steps_per_epoch, train as run_loop, window_starts, Checkpoint, Prefix, RunShape, TokenSource,
+    TrainConfig,
 };
 use ferrum_tok::ByteBpeTokenizer;
 use std::io::Write;
 use std::path::Path;
 use std::time::Instant;
-mod tokenizer_m;
-mod train_m;
-use tokenizer_m::*;
-pub use train_m::*;
+mod announce;
+mod corpus;
+mod pipeline;
+mod run_hook;
+mod settings;
+mod tokenizer;
+use announce::*;
+use corpus::*;
+pub use pipeline::train;
+use run_hook::*;
+use settings::*;
+use tokenizer::*;

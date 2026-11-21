@@ -7,7 +7,7 @@ use ferrum_wgpu::Gpu;
 use std::sync::Arc;
 mod devicechoice;
 pub use devicechoice::*;
-mod part;
+mod constructors;
 
 #[cfg(test)]
 mod tests;

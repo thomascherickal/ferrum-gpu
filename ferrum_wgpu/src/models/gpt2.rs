@@ -8,9 +8,14 @@ use crate::matmul::{Matmul, Variant};
 use crate::ops;
 use crate::tensor::GpuBuf;
 use ferrum_ref::gpt2::{Block, Config, Gpt2};
-mod err_m;
-pub use err_m::*;
-mod part;
+mod err;
+pub use err::*;
+mod plan;
+pub use plan::*;
+mod construct;
+mod decode_step;
+mod forward_all;
+mod logits_buf;
 
 #[cfg(test)]
 mod tests;

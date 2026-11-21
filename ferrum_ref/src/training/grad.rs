@@ -8,10 +8,17 @@ use crate::gpt2::{Block, Gpt2};
 use crate::matmul::MatmulError;
 use crate::nn::{self, LN_EPS};
 use crate::tuned::matmul_tuned;
-mod mm_m;
-pub use mm_m::*;
-mod check_m;
-pub use check_m::*;
+mod mm;
+pub use mm::*;
+mod attention_bwd;
+pub use attention_bwd::*;
+mod block_backward;
+mod block_pass;
+mod check;
+use block_pass::Pass;
+pub use check::*;
+mod loss_and_grads_with;
+pub use loss_and_grads_with::*;
 
 #[cfg(test)]
 #[allow(clippy::needless_range_loop)]

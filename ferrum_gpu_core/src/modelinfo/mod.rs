@@ -12,8 +12,10 @@ mod max_header;
 pub mod scan;
 pub mod tokenizer;
 pub use max_header::*;
-mod inspect_with_m;
-pub use inspect_with_m::*;
+mod inspect_with;
+pub use inspect_with::*;
+mod to_json;
+pub use to_json::*;
 
 #[cfg(test)]
 mod tests;

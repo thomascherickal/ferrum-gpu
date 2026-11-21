@@ -20,10 +20,16 @@ use ferrum_ref::llama::transpose;
 mod ext_tests;
 mod qkind;
 pub use qkind::*;
-mod pack_m;
-pub use pack_m::*;
-mod choose_m;
-pub use choose_m::*;
+mod eligible;
+pub use eligible::*;
+mod eligible_for;
+pub use eligible_for::*;
+mod pack;
+pub use pack::*;
+mod quantise_matrix;
+pub use quantise_matrix::*;
+mod choose;
+pub use choose::*;
 
 #[cfg(test)]
 mod tests;

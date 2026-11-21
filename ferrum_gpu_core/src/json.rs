@@ -3,8 +3,10 @@
 use std::fmt::Write;
 mod value;
 pub use value::*;
-mod part;
-mod part_2;
+mod display;
+mod parse_string;
+mod parse_value;
+mod scan;
 
 #[cfg(test)]
 mod tests;

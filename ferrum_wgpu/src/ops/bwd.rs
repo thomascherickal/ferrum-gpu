@@ -3,10 +3,12 @@
 use crate::device::{Gpu, GpuError};
 use crate::runtime::groups_for;
 use crate::tensor::GpuBuf;
-mod err_m;
-pub use err_m::*;
-mod token_csr_m;
-pub use token_csr_m::*;
+mod err;
+pub use err::*;
+mod layernorm_bwd;
+pub use layernorm_bwd::*;
+mod token_csr;
+pub use token_csr::*;
 
 #[cfg(test)]
 mod tests;

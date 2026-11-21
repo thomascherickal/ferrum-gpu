@@ -33,3 +33,4 @@ fn first(j: &Json) -> &Json {
 mod bad_requests_get_clear_errors;
 mod health_and_info;
 mod model_errors_are_422;
+mod rolling_scores_texts;

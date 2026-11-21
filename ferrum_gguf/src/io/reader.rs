@@ -6,8 +6,12 @@ use crate::{DEFAULT_ALIGNMENT, MAGIC};
 use std::collections::HashMap;
 mod gguferror;
 pub use gguferror::*;
-mod part;
-mod part_2;
+mod gguf;
+pub use gguf::*;
+mod accessors;
+mod cursor;
+mod parse;
+mod parse_prefix;
 
 #[cfg(test)]
 mod tests;

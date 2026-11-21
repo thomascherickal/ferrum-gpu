@@ -33,4 +33,5 @@ fn fixture(name: &str) -> PathBuf {
 }
 
 mod a_run_cannot_read_its_own_outputs;
+mod invalid_utf8_fails_with_the_offset_or_is_repaired_with_lossy;
 mod matches_ferrum_cpus_prepare_on_the_golden_corpus;

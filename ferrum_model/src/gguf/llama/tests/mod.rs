@@ -39,3 +39,6 @@ fn refused(m: &Llama, edit: &dyn Fn(&mut Meta), skip: &[&str]) -> String {
 
 mod f32_round_trip_is_exact_for_both_architectures;
 mod hostile_metadata_is_refused_before_it_can_size_an_allocation;
+mod missing_or_misshapen_tensors_are_named_in_the_error;
+mod quantised_round_trips_stay_close_and_q8_beats_q4;
+mod scaling_policy_follows_llama_cpp;

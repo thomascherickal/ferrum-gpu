@@ -10,4 +10,4 @@ mod generate;
 pub(crate) mod sweep;
 mod train;
 pub(crate) use fast::*;
-mod part;
+mod fail_nth;

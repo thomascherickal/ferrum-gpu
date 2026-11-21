@@ -75,5 +75,8 @@ fn variants() -> Vec<(&'static str, Llama)> {
     ]
 }
 
+mod adam_step_matches_the_hand_computed_first_update_and_clipping_caps_the_norm;
+mod gqa_forward_agrees_with_the_row_oracle;
 mod rmsnorm_bwd_matches_finite_differences;
 mod token_embedding_gradient_sums_repeated_tokens;
+mod whole_model_gradients_match_finite_differences_for_every_parameter_group;

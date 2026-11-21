@@ -21,5 +21,7 @@ fn data(cfg: &Config, batch: usize, t: usize) -> (Vec<usize>, Vec<usize>) {
     )
 }
 
+mod gelu_grad_matches_finite_differences_and_saturates;
 mod linear_bwd_matches_finite_differences;
+mod thread_count_does_not_change_the_result;
 mod whole_model_gradients_match_finite_differences_for_every_parameter_group;

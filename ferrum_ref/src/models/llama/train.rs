@@ -9,4 +9,4 @@ use crate::optim::{clip_scale, Adam};
 use crate::trainer::{StepConfig, StepStats};
 mod moments;
 pub use moments::*;
-mod part;
+mod trainer_state;

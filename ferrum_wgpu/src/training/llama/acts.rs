@@ -2,6 +2,6 @@
 use crate::device::{Gpu, GpuError};
 use crate::tensor::GpuBuf;
 use ferrum_ref::llama::{rope_tables, Config, RopeScaling};
-mod acts_x;
-pub(crate) use acts_x::*;
-mod part;
+mod buffers;
+pub(crate) use buffers::*;
+mod acts_alloc;

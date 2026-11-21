@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::Instant;
 mod max_lines;
 pub use max_lines::*;
-mod part;
+mod serve_slot;
 
 #[cfg(test)]
 mod tests;
