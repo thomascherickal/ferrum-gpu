@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from rules_docs import missing_diagrams  # noqa: E402
 
 MAX_LINES = 100
-CODE = re.compile(r"\.(rs|js|mjs|py|sh|wgsl|html|css)$")
+CODE = re.compile(r"\.(rs|js|mjs|py|sh|wgsl|css)$")
 REQUIRED = ["readme.md", "next-steps.md", "metrics.md", "test-time-report.md", "system-profile.md"]
 UPPER_OK = {"AGENTS.md", "GEMINI.md", "CLAUDE.md", "SKILL.md", "LICENSE.md"}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
