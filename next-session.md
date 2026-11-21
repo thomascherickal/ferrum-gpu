@@ -6,6 +6,22 @@ the *state*. After you have read both, add a "consumed" line at the top of `hand
 
 ## 0. Where things are
 
+```mermaid
+flowchart LR
+    a["0. Where things are"]:::root
+    a --> n0["main checkout"]:::c0
+    a --> n1["Repository"]:::c1
+    a --> n2["Sibling ../ferrum-cpu is"]:::c2
+    a --> n3["Dev hardware NVIDIA MX330"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Repository: `/home/thomas/Projects/ferrum/ferrum-gpu`, GitHub `thomascherickal/ferrum-gpu`.
   Work from the **main checkout** (all of Phases 0 to 4 is on `main`). Start any new work in a
   fresh worktree (`EnterWorktree`), never by editing `main` directly.
@@ -16,6 +32,22 @@ the *state*. After you have read both, add a "consumed" line at the top of `hand
   desktop NVIDIA available.
 
 ## 1. Start checklist (10 minutes)
+
+```mermaid
+flowchart LR
+    a["1. Start checklist 10"]:::root
+    a --> n0["cd"]:::c0
+    a --> n1["Check the tools exist"]:::c1
+    a --> n2["Prove the baseline is"]:::c2
+    a --> n3["EnterWorktree with a new"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 1. `cd /home/thomas/Projects/ferrum/ferrum-gpu && git fetch && git status -sb && git log --oneline -5`
    Expect `main` equal to `origin/main`, the latest commit mentioning "quantisation-aware training".
@@ -43,6 +75,22 @@ the *state*. After you have read both, add a "consumed" line at the top of `hand
 
 ## 2. Paste-able starting prompt
 
+```mermaid
+flowchart LR
+    a["2. Paste-able starting"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 > Continue ferrum-gpu. Read next-session.md, handoff.md and CLAUDE.md. Run the start checklist,
 > then execute Phase 5 (docs/plans/phase-5.md) task by task in a new worktree, one commit per
 > task, tests first, full suite green before each commit. Stay autonomous: take the Recommended
@@ -50,6 +98,22 @@ the *state*. After you have read both, add a "consumed" line at the top of `hand
 > context-limit hook fires. Do not merge or push main until a phase gate is met and documented.
 
 ## 3. The plan (what is left)
+
+```mermaid
+flowchart LR
+    a["3. The plan what is left"]:::root
+    a --> n0["Phase 5 imported Llama /"]:::c0
+    a --> n1["Phase 6 front ends"]:::c1
+    a --> n2["Phase 7 verification"]:::c2
+    a --> n3["Open items carried over"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Phases 0 to 4 are done and merged. Remaining, in order. Each task ends with: unit tests for every
 new file, a CPU parity test, a fault-injection sweep for multi-command ops, a doc update, a
@@ -110,6 +174,22 @@ not recorded; remaining coverage gaps listed in `docs/coverage.md` (hand-built c
 fixtures, a shader-compile failure hook, assertion messages that index into results).
 
 ## 4. Working rules in one screen (full text in CLAUDE.md)
+
+```mermaid
+flowchart LR
+    a["4. Working rules in one"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Independent of ferrum-cpu; tests first and for everything (stubs for external tools and
 hardware); one feature per commit; fmt, clippy, deny and the four-configuration suite green

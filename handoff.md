@@ -7,6 +7,22 @@
 
 ## The goal
 
+```mermaid
+flowchart LR
+    a["The goal"]:::root
+    a --> n0["docs/gui-studio-plan.md"]:::c0
+    a --> n1["The goal overview"]:::c1
+    a --> n2["The goal details"]:::c2
+    a --> n3["The goal usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The user asked (2026-11-17): improve the GUI to ferrum-cpu parity with tabs plus GPU-specific extras, then
 redirected: **the GUI must be fully self-contained, a desktop app like ferrum-cpu's Tauri "SLM Studio", with the
 changes a GPU engine needs, and planned for very powerful GPUs such as the Mac M5 Max.** The plan of record is
@@ -14,6 +30,22 @@ changes a GPU engine needs, and planned for very powerful GPUs such as the Mac M
 be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, its Tauri app).
 
 ## What is done
+
+```mermaid
+flowchart LR
+    a["What is done"]:::root
+    a --> n0["Merged to main"]:::c0
+    a --> n1["ferrum-gpu lab"]:::c1
+    a --> n2["Tab 9 GPU lab"]:::c2
+    a --> n3["G2 cdae6da tensors larger"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 **Merged to `main`** at `106bdfb`: R1 to R5, G1, Studio tabs 1 to 8 (Datasets, Prepare, Train, Fine-tune, Evaluate, Generate,
 Models, Export, Serve, Capable, Device), the desktop app, `scripts/build-apps.sh`, and the corrected plan.
@@ -32,6 +64,22 @@ Models, Export, Serve, Capable, Device), the desktop app, `scripts/build-apps.sh
   memory table with the source of each figure (no invented "used" number). Real-Chrome step `gpulab` passes.
 
 ## Since the G2 / tab 9 merge (`eae22a3` on `main`)
+
+```mermaid
+flowchart LR
+    a["Since the G2 / tab 9 merge"]:::root
+    a --> n0["Tab 10"]:::c0
+    a --> n1["G3 f16 weights QKindF16"]:::c1
+    a --> n2["G4 quantised linear"]:::c2
+    a --> n3["G5"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **G3** f16 weights: `QKind::F16` (`ferrum_wgpu/src/ops/quant.rs`, `shaders/quant/*.wgsl`), no `shader-f16` needed
   (`unpack2x16float`), bit-exact against the CPU decode; `--gpu-weights f32|f16|q8_0|q4_0` (`GpuBackend::with_weights`,
@@ -62,6 +110,22 @@ when it says PASS.
 
 ## Decisions already taken (do not re-litigate)
 
+```mermaid
+flowchart LR
+    a["Decisions already taken do"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Commands stay "argv in, report out" (no second typed layer). One transport (HTTP) for the page and the app. Stop is
 cooperative; prepare, tokenize and the exports are not interruptible yet. No native file dialogs (the page has its
 own picker). The app crate stays outside the workspace with its own CI job (`studio` in `.github/workflows/ci.yml`,
@@ -78,6 +142,22 @@ scripts/build-studio.sh --debug --run --device cpu  # start the desktop app
 ```
 
 ## Gotchas learned
+
+```mermaid
+flowchart LR
+    a["Gotchas learned"]:::root
+    a --> n0["Stale coverage data"]:::c0
+    a --> n1["The no-unsafe guard is a"]:::c1
+    a --> n2["The harness refuses"]:::c2
+    a --> n3["The scratchpad directory"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **The harness refuses complex compound bash commands** ("too complex to verify that it stays inside the worktree"):
   keep commands simple, do multi-file edits with the Edit tool or a small script file, and never chain `git` with

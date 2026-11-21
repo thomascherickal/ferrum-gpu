@@ -23,6 +23,22 @@ the box.
 
 ## What the report says
 
+```mermaid
+flowchart LR
+    a["What the report says"]:::root
+    a --> n0["A FAIL here is the"]:::c0
+    a --> n1["What the report says overview"]:::c1
+    a --> n2["What the report says details"]:::c2
+    a --> n3["What the report says usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | Part | Meaning |
 |---|---|
 | `adapter`, `driver`, `backend`, `wgpu` | What was measured: copy these into any number you quote from it. |
@@ -37,6 +53,22 @@ Attach `lab-report.json` (and the output of `ferrum-gpu info`) to an issue. Noth
 names and the operating system. Do not edit the numbers.
 
 ## What has not been run, said plainly
+
+```mermaid
+flowchart LR
+    a["What has not been run,"]:::root
+    a --> n0["Very large models"]:::c0
+    a --> n1["Apple Silicon M-series,"]:::c1
+    a --> n2["AMD, a larger NVIDIA card,"]:::c2
+    a --> n3["Any tensor larger than one"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **Apple Silicon (M-series, including M5 Max):** not run. Memory figures for it in `hardware-caps.md` are hand estimates. The macOS CI
   runner's paravirtual GPU already disagrees with the CPU in one test, which is why the checks here carry tolerances and print their errors.

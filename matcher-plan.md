@@ -14,6 +14,36 @@
 
 ## 0. The independence rule (CRITICAL, unchanged)
 
+```mermaid
+flowchart LR
+    a["0. The independence rule"]:::root
+    a --> n0["re-implementing and"]:::c0
+    a --> n1["What we may do with"]:::c1
+    a --> n2["Copying code in"]:::c2
+    a --> n3["No path = or git ="]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["0. The independence rule"]:::root
+    a --> n0["No include_str!,"]:::c0
+    a --> n1["Copying code in when a"]:::c1
+    a --> n2["Cross-compatibility is"]:::c2
+    a --> n3["ferrum-cpu is never"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 This plan changes nothing about [CLAUDE.md](CLAUDE.md). Parity is reached by **re-implementing and copying in**, never by linking.
 
 1. No `path =` or `git =` dependency on ferrum-cpu or any of its crates, and no dependency pointing outside this repository. `tests/tests/test_independence.rs` keeps enforcing it; it must stay green at every commit.
@@ -27,6 +57,36 @@ This plan changes nothing about [CLAUDE.md](CLAUDE.md). Parity is reached by **r
 
 ## 1. Method
 
+```mermaid
+flowchart LR
+    a["1. Method"]:::root
+    a --> n0["it is a planning list, not"]:::c0
+    a --> n1["Behaviour"]:::c1
+    a --> n2["File"]:::c2
+    a --> n3["Numbers"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["1. Method"]:::root
+    a --> n0["Behaviour same flag, same"]:::c0
+    a --> n1["File a file written by one"]:::c1
+    a --> n2["Numbers loss, perplexity"]:::c2
+    a --> n3["1. Method overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Each M-phase starts with an audit step: read the ferrum-cpu source for that area (`ferrum_core/src/...`, `slm_cli/src/...`, `slm_server/src/...`), list exact behaviours and flags in the phase doc, then write tests from that list (and from golden fixtures) before any code. The gap table below was built from ferrum-cpu's README, STATUS, `--help` text and source tree names; **it is a planning list, not an audit.** Each row is confirmed or corrected in its phase before work starts.
 
 Parity is measured three ways, never assumed:
@@ -38,6 +98,36 @@ Parity is measured three ways, never assumed:
 Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu RAM guard on GPU, GPU memory pre-flight instead), the difference is written down in `docs/parity.md` (created in M0), not hidden.
 
 ## 2. Gap table (ferrum-gpu today versus ferrum-cpu)
+
+```mermaid
+flowchart LR
+    a["2. Gap table ferrum-gpu"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["2. Gap table ferrum-gpu"]:::root
+    a --> n0["2. Gap table ferrum-gpu overview"]:::c0
+    a --> n1["2. Gap table ferrum-gpu details"]:::c1
+    a --> n2["2. Gap table ferrum-gpu usage"]:::c2
+    a --> n3["2. Gap table ferrum-gpu notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 > **Superseded by [docs/parity.md](docs/parity.md)** (M0). The audit changed three things below: (1) `ferrum-gpu train` writes a Llama-style model while ferrum-cpu writes a GPT-2 model, so M4 adds `train --arch gpt2|llama` with `gpt2` as the default; (2) presets are different models under the same names; (3) ferrum-cpu reads Q4_1, Q5_0, Q5_1, Q8_1 and Q2_K to Q6_K (11 block formats against our 3), and its server also has `/v1/loglikelihood_rolling` and a 32-request in-flight cap. The table below is kept as written for history.
 
@@ -64,6 +154,36 @@ Where GPU and CPU differ for good reason (the `auto` device rule, no ferrum-cpu 
 | Determinism | Bit-identical across thread counts | Bit-identical across repeat runs per adapter | have |
 
 ## 3. Phases
+
+```mermaid
+flowchart LR
+    a["3. Phases"]:::root
+    a --> n0["M0 audit and parity ledger"]:::c0
+    a --> n1["M1 BPE tokenizer and GGUF"]:::c1
+    a --> n2["M2 corpus tools and data"]:::c2
+    a --> n3["M3 model formats and"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["3. Phases"]:::root
+    a --> n0["M4 training parity core"]:::c0
+    a --> n1["M5 generation and scoring"]:::c1
+    a --> n2["M6 export to other"]:::c2
+    a --> n3["M7 server and evaluation"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Each phase ends at a gate. A failed gate is recorded with real numbers and the consequence, and work continues with the recommended action (CLAUDE.md rule 9).
 
@@ -142,9 +262,69 @@ Done: ferrum-cpu's route shapes and limits, `/v1/loglikelihood_rolling`, GPT-2 f
 
 ## 4. Order and dependencies between phases
 
+```mermaid
+flowchart LR
+    a["4. Order and dependencies"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["4. Order and dependencies"]:::root
+    a --> n0["4. Order and dependencies overview"]:::c0
+    a --> n1["4. Order and dependencies details"]:::c1
+    a --> n2["4. Order and dependencies usage"]:::c2
+    a --> n3["4. Order and dependencies notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 M0 first. M1 before M2, M4 (BPE vocab sizes) and M5 (chat templates need tokenizer metadata). M3 is independent of M1 and may run alongside it. M6 needs M1 and M3. M7 needs M5. M8 last. Phase 7 (device matrix) runs before M0 and again after M8, because new kernels (K-quants) change what each adapter row means.
 
 ## 5. Risks
+
+```mermaid
+flowchart LR
+    a["5. Risks"]:::root
+    a --> n0["Scope."]:::c0
+    a --> n1["Fixtures go stale."]:::c1
+    a --> n2["Unicode tables."]:::c2
+    a --> n3["GPU can lose."]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["5. Risks"]:::root
+    a --> n0["No second machine for the"]:::c0
+    a --> n1["Scope. K-quants, BPE, and"]:::c1
+    a --> n2["Unicode tables. Writing"]:::c2
+    a --> n3["GPU can lose. Where a GPU"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **Scope.** K-quants, BPE, and the data pipeline are each a large job; the order puts correctness-critical pieces (tokenizer, formats) first.
 - **Fixtures go stale.** ferrum-cpu is still moving; every fixture records its source commit, and a mismatch later is read as "ferrum-cpu changed" until proven otherwise.
@@ -153,5 +333,35 @@ M0 first. M1 before M2, M4 (BPE vocab sizes) and M5 (chat templates need tokeniz
 - **No second machine for the reverse check.** Loading our files in ferrum-cpu or llama.cpp is a manual step recorded per phase.
 
 ## 6. Not planned
+
+```mermaid
+flowchart LR
+    a["6. Not planned"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["6. Not planned"]:::root
+    a --> n0["6. Not planned overview"]:::c0
+    a --> n1["6. Not planned details"]:::c1
+    a --> n2["6. Not planned usage"]:::c2
+    a --> n3["6. Not planned notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Anything ferrum-cpu has explicitly moved out (`ferrum-ml` tabular models, the archived features in `ferrum-junk`), per-vendor backends, f16 mixed precision, multi-GPU, and a Tauri desktop shell (the local web GUI stays).

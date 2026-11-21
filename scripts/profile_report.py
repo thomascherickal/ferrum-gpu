@@ -7,6 +7,7 @@ The gate samples itself (scripts/gate.sh). A sample is: seconds, CPU busy %, mem
 busy % and GPU memory (MiB); the GPU columns are empty without `nvidia-smi`. Nothing is estimated: a
 column with no readings shows "-".
 """
+from generated_diagrams import trend  # noqa: E402
 import datetime
 import os
 import subprocess
@@ -25,6 +26,8 @@ def render(old, new_row):
         "CPU and GPU usage during the gate (`scripts/gate.sh` samples every 2 s with `scripts/system_profile.py`); "
         "do not edit by hand. A GPU column is `-` when `nvidia-smi` reported nothing. Look for rising memory or CPU "
         "peaks across rows: that is a resource regression.", "",
+        trend("CPU peak per gate run", [r.split("|")[2].strip(" `")[:7] for r in rows][::-1],
+              [float(r.split("|")[6]) for r in rows if r.split("|")[6].strip() != "-"][::-1], "percent"), "",
         BEGIN, HEADER, "|" + "---|" * 10, *rows, END, ""])
 
 

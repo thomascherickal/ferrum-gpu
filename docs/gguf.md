@@ -5,6 +5,22 @@ ferrum-gpu reads and writes GGUF **v3**. The container code is in `ferrum_gguf`;
 
 ## The container (`ferrum_gguf`)
 
+```mermaid
+flowchart LR
+    a["The container ferrum_gguf"]:::root
+    a --> n0["Parser"]:::c0
+    a --> n1["Element types read"]:::c1
+    a --> n2["read only"]:::c2
+    a --> n3["Element types written"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - **Parser:** `Gguf::parse(bytes)` is safe against hostile input: every read is bounds-checked, sizes use
   checked arithmetic, and nothing is allocated from a header number before it is shown to fit in the file.
   Malformed files are `GgufError` values, never panics.
@@ -29,6 +45,22 @@ means the head is tied to `token_embd.weight`. Written by `ferrum_model::gpt2_gg
 read by `from_gguf`.
 
 ## `llama` and `qwen2`
+
+```mermaid
+flowchart LR
+    a["llama and qwen2"]:::root
+    a --> n0["refused"]:::c0
+    a --> n1["llama and qwen2 overview"]:::c1
+    a --> n2["llama and qwen2 details"]:::c2
+    a --> n3["llama and qwen2 usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Read by `ferrum_model::llama_gguf::from_gguf`, written by `to_gguf(model, Quant)`.
 
@@ -61,6 +93,22 @@ target, so a crash leaves the old file or the new one, never half of one.
 
 ## Compatibility with ferrum-cpu
 
+```mermaid
+flowchart LR
+    a["Compatibility with"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The intent is that a model trained on either side loads on the other through these files. **That has not
 been verified with a real file.** The repository contains no stored `.gguf` fixture: tests generate files
 with this project's own writer, and the tensor names, metadata keys and layout rules were checked against
@@ -68,6 +116,22 @@ ferrum-cpu's *source* conventions (commit 56a9d3a), not against a file ferrum-cp
 fixture produced by ferrum-cpu is an open item (see `docs/plans/phase-3.md`, task 3.1).
 
 ## Token files and tokenizer files
+
+```mermaid
+flowchart LR
+    a["Token files and tokenizer"]:::root
+    a --> n0["Tokenizer file"]:::c0
+    a --> n1["Token file"]:::c1
+    a --> n2["Model files"]:::c2
+    a --> n3["Token file ferrum-tokens"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Both are GGUF files and match ferrum-cpu's layouts (tested byte for byte against files it wrote):
 

@@ -10,4 +10,20 @@ Copied or re-derived with provenance: GGUF v3 layout and the `gpt2` tensor conve
 
 ## Result (2026-11-10)
 
+```mermaid
+flowchart LR
+    a["Result 2026-11-10"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Gate met in the letter: parity is green and the crossover table is recorded. The measured answer is unfavourable to the GPU for single-stream decode: 0.02x to 0.93x of one CPU thread across 0.5M to 33.7M parameters. Batching all of a token's commands into one submit did not help (the cost is dependent-dispatch latency, not submit count); a 16-way K-split GEMV recovered the large model from 0.50x to 0.93x. Consequence for Phase 6: `auto` keeps this workload on the CPU. Phase 4 must show that training and batched scoring cross over, which is where the matmul measurements say the GPU should win.

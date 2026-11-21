@@ -4,6 +4,22 @@
 
 ## Setup
 
+```mermaid
+flowchart LR
+    a["Setup"]:::root
+    a --> n0["not"]:::c0
+    a --> n1["Same machine as the Phase"]:::c1
+    a --> n2["cargo bench -p ferrum_wgpu"]:::c2
+    a --> n3["CPU"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Same machine as the Phase 0 report (8 CPU threads, rustc 1.96.0, `wgpu` 30.0.1, Vulkan, release profile). Driver versions not recorded.
 - `cargo bench -p ferrum_wgpu --bench decode`, std-only. Random weights; 4 warm-up tokens, then 48 decoded tokens timed as a whole; one run per adapter, so small differences are noise.
 - CPU: `ferrum_ref::gpt2::Gpt2::feed`, one thread, f32, cached. That is how ferrum-cpu runs an `m = 1` f32 decode (its own `gemm` bench labels it "SERIAL on one core, bandwidth-bound"). Multi-threaded and quantised CPU decode were **not** measured.
@@ -11,6 +27,22 @@
 - Sizes: small = the 507,552-parameter reference preset; medium = dim 256, 6 layers; large = dim 512, 8 layers, vocab 8192 (33.7M parameters including the embedding).
 
 ## Results
+
+```mermaid
+flowchart LR
+    a["Results"]:::root
+    a --> n0["NVIDIA GeForce MX330"]:::c0
+    a --> n1["Intel Iris Xe Graphics"]:::c1
+    a --> n2["Results overview"]:::c2
+    a --> n3["Results details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Final kernels (16-way K-split GEMV):
 
@@ -31,6 +63,22 @@ Final kernels (16-way K-split GEMV):
 | large | 33.7M | 9.240 | 108 | 20.549 | 49 | 0.45x |
 
 ## What the numbers say
+
+```mermaid
+flowchart LR
+    a["What the numbers say"]:::root
+    a --> n0["Batching into one submit"]:::c0
+    a --> n1["not"]:::c1
+    a --> n2["A latency floor, not a"]:::c2
+    a --> n3["The GEMV kernel mattered"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 1. **A latency floor, not a compute limit, decides small models.** A temporary probe on the MX330 (release build, reference preset) split one token into 0.2 ms of host recording, 0.3 ms of submit and 1.6 ms of waiting for the GPU. That wait covers about 50 dependent tiny commands, roughly 25 microseconds each. The CPU does the whole token in 0.084 ms. Fusing kernels would shave the floor but cannot remove it.
 2. **Batching into one submit did not help** (2.47 ms to 2.62 ms for the reference preset, within noise): submit count was not the bottleneck. The batch API stays because it is correct and removes per-kernel error-scope work, not because it is faster here.

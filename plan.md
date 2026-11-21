@@ -6,6 +6,22 @@
 
 ## Independence (supersedes the earlier plan)
 
+```mermaid
+flowchart LR
+    a["Independence supersedes"]:::root
+    a --> n0["ferrum_core dependency,"]:::c0
+    a --> n1["copied in"]:::c1
+    a --> n2["GGUF format"]:::c2
+    a --> n3["The CPU reference parity"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no** traits added to ferrum-cpu, and ferrum-cpu is never modified. Everything the GPU engine needs from ferrum-cpu is **copied in** by the phase that needs it, with a provenance header (source path + commit). Consequences:
 
 - The CPU reference (parity oracle) lives in `ferrum_ref/`, a small crate we own. It grows phase by phase: matmul in Phase 0; LayerNorm, GELU, attention, cross-entropy, Adam, Q8_0 and f16 in Phase 2; GGUF, tokenizer and sampling in Phase 3.
@@ -14,6 +30,22 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 
 ## What ferrum-cpu does (what must be reproduced)
 
+```mermaid
+flowchart LR
+    a["What ferrum-cpu does what"]:::root
+    a --> n0["Own stack GPT-2"]:::c0
+    a --> n1["Imported stack Llama/Qwen"]:::c1
+    a --> n2["Training step"]:::c2
+    a --> n3["Decode"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - **Own stack (GPT-2):** learned positions, LayerNorm (eps 1e-5), tanh-GELU, dense MHA with `-1e9` causal mask, optional tied head; Adam/AdamW, global-norm clip, warmup+cosine, FFN dropout, int8 QAT = Q8_0 (blocks of 32 down columns, f16 scale, ties away from zero).
 - **Imported stack (Llama/Qwen):** RMSNorm, RoPE (NORM/NEOX + scaling), GQA, SwiGLU; f32/Q8_0/Q4_0 inference, f32 AdamW fine-tune.
 - **Training step:** whole batch as one `[B*T, C]` matrix: sync tied head, QAT snap, forward, CE, backward, restore masters, clip, Adam. Checkpoint = GGUF `ferrum-checkpoint` with `p{i}.data/m/v` F32 in canonical order.
@@ -21,6 +53,22 @@ ferrum-gpu is a standalone repo. There is **no** `ferrum_core` dependency, **no*
 - **Reference model:** 507,552 params (ctx 128, embed 96, 4 heads, 3 blocks, hidden 320, vocab 1024).
 
 ## Decisions
+
+```mermaid
+flowchart LR
+    a["Decisions"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Question | Decision |
 |---|---|
@@ -49,6 +97,22 @@ Speedup gates from Phase 2 on are measured against the tuned CPU matmul ported i
 Round-half-away-from-zero in the Q8_0 snap; f16 scale via integer bit ops; `-1e9` mask with max-subtract softmax; every reduction in a fixed ascending order (no atomics); embedding gradient via sorted CSR index; Adam bias corrections, lr, clip scale and RoPE tables computed on the host; dropout masks from the host RNG.
 
 ## Phases
+
+```mermaid
+flowchart LR
+    a["Phases"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | # | File | Deliverable | Gate |
 |---|---|---|---|

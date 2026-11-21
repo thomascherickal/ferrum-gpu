@@ -12,4 +12,20 @@ Starts only after the Phase 0 gate passes.
 
 ## Result (2026-11-10)
 
+```mermaid
+flowchart LR
+    a["Result 2026-11-10"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Done. `runtime.rs` holds error scopes (validation + out-of-memory), device-loss and uncaptured-error recording (`Gpu::check`), the pipeline cache, one generic `dispatch`, `groups_for`, and `alloc_plan`. `GpuBuf` carries a shape. Gate met: 38 + 4 + 6 tests pass with no adapter (all GPU tests skip), on the MX330, on Intel Xe and on llvmpipe. A destroyed device surfaces as an error ("GPU device lost"), not a panic. Real out-of-memory could not be provoked on this box (a binding-limit-sized allocation succeeded or was refused cleanly); the OOM mapping is unit-tested instead.

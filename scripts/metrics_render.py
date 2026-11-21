@@ -1,4 +1,5 @@
 """Part of metrics.py."""
+from generated_diagrams import pie  # noqa: E402
 import argparse
 import datetime
 import os
@@ -42,6 +43,10 @@ def render(root, next_commit, keep):
         "## Size",
         "",
         table(["language", "files", "lines"], [[k, v[0], v[1]] for k, v in sorted(langs.items(), key=lambda kv: -kv[1][1])]),
+        "",
+        pie("Lines by language", [(k, v[1]) for k, v in sorted(langs.items(), key=lambda kv: -kv[1][1])[:8]]),
+        "",
+        pie("Rust: production and test lines", [("production", prod), ("test", test)]),
         "",
         f"Rust: **{prod}** lines of production code and **{test}** lines of test code (test lines are "
         f"{pct(test, prod + test)} of the Rust), non-blank lines.",

@@ -1,5 +1,21 @@
 # Phase 6: own CLI and server
 
+```mermaid
+flowchart LR
+    a["Phase 6 own CLI and server"]:::root
+    a --> n0["--gpu-mem-mb is deferred"]:::c0
+    a --> n1["Gate"]:::c1
+    a --> n2["x 6.1 ferrum_gpu_cli"]:::c2
+    a --> n3["x 6.2 ferrum_gpu_server"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - [x] 6.1 `ferrum_gpu_cli` (binary `ferrum-gpu`): `train`, `generate`, `eval`, `run-gguf`, `finetune-gguf`, `info`; flag-table parser rejecting unknown flags; `--device cpu|gpu|auto`, `--gpu-adapter`, `--threads`. **`--gpu-mem-mb` is deferred to 6.4** (it needs the pre-flight estimate). `eval` runs on the CPU oracle; the tokenizer is the byte tokenizer (BPE is not in the 6.x list).
 - [x] 6.2 `ferrum_gpu_server` (binary `ferrum-gpu-server`): `/health`, `/v1/info`, `/v1/generate`, `/v1/loglikelihood` behind a `Decoder` trait; tests use `StubDecoder` and a real-socket test. Loopback only (Host/Origin guard from the GUI HTTP layer); scoring runs on the CPU oracle.
 - [x] 6.3 `auto` rule in `ferrum_gpu_cli::device::decide` (also used by the server): training goes to a hardware GPU when one exists (Phase 4: 1.3x to 5.5x), decoding and scoring stay on the CPU (Phase 3: no GPU win up to 34M parameters); no hardware adapter gives the CPU and one printed `note:` line; `--device gpu` and `cpu` are never overridden. Tested over fake adapter tables.

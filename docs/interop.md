@@ -5,6 +5,22 @@ in `ferrum_gpu_cli/tests/interop/` (run with `cargo test -p ferrum_gpu_cli --tes
 
 ## What runs where
 
+```mermaid
+flowchart LR
+    a["What runs where"]:::root
+    a --> n0["GGUF"]:::c0
+    a --> n1["llama.cpp"]:::c1
+    a --> n2["Ollama"]:::c2
+    a --> n3["LM Studio"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | | Reads our files | We read its files | Registered / imported by `ferrum-gpu` |
 |---|---|---|---|
 | **GGUF** (the format) | yes: v3, 32-byte alignment, every tensor offset ordered and inside the file | yes: v2/v3, F32 F16 Q8_0 Q4_0 Q4_1 Q5_0 Q5_1 Q8_1 and Q2_K to Q6_K | n/a |
@@ -17,6 +33,22 @@ Llama/Qwen-style files written by `train --arch llama` carry no tokenizer and ar
 `export-ollama` and `export-lmstudio` refuse them by name.
 
 ## Versions actually run
+
+```mermaid
+flowchart LR
+    a["Versions actually run"]:::root
+    a --> n0["b11521"]:::c0
+    a --> n1["0.40.2"]:::c1
+    a --> n2["Vulkan build"]:::c2
+    a --> n3["llama.cpp b11521"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Recorded 2026-11-14 on Zorin OS 18.1 (Linux x86-64); the default suite is CPU only.
 
@@ -40,6 +72,22 @@ Recorded 2026-11-14 on Zorin OS 18.1 (Linux x86-64); the default suite is CPU on
 
 ## Unsloth Studio
 
+```mermaid
+flowchart LR
+    a["Unsloth Studio"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Not tested against a real Studio. Studio is a web app with its own Python environment and a llama.cpp
 backend that loads local GGUF files from its UI; it has no documented import command that
 `ferrum-gpu` could call, so there is no `export-unsloth`. The interoperability is the GGUF file itself:
@@ -61,6 +109,22 @@ Set `FERRUM_INTEROP_LOG=<file>` to append every step (timestamped) to a file. Ti
 tests have none; each interop test may take 10 minutes (`scripts/test-time-limit.sh`, `INTEROP_LIMIT`).
 
 ## Findings
+
+```mermaid
+flowchart LR
+    a["Findings"]:::root
+    a --> n0["empty"]:::c0
+    a --> n1["llama.cpp b11521 is not"]:::c1
+    a --> n2["llama.cpp accepted our"]:::c2
+    a --> n3["export-ollama produced a"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **llama.cpp b11521 is not deterministic at its default thread count.** The same `llama-completion`
   command on the same file, eight times: seven runs gave the full text and one gave text cut short

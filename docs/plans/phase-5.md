@@ -1,5 +1,21 @@
 # Phase 5: imported Llama/Qwen models
 
+```mermaid
+flowchart LR
+    a["Phase 5 imported"]:::root
+    a --> n0["Gate"]:::c0
+    a --> n1["x 5.0 CPU oracle"]:::c1
+    a --> n2["x 5.1 Kernels with parity"]:::c2
+    a --> n3["x 5.2 Q8_0/Q4_0 linear"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - [x] 5.0 CPU oracle (`ferrum_ref::llama`: forward, KV-cached decode, backward, AdamW) and the `llama`/`qwen2` GGUF mapping (`ferrum_model::llama_gguf`), with a synthetic fixture built by our own writer.
 - [x] 5.1 Kernels with parity: RMSNorm, RoPE (host-built cos/sin tables; NORM and NEOX), GQA, SwiGLU.
 - [x] 5.2 Q8_0/Q4_0 linear: weights packed in `u32`, dequantised in the inner loop, vs reference dequant.

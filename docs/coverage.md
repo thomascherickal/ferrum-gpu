@@ -38,6 +38,36 @@ instrumented; Windows and macOS were not run.
 
 ## Per file
 
+```mermaid
+flowchart LR
+    a["Per file"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Per file"]:::root
+    a --> n0["Per file overview"]:::c0
+    a --> n1["Per file details"]:::c1
+    a --> n2["Per file usage"]:::c2
+    a --> n3["Per file notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | file | lines | missed |
 |---|---|---|
 | ferrum_gguf/src/f16.rs | 100.00% | 0 |
@@ -67,6 +97,36 @@ instrumented; Windows and macOS were not run.
 
 ## What the remaining lines are
 
+```mermaid
+flowchart LR
+    a["What the remaining lines"]:::root
+    a --> n0["Failure-only expressions"]:::c0
+    a --> n1["A few reader/tensor error"]:::c1
+    a --> n2["Shader-compile and"]:::c2
+    a --> n3["Polling loops that exit on"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["What the remaining lines"]:::root
+    a --> n0["What the remaining lines overview"]:::c0
+    a --> n1["What the remaining lines details"]:::c1
+    a --> n2["What the remaining lines usage"]:::c2
+    a --> n3["What the remaining lines notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Most uncovered lines fall into a few kinds, and are not hiding untested features:
 
 1. **Failure-only expressions in test code**, such as the `got[1]` in an assertion message, or the
@@ -82,6 +142,36 @@ Most uncovered lines fall into a few kinds, and are not hiding untested features
 
 ## How error paths are covered
 
+```mermaid
+flowchart LR
+    a["How error paths are"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["How error paths are"]:::root
+    a --> n0["How error paths are overview"]:::c0
+    a --> n1["How error paths are details"]:::c1
+    a --> n2["How error paths are usage"]:::c2
+    a --> n3["How error paths are notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 GPU code is full of `?` on commands that only fail when the device misbehaves. A test-only hook,
 `Gpu::fail_after(n)`, makes the (n+1)th command fail; `Gpu::sweep_faults` runs an operation with
 the fault at command 0, 1, 2, ... until it succeeds, asserting each failure reports the injected
@@ -92,12 +182,72 @@ mid-step leaves the weights untouched, because the half-recorded batch is discar
 
 ## Modularity
 
+```mermaid
+flowchart LR
+    a["Modularity"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Modularity"]:::root
+    a --> n0["Modularity overview"]:::c0
+    a --> n1["Modularity details"]:::c1
+    a --> n2["Modularity usage"]:::c2
+    a --> n3["Modularity notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Largest non-test file after the split: `ferrum_ref/src/trainer.rs` (about 380 lines).
 `train.rs` became `train/{mod,plan,acts,record,engine,tests}.rs` and `gpt2.rs` became
 `gpt2/{mod,params,decode,tests}.rs`. Test modules for the large files are siblings
 (`tests.rs`), and new files start with their own unit tests (CLAUDE.md rules 1 and 11).
 
 ## Next steps toward 100%
+
+```mermaid
+flowchart LR
+    a["Next steps toward 100%"]:::root
+    a --> n0["Hand-built corrupt GGUF"]:::c0
+    a --> n1["A shader-compile failure"]:::c1
+    a --> n2["Restructure assertion"]:::c2
+    a --> n3["Raise FLOOR after each run"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Next steps toward 100%"]:::root
+    a --> n0["Next steps toward 100% overview"]:::c0
+    a --> n1["Next steps toward 100% details"]:::c1
+    a --> n2["Next steps toward 100% usage"]:::c2
+    a --> n3["Next steps toward 100% notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - Hand-built corrupt GGUF fixtures for the remaining reader/tensor arms.
 - A shader-compile failure hook so pipeline-creation errors can be injected like command faults.

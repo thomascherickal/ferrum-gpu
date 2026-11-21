@@ -5,6 +5,22 @@ Everything you need to train, run and serve models with ferrum-gpu. Real output 
 
 ## 1. Install
 
+```mermaid
+flowchart LR
+    a["1. Install"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 You need Rust 1.87 or newer (`rustup`). For GPU use you also need a working driver for Vulkan (Linux,
 Windows), Metal (macOS) or DX12 (Windows). Without one everything runs on the CPU.
 
@@ -18,6 +34,22 @@ little memory limit the build: `CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off
 CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
 
 ## 2. Concepts you need
+
+```mermaid
+flowchart LR
+    a["2. Concepts you need"]:::root
+    a --> n0["Model."]:::c0
+    a --> n1["bytes"]:::c1
+    a --> n2["Tokens."]:::c2
+    a --> n3["Device."]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **Model.** `train` has two architectures, chosen with `--arch`:
   - `gpt2` (the default, what ferrum-cpu trains): learned positions, LayerNorm, GELU, **byte-level BPE
@@ -43,6 +75,36 @@ CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`.
   `auto` decides per task (section 4).
 
 ## 3. Commands
+
+```mermaid
+flowchart LR
+    a["3. Commands"]:::root
+    a --> n0["train flags GPT-2, the"]:::c0
+    a --> n1["train --arch llama flags."]:::c1
+    a --> n2["written"]:::c2
+    a --> n3["generate prints the prompt"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["3. Commands"]:::root
+    a --> n0["Greedy generation"]:::c0
+    a --> n1["--quant quantises the file"]:::c1
+    a --> n2["eval on the training file"]:::c2
+    a --> n3["Limits training text and"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `ferrum-gpu help` prints every flag. Unknown, repeated and valueless flags are errors. `--flag=value` and
 `--flag value` both work.
@@ -109,6 +171,22 @@ Notes:
 
 ## 4. Choosing the device
 
+```mermaid
+flowchart LR
+    a["4. Choosing the device"]:::root
+    a --> n0["Training"]:::c0
+    a --> n1["Decoding, generation and"]:::c1
+    a --> n2["Training runs on a"]:::c2
+    a --> n3["If auto ends on the CPU"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `--device auto` uses the measured crossovers:
 
 - **Training** runs on a hardware GPU if one exists. Software adapters (llvmpipe, SwiftShader) are never
@@ -124,6 +202,22 @@ environment variable `FERRUM_GPU_ADAPTER` selects the adapter for the test suite
 
 ## 5. Memory and the pre-flight
 
+```mermaid
+flowchart LR
+    a["5. Memory and the"]:::root
+    a --> n0["before anything is"]:::c0
+    a --> n1["5. Memory and the overview"]:::c1
+    a --> n2["5. Memory and the details"]:::c2
+    a --> n3["5. Memory and the usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 On a GPU run, the buffers are planned and added up **before anything is uploaded**: weights, gradients and
 both Adam moments for training, plus the activations of one step; or weights, KV cache and scratch for
 decoding. A buffer over the adapter's binding limit, or a total over `--gpu-mem-mb`, is refused with a message
@@ -136,6 +230,22 @@ out of device memory on a large model, which the engine reports as an error valu
 
 ## 6. Fine-tuning a GGUF model
 
+```mermaid
+flowchart LR
+    a["6. Fine-tuning a GGUF"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ```bash
 ferrum-gpu finetune-gguf --model base.gguf --data new.txt --out tuned.gguf --steps 200 --lr 0.001 --quant q8_0
 ```
@@ -146,6 +256,22 @@ tied to the embedding is refused. The CLI trains on raw bytes (ids 0 to 255), so
 them; the vocabulary is otherwise not checked against your data's tokenizer, because the CLI has none.
 
 ## 7. The server
+
+```mermaid
+flowchart LR
+    a["7. The server"]:::root
+    a --> n0["Who can connect."]:::c0
+    a --> n1["Limits"]:::c1
+    a --> n2["Who can connect. The"]:::c2
+    a --> n3["Limits --max-batch 64"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ```bash
 ferrum-gpu-server --model m.gguf [--host 127.0.0.1] [--port 8080] [--token T] [--device cpu|gpu|auto] [--gpu-adapter NAME] [--gpu-mem-mb N]
@@ -180,12 +306,44 @@ curl -s -H 'Authorization: Bearer s3cret' -d '{"requests":[{"prompt":"the c","ma
 
 ## 8. The GUI
 
+```mermaid
+flowchart LR
+    a["8. The GUI"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `ferrum_gpu_gui` serves a local page to create, train, run and export models and to run inference in the
 browser on WebGPU. See [gui.md](gui.md) and [browser-webgpu.md](browser-webgpu.md). Its flags are
 `--port`, `--device`, `--gpu-adapter` and `--threads`. Like the server it is loopback-only and
 unauthenticated.
 
 ## 9. Troubleshooting
+
+```mermaid
+flowchart LR
+    a["9. Troubleshooting"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Symptom | Cause and fix |
 |---|---|
@@ -202,6 +360,22 @@ unauthenticated.
 | `refusing to listen on ...: it is not a loopback address` | Exposing the server needs a token: `--token T` (or `FERRUM_TOKEN`), or `--allow-unauthenticated` if you accept the risk. |
 
 ## 10. What is not here yet
+
+```mermaid
+flowchart LR
+    a["10. What is not here yet"]:::root
+    a --> n0["Ollama and LM Studio"]:::c0
+    a --> n1["10. What is not here yet overview"]:::c1
+    a --> n2["10. What is not here yet details"]:::c2
+    a --> n3["10. What is not here yet usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 GPU-side scoring (the extra block formats are dequantized on load; no GPU kernel reads them directly) (it runs on the
 CPU), automatic VRAM discovery for the budget, Llama tied-head training, QAT for Llama, micro-batching,

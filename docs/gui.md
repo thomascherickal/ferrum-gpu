@@ -12,11 +12,69 @@ It prints `ferrum-gpu GUI: http://127.0.0.1:PORT/`; open that URL. Flags: `--por
 
 ## The Studio shell (2026-11-17)
 
+```mermaid
+flowchart LR
+    a["The Studio shell"]:::root
+    a --> n0["Mode"]:::c0
+    a --> n1["Theme"]:::c1
+    a --> n2["jobs, inside this process"]:::c2
+    a --> n3["Stop"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["The Studio shell"]:::root
+    a --> n0["The Studio shell overview"]:::c0
+    a --> n1["The Studio shell details"]:::c1
+    a --> n2["The Studio shell usage"]:::c2
+    a --> n3["The Studio shell notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The page is a tabbed Studio: the tabs are a keyboard-operable tab bar (Left and Right arrows, Home and End; hidden tabs are skipped). **Mode** (header): *Beginner* hides the Expert tabs and shows plain-language help; *Expert* shows the technical description. **Theme**: Auto, Light or Dark. Every control has a tool-tip (hover for a moment, or focus it with the keyboard; Escape hides it), and each tipped control carries `aria-describedby` pointing at a hidden copy of the text for screen readers. The mode, theme and last tab are remembered in the browser only. The plan for the remaining tabs is [gui-studio-plan.md](gui-studio-plan.md).
 
 Long commands (prepare, tokenize, and later train, fine-tune, evaluate, export) run as **jobs, inside this process**: the GUI is self-contained and needs no `ferrum-gpu` binary. A job is a thread that runs the same command function the command line runs (`ferrum_gpu_core::commands::run`), collects its report line by line, parses the training progress lines, and ends when the command returns. A command that fails is an error job and a command that panics is caught, so a fault ends the job and not the GUI. **Stop** raises the job's cancel flag: training (both trainers) and generation notice it at the next step or token, end cleanly, and a training run writes the model it has so far. `prepare`, `tokenize` and the exports have no such check and run to their end. Commands that open a device (`info`, `train`, `finetune-gguf`, `run`, `generate`, `run-gguf`) take turns, because adapter enumeration is not safe from several threads; the others run beside them. Only a fixed list of commands can run, with arguments passed as separate strings and never through a shell.
 
 ## The desktop app (2026-11-17)
+
+```mermaid
+flowchart LR
+    a["The desktop app 2026-11-17"]:::root
+    a --> n0["in its own process"]:::c0
+    a --> n1["Not run"]:::c1
+    a --> n2["The desktop app 2026-11-17 overview"]:::c2
+    a --> n3["The desktop app 2026-11-17 details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["The desktop app 2026-11-17"]:::root
+    a --> n0["The desktop app 2026-11-17 usage"]:::c0
+    a --> n1["The desktop app 2026-11-17 notes"]:::c1
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `ferrum_gpu_studio` is a native window (Tauri 2) around this GUI, the counterpart of ferrum-cpu's Studio. It starts the loopback server **in its own process** and points the window at it, so there is one page, one server and one guard (Host and Origin checks, and a strict Content-Security-Policy on every page: scripts and styles only from the app itself, no inline code, no framing); the window is granted no native commands. It takes the GUI's flags (`--device cpu|gpu|auto`, `--gpu-adapter NAME`, `--threads N`, `--port N`).
 
@@ -28,6 +86,36 @@ scripts/build-studio.sh --debug --run --device cpu
 It is its own Cargo workspace with its own lockfile, so the Tauri dependency tree stays out of the main workspace; on Linux it needs `libwebkit2gtk-4.1-dev libgtk-3-dev libsoup-3.0-dev libayatana-appindicator3-dev librsvg2-dev`. Checked on 2026-11-17 on Linux (Zorin OS, X11) with the MX330 and Intel Xe: the app starts, serves the page with its policy, and opens a 1320 by 880 window titled "Ferrum GPU Studio"; its wiring is tested on Tauri's mock runtime (no display needed) and `cargo deny` passes for its tree. **Not run:** macOS and Windows builds, bundles (installers), signing, the in-window WebGPU runner (WebKitGTK has no WebGPU, so the page offers server-side generation there), and anything on Apple Silicon. Native file dialogs are not used; the page has its own server-side file picker.
 
 ## What each tab does
+
+```mermaid
+flowchart LR
+    a["What each tab does"]:::root
+    a --> n0["Browse"]:::c0
+    a --> n1["Inspect"]:::c1
+    a --> n2["Use for training"]:::c2
+    a --> n3["Use"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["What each tab does"]:::root
+    a --> n0["inside this application"]:::c0
+    a --> n1["the optional features it"]:::c1
+    a --> n2["its memory budget"]:::c2
+    a --> n3["Validation share %"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Tab | What you can do |
 |---|---|
@@ -49,13 +137,75 @@ It is its own Cargo workspace with its own lockfile, so the Tauri dependency tre
 
 ## Accessibility
 
+```mermaid
+flowchart LR
+    a["Accessibility"]:::root
+    a --> n0["not checked"]:::c0
+    a --> n1["Accessibility overview"]:::c1
+    a --> n2["Accessibility details"]:::c2
+    a --> n3["Accessibility usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `tests/a11y.rs` scans the page and keeps these true: the page declares its language; every id is unique; every form control has a name (a wrapping label, a `for` label or an `aria-label`); every button has text or a label; every tab names its panel and every panel its tab, in a tablist; every table header says whether it heads a column or a row; the notes that change after an action are live regions. The tab bar works from the keyboard, tool-tips are available on focus and carry `aria-describedby`, and the theme respects the system's light or dark setting. What a static scan cannot promise is **not checked**: colour contrast, behaviour with a screen reader, and the job log and charts, which are built in the browser (the log is a focusable `role="log"`).
 
 ## Tokens: bytes, deliberately
 
+```mermaid
+flowchart LR
+    a["Tokens bytes, deliberately"]:::root
+    a --> n0["byte-level tokenizer"]:::c0
+    a --> n1["Tokens bytes, deliberately overview"]:::c1
+    a --> n2["Tokens bytes, deliberately details"]:::c2
+    a --> n3["Tokens bytes, deliberately usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The CLI and the server have BPE (Phase 6); the GUI does not, and that is a decision, not a gap in progress: its engine trains and samples the byte-level Llama-style models directly, a BPE vocabulary would mean the GPT-2 path with its tokenizer files, and the GUI exists to show a model learning in seconds, which bytes do. Use `ferrum-gpu train --vocab 1024 --tokenizer tok.gguf` for BPE models. The GUI uses a **byte-level tokenizer** (one token per UTF-8 byte, vocabulary 256), so models trained here take text in and give text out. A GGUF with another vocabulary loads, shows its size and runs, but text generation is refused with an explanation (it would need that model's tokenizer).
 
 ## API
+
+```mermaid
+flowchart LR
+    a["API"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["API"]:::root
+    a --> n0["API overview"]:::c0
+    a --> n1["API details"]:::c1
+    a --> n2["API usage"]:::c2
+    a --> n3["API notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 All JSON unless noted; errors are `{"error": "..."}` with a status code, never a crash.
 
@@ -75,12 +225,44 @@ Limits: training text 1 MiB, prompt 4096 bytes, 1024 new tokens per call, reques
 
 ## Security notes
 
+```mermaid
+flowchart LR
+    a["Security notes"]:::root
+    a --> n0["127.0.0.1 only"]:::c0
+    a --> n1["no authentication"]:::c1
+    a --> n2["It listens on 127.0.0.1"]:::c2
+    a --> n3["Requests whose Host is not"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - It listens on **127.0.0.1 only** and has **no authentication**. Do not forward the port or bind it to another address: anyone who can reach it can run code on your GPU and make it allocate memory.
 - Requests whose `Host` is not `127.0.0.1:PORT` or `localhost:PORT` get 403 (blocks DNS-rebinding), and so do cross-site `Origin`s (blocks other web pages from calling the API).
 - The server never opens a file by path from a request: models travel as upload/download bodies, and static files are looked up by exact name in a table compiled into the binary (`/shaders/../x`, `%2e%2e` and the like are 404).
 - Request heads are capped at 16 KiB and 64 headers, bodies at 256 MiB, reads time out after 10 s, JSON nesting is capped at 32, chunked bodies are refused.
 
 ## Tests
+
+```mermaid
+flowchart LR
+    a["Tests"]:::root
+    a --> n0["Unit tests for the HTTP"]:::c0
+    a --> n1["tests/api.rs the real"]:::c1
+    a --> n2["tests/browser_ui.rs"]:::c2
+    a --> n3["Like the rest of the"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - Unit tests for the HTTP parser (hostile requests and their statuses), JSON (malformed documents, depth), tokenizer, engine loops, flags.
 - `tests/api.rs`: the real server over TCP; the same train-then-generate journey on the CPU backend and the GPU backend, errors, limits, GGUF round trips in every precision, stop and failure handling.

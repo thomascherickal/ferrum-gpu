@@ -4,6 +4,36 @@
 
 ## Setup
 
+```mermaid
+flowchart LR
+    a["Setup"]:::root
+    a --> n0["Naive"]:::c0
+    a --> n1["Tiled16"]:::c1
+    a --> n2["Blocked4"]:::c2
+    a --> n3["Machine dev laptop, 8 CPU"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Setup"]:::root
+    a --> n0["Adapters measured NVIDIA"]:::c0
+    a --> n1["Method cargo bench -p"]:::c1
+    a --> n2["CPU baseline in the tables"]:::c2
+    a --> n3["Kernels Naive one"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Machine: dev laptop, 8 CPU threads, Linux 7.0.0-42-generic, rustc 1.96.0, `wgpu` 30.0.1 (Vulkan backend), release profile.
 - Adapters measured: NVIDIA GeForce MX330 (discrete), Intel Iris Xe Graphics TGL GT2 (integrated), llvmpipe (software, correctness only). Driver versions were not recorded.
 - Method: `cargo bench -p ferrum_wgpu --bench matmul` (std-only). Median of 3 to 20 repetitions after one warm-up; one session per adapter; laptop thermals and background load were not controlled, and small cases show visible run-to-run noise.
@@ -14,6 +44,50 @@
 
 ## Findings
 
+```mermaid
+flowchart LR
+    a["Findings"]:::root
+    a --> n0["Kernel structure decides"]:::c0
+    a --> n1["Against this repo's CPU"]:::c1
+    a --> n2["Against ferrum-cpu's own"]:::c2
+    a --> n3["3.02x"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Findings"]:::root
+    a --> n0["Fixed costs are small on"]:::c0
+    a --> n1["llvmpipe"]:::c1
+    a --> n2["Per-op readback erases the"]:::c2
+    a --> n3["llvmpipe is correct but"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Findings"]:::root
+    a --> n0["Findings overview"]:::c0
+    a --> n1["Findings details"]:::c1
+    a --> n2["Findings usage"]:::c2
+    a --> n3["Findings notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 1. **Kernel structure decides everything.** The first Blocked4 (a 16-element accumulator array indexed in loops) ran at about 10 GFLOP/s, slower than Naive. Rewritten with four named `vec4` accumulators and vec4 shared-memory reads it runs at about 310 to 360 GFLOP/s. Naive and Tiled16 stay at 32 to 90 GFLOP/s. Only Blocked4 clears the gate.
 2. **Against this repo's CPU kernel** (compute+readback, 8 threads): MX330 4.14x at 1024 and 10.68x at 2048; Intel Xe 6.34x and 13.23x.
 3. **Against ferrum-cpu's own kernel** (one read-only run of its `gemm` bench, 8 threads: 25.515 ms at 1024 and 232.906 ms at 2048, i.e. 84 and 74 GFLOP/s; build output kept outside that repo): MX330 25.515/8.45 = **3.02x** at 1024 (thin margin) and 232.906/57.09 = 4.08x at 2048; Intel Xe 3.82x and 5.05x. The gate still passes, but the MX330 at 1024 is within noise of 3x, so speedup claims at that size must be re-measured against a tuned in-repo CPU kernel in Phase 2.
@@ -23,9 +97,82 @@
 
 ## Not claimed
 
+```mermaid
+flowchart LR
+    a["Not claimed"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Not claimed"]:::root
+    a --> n0["Not claimed overview"]:::c0
+    a --> n1["Not claimed details"]:::c1
+    a --> n2["Not claimed usage"]:::c2
+    a --> n3["Not claimed notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Apple Silicon (Metal), AMD, Windows (DX12), and any driver other than the two Vulkan drivers above were not run. Nothing here says they will meet the gate. Dispatch limits (65,535 workgroups per dimension) are enforced by `dispatch_size`; buffers over the adapter's binding limit are refused.
 
 ## Tables
+
+```mermaid
+flowchart LR
+    a["Tables"]:::root
+    a --> n0["adapter NVIDIA GeForce"]:::c0
+    a --> n1["adapter IntelR IrisR Xe"]:::c1
+    a --> n2["adapter llvmpipe LLVM"]:::c2
+    a --> n3["Tables overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Tables"]:::root
+    a --> n0["Tables details"]:::c0
+    a --> n1["Tables usage"]:::c1
+    a --> n2["Tables notes"]:::c2
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Tables"]:::root
+    a --> n0["adapter NVIDIA GeForce"]:::c0
+    a --> n1["adapter IntelR IrisR Xe"]:::c1
+    a --> n2["adapter llvmpipe LLVM"]:::c2
+    a --> n3["Tables overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ### adapter: NVIDIA GeForce MX330 (Vulkan, Discrete); cpu threads: 8
 
@@ -109,6 +256,49 @@ fixed cost: empty submit+wait 0.014 ms, 4-byte readback 0.020 ms
 | ref-head (2048x96x1024) | Blocked4 | 27.62 | 6.76 | 22.88 | 26.19 | 24.90 | 27.95 | 17.6 | 0.26x |
 
 ## Addendum: re-measured against the tuned CPU kernel (Phase 2, task 2.0)
+
+```mermaid
+flowchart LR
+    a["Addendum re-measured"]:::root
+    a --> n0["adapter NVIDIA GeForce"]:::c0
+    a --> n1["adapter IntelR IrisR Xe"]:::c1
+    a --> n2["Gate result against the"]:::c2
+    a --> n3["Addendum re-measured overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Addendum re-measured"]:::root
+    a --> n0["Addendum re-measured details"]:::c0
+    a --> n1["Addendum re-measured usage"]:::c1
+    a --> n2["Addendum re-measured notes"]:::c2
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Addendum re-measured"]:::root
+    a --> n0["adapter NVIDIA GeForce"]:::c0
+    a --> n1["adapter IntelR IrisR Xe"]:::c1
+    a --> n2["Gate result against the"]:::c2
+    a --> n3["Addendum re-measured overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 The tuned 4x8 CPU matmul was ported into `ferrum_ref::tuned` (bit-identical to the simple kernel at every thread count) and the benchmark now uses it for both CPU columns. Same machine, same day, Blocked4 only; the GPU numbers are fresh runs, so they differ slightly from the tables above.
 

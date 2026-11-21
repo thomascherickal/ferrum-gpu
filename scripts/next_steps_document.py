@@ -1,4 +1,5 @@
 """Part of next_steps.py."""
+from generated_diagrams import checklist_flow  # noqa: E402
 import json
 import os
 import re
@@ -47,6 +48,7 @@ def build(inp):
              "Hand-kept follow-ups go in `docs/backlog.md` as `- [ ]` lines and appear here.", "",
              f"Snapshot: branch `{inp['branch']}` at `{inp['head']}`.", "", "## Checklist (AGENTS.md section 7)", ""]
     lines += [f"- {c}" for c in checklist]
+    lines += ["", checklist_flow(checklist), ""]
     lines += ["", "## The way forward, in order", ""] + [f"{i}. {w}" for i, w in enumerate(way, 1)]
     return "\n".join(lines) + "\n"
 

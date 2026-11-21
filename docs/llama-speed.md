@@ -4,12 +4,44 @@
 
 ## Setup
 
+```mermaid
+flowchart LR
+    a["Setup"]:::root
+    a --> n0["Random weights"]:::c0
+    a --> n1["Same machine as the"]:::c1
+    a --> n2["cargo bench -p ferrum_wgpu"]:::c2
+    a --> n3["Decode 48 cached tokens"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Same machine as the earlier reports (8 CPU threads, rustc 1.96.0, `wgpu` 30.0.1, Vulkan, release profile, LTO off). Driver versions not recorded. One run per adapter on 2026-11-11 (04:52 to 04:53 UTC); numbers vary about 20% run to run on this laptop, so read ratios as ranges.
 - `cargo bench -p ferrum_wgpu --bench llama` (`FERRUM_GPU_ADAPTER` selects the adapter). **Random weights**: speed and memory depend on the shape, not the values. Shapes (all llama-style, GQA, NORM RoPE, no biases): small = dim 96, 3 layers, 4 heads / 2 KV, vocab 1024 (0.5M params); medium = dim 256, 6 layers, 8 / 2, vocab 4096 (6.3M); large = dim 512, 8 layers, 8 / 4, vocab 8192 (32.0M).
 - Decode: 48 cached tokens after a 4-token prompt, median not taken (mean over the 48). CPU = `ferrum_ref::llama::Llama::feed`, one thread (how a CPU runtime runs m=1). GPU = `GpuLlama::feed`, weights, KV cache and activations resident, one command batch per token, one logits row read back.
 - Fine-tuning: batch 4 x 32 tokens, f32 AdamW, clip 1.0, mean of 5 steps after one warm-up. CPU baseline = `ferrum_ref::llama::LlamaTrainer` with 8 matmul threads (the tuned matmul; its other ops are plain loops, so it is not ferrum-cpu's code and not a ferrum-cpu measurement). GPU = `GpuLlamaTrainer::step`.
 
 ## Decode (ms/token, tokens/s, speed relative to the CPU thread)
+
+```mermaid
+flowchart LR
+    a["Decode ms/token, tokens/s,"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | adapter | model | cpu f32 (1 thread) | gpu f32 | gpu Q8_0 | gpu Q4_0 |
 |---|---|---|---|---|---|
@@ -27,6 +59,22 @@ Why decode loses: a token is a chain of ~40 to 100 tiny dispatches over a few me
 
 ## Fine-tuning step (ms/step)
 
+```mermaid
+flowchart LR
+    a["Fine-tuning step ms/step"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | adapter | model | cpu x8 | gpu | gpu vs cpu |
 |---|---|---|---|---|
 | MX330 | small | 22.9 | 11.6 | 1.98x |
@@ -43,12 +91,44 @@ Training (batched, resident) wins on real GPUs, matching the GPT-2 result (`docs
 
 ## Correctness behind the speed numbers
 
+```mermaid
+flowchart LR
+    a["Correctness behind the"]:::root
+    a --> n0["Forward GPU logits match"]:::c0
+    a --> n1["Quantised dequantised"]:::c1
+    a --> n2["Backward every kernel"]:::c2
+    a --> n3["Training run 12 AdamW"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Forward: GPU logits match the CPU oracle at every position of a full context on MX330, Intel Xe and llvmpipe (4 variants: llama, qwen-style with biases and a tied head, MQA with partial rotary, a width that is not a multiple of 32). Worst relative error observed 4.8e-6 against the 1e-5 forward tolerance (quantised and bias variants are the worst; f32 llama variants are near 1e-6). The margin is about 2x, not 30x.
 - Quantised: dequantised weights are bit-identical to `ferrum_gguf::quant::decode` (identity read-back test on all three adapters); products are within 1.3e-6 of the CPU matmul on the dequantised weights.
 - Backward: every kernel against the CPU oracle, worst 6.6e-7 (tolerance 1e-5); the CPU oracle's whole-model gradients are checked against finite differences for four variants. Whole-model GPU gradients: worst 7.6e-7.
 - Training run: 12 AdamW steps follow the CPU loss curve with a worst per-step loss difference of 3.3e-7 on all three adapters (loss 2.5 to 3.0 falling to 0.02 to 0.06), and the trained models agree on every logit to 2e-5. Parameters whose true gradient is zero (the key biases) are not compared: Adam amplifies rounding noise there, so they legitimately drift.
 
 ## Size table (buffer plans, MiB)
+
+```mermaid
+flowchart LR
+    a["Size table buffer plans,"]:::root
+    a --> n0["per-buffer binding limit"]:::c0
+    a --> n1["plan only, never run"]:::c1
+    a --> n2["Size table buffer plans, overview"]:::c2
+    a --> n3["Size table buffer plans, details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Totals are the sums of `llama::plan` (inference: weights, RoPE tables, KV cache for the full context, scratch) and `static_plan_for` + `activation_plan` (fine-tuning: weights, gradients, both Adam moments, activations for batch 1 x 128). The benchmark's "verdict" column only applies the adapter's **per-buffer binding limit** (2047 MiB on MX330 and Xe, 128 MiB on llvmpipe); it does not compare the *total* with the card's memory, so read the totals against your own budget.
 
@@ -64,5 +144,21 @@ Totals are the sums of `llama::plan` (inference: weights, RoPE tables, KV cache 
 Only the first three rows are claimed. The plan-only rows are arithmetic: they say, for example, that on a 2 GB MX330 the 0.5B and 1.1B shapes would not fit in f32 and that quantisation is what would bring inference near the card's size. Nothing larger than 32M parameters was executed, and no third-party checkpoint was loaded. The runs above used random weights, so they say nothing about output quality.
 
 ## What was not run
+
+```mermaid
+flowchart LR
+    a["What was not run"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Apple Silicon, AMD and desktop NVIDIA; any model above 32M parameters; micro-batched, tied-head or QAT fine-tuning of Llama (not implemented on the Llama trainer); a real GGUF produced by ferrum-cpu or llama.cpp (Phase 6 fixture); driver versions were not recorded.

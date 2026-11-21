@@ -25,6 +25,22 @@ asks. Note that some tooling bases new worktrees on `origin/main` rather than th
 
 ## 2. The checks every commit must pass
 
+```mermaid
+flowchart LR
+    a["2. The checks every commit"]:::root
+    a --> n0["--test-threads 1 matters"]:::c0
+    a --> n1["The no-GPU run proves the"]:::c1
+    a --> n2["One feature per commit,"]:::c2
+    a --> n3["The browser tests"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets -- -D warnings
@@ -43,6 +59,22 @@ FERRUM_GPU_ADAPTER=no-such-adapter cargo test --workspace -- --test-threads 1   
   runs yours. The slow benchmark test is `#[ignore]`.
 
 ## 3. Rules that shape the code
+
+```mermaid
+flowchart LR
+    a["3. Rules that shape the"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Rule | In practice |
 |---|---|
@@ -85,6 +117,22 @@ in `ferrum_ref::tuned`, never the simple oracle.
 
 ## 6. Adding a GPU kernel
 
+```mermaid
+flowchart LR
+    a["6. Adding a GPU kernel"]:::root
+    a --> n0["Oracle first."]:::c0
+    a --> n1["Shader."]:::c1
+    a --> n2["Wrapper."]:::c2
+    a --> n3["Parity test"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 1. **Oracle first.** Write the operation in `ferrum_ref` (host `f32`, plain slices) with unit tests; for a
    backward pass, add a finite-difference check.
 2. **Shader.** Add `ferrum_wgpu/src/shaders/<group>/<name>.wgsl` (f32/u32/i32 only, fixed reduction order, no
@@ -101,6 +149,22 @@ in `ferrum_ref::tuned`, never the simple oracle.
 7. Do not loosen a tolerance to make a test pass; a failure is a bug.
 
 ## 7. Adding a CLI command or server route
+
+```mermaid
+flowchart LR
+    a["7. Adding a CLI command or"]:::root
+    a --> n0["CLI"]:::c0
+    a --> n1["Server route"]:::c1
+    a --> n2["CLI declare the flag table"]:::c2
+    a --> n3["Server route add the arm"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **CLI:** declare the flag table (`val`, `switch`) in `ferrum_gpu_cli/src/cmds/mod.rs`, add the match arm in
   `run`, implement the command as `fn(&Args, &mut dyn Write) -> Result<(), String>`, and test it with the CPU
@@ -119,6 +183,22 @@ support), then the GPU path with parity tests at every position of a full contex
 [gguf.md](gguf.md) for the refusal policy.
 
 ## 9. Scripts
+
+```mermaid
+flowchart LR
+    a["9. Scripts"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Script | Purpose |
 |---|---|
@@ -147,6 +227,22 @@ start procedure and the remaining plan. A fresh session reads them in that order
 
 ## One command for the full test run and coverage
 
+```mermaid
+flowchart LR
+    a["One command for the full"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ```bash
 scripts/test-all.sh            # all tests in all crates, twice (real GPU, then no GPU), plus merged coverage
 FLOOR=98 scripts/test-all.sh   # also fail (exit 2) if total line coverage is below 98
@@ -155,6 +251,22 @@ FLOOR=98 scripts/test-all.sh   # also fail (exit 2) if total line coverage is be
 It prints a per-run test summary and the lowest-covered files to the console and writes two files in the repository root, overwritten on every run: `last-test-results.md` (passed, failed and ignored per test binary for each run, and the names of failed tests) and `last-coverage-results.md` (total and per-file line, region and function coverage). Exit code: 0 all pass, 1 a test failed, 2 coverage below `FLOOR`. Needs `cargo-llvm-cov` and `python3`; run it alone. Test binaries with the same name in different crates (`api`, `e2e`) are summed in one row. JavaScript under `ferrum_gpu_gui/web/` and the `benches/` programs are not instrumented.
 
 ## The rules of AGENTS.md, and what enforces them
+
+```mermaid
+flowchart LR
+    a["The rules of AGENTS.md,"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Rule | Enforced by |
 |---|---|

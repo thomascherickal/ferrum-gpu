@@ -9,6 +9,36 @@ output), so a changed assumption changes every row consistently.
 
 ## Method
 
+```mermaid
+flowchart LR
+    a["Method"]:::root
+    a --> n0["Memory."]:::c0
+    a --> n1["KV cache in f32"]:::c1
+    a --> n2["Usable memory."]:::c2
+    a --> n3["70%"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Method"]:::root
+    a --> n0["Speed."]:::c0
+    a --> n1["ceiling"]:::c1
+    a --> n2["Method overview"]:::c2
+    a --> n3["Method details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 **Memory.** Weights are read from packed blocks: f32 = 4 bytes per weight, Q8_0 = 34/32 = 1.0625, Q4_0 =
 18/32 = 0.5625 (each 32-weight block carries its scale). The engine keeps the token embedding, the norms and
 the **KV cache in f32** whatever the weight precision, so the total is
@@ -35,6 +65,36 @@ per-layer cost either way, and the effective bandwidth does not necessarily scal
 
 ## Check against what was measured
 
+```mermaid
+flowchart LR
+    a["Check against what was"]:::root
+    a --> n0["33 ms"]:::c0
+    a --> n1["10.3 GB/s"]:::c1
+    a --> n2["Q4_0 rows, time = floor +"]:::c2
+    a --> n3["Q8_0 rows 3 points floor"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Check against what was"]:::root
+    a --> n0["The MX330's memory is"]:::c0
+    a --> n1["Check against what was overview"]:::c1
+    a --> n2["Check against what was details"]:::c2
+    a --> n3["Check against what was usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `M = params x bytes/weight x 1.10 + 300 MB` (inference). Plans are `ferrum_wgpu::llama::plan` totals.
 
 | shape | params | precision | formula MB | measured plan MB | error |
@@ -59,6 +119,36 @@ Error range -24% to +37%. Under-estimates are the big-vocabulary small models (t
   So the engine reaches roughly 18% of the peak, plus a fixed cost per token (about 30 layers of small dispatches).
 
 ## Largest model that fits
+
+```mermaid
+flowchart LR
+    a["Largest model that fits"]:::root
+    a --> n0["full fine-tuning in f32"]:::c0
+    a --> n1["The 2 GB row is"]:::c1
+    a --> n2["One buffer cannot exceed"]:::c2
+    a --> n3["Training rows are full"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Largest model that fits"]:::root
+    a --> n0["Memory is not the only"]:::c0
+    a --> n1["Largest model that fits overview"]:::c1
+    a --> n2["Largest model that fits details"]:::c2
+    a --> n3["Largest model that fits usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | memory | usable (discrete 90% / unified 70%) | infer Q4_0 | infer Q8_0 | infer f32 | train f32 (full fine-tune) |
 |---|---|---|---|---|---|
@@ -93,6 +183,50 @@ Read it with these limits in mind:
   per second (the speed table says how few).
 
 ## Decode speed by hardware class
+
+```mermaid
+flowchart LR
+    a["Decode speed by hardware"]:::root
+    a --> n0["What the table says"]:::c0
+    a --> n1["Unified memory buys"]:::c1
+    a --> n2["Rows for hardware that was"]:::c2
+    a --> n3["CPU-only servers"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Decode speed by hardware"]:::root
+    a --> n0["MX330 this machine,"]:::c0
+    a --> n1["Entry laptop dGPU, 4 GB"]:::c1
+    a --> n2["Mid dGPU, 8 GB assumed"]:::c2
+    a --> n3["Upper-mid dGPU, 16 GB"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Decode speed by hardware"]:::root
+    a --> n0["High dGPU, 24 GB class of"]:::c0
+    a --> n1["Top dGPU, 32 GB class of"]:::c1
+    a --> n2["x86 iGPU, DDR4-3200 dual"]:::c2
+    a --> n3["x86 iGPU, DDR5-5600 dual"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Ceiling = bandwidth / weight bytes (each token reads every weight once). ferrum-gpu estimate = 1 / (layers x 1.2 ms + weight bytes / effective bandwidth), layers 24/28/32/40/48/80 for 0.5/1.5/7/13/34/70B, with effective bandwidth scaled from the MX330 fit (10.3 GB/s at 56 GB/s peak, i.e. 18%). Q4_0 weights. **The estimate is calibrated on one card and extrapolated; no other row was run.**
 
@@ -158,6 +292,36 @@ Ceiling = bandwidth / weight bytes (each token reads every weight once). ferrum-
 
 ## Summary by memory size
 
+```mermaid
+flowchart LR
+    a["Summary by memory size"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Summary by memory size"]:::root
+    a --> n0["Summary by memory size overview"]:::c0
+    a --> n1["Summary by memory size details"]:::c1
+    a --> n2["Summary by memory size usage"]:::c2
+    a --> n3["Summary by memory size notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | memory | what it holds, inference at Q4_0 (discrete / unified) | training from scratch or full fine-tune (discrete / unified) |
 |---|---|---|
 | 4 GB | up to about 5B / 4B (measured: 2 GB card ran a 1.1B shape) | about 190M / 145M |
@@ -172,6 +336,36 @@ Ceiling = bandwidth / weight bytes (each token reads every weight once). ferrum-
 These are the cells of the big table, rounded. Subtract up to a third from the small-model end, per the 2 GB note.
 
 ## How this changes the project's own scope
+
+```mermaid
+flowchart LR
+    a["How this changes the"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["How this changes the"]:::root
+    a --> n0["How this changes the overview"]:::c0
+    a --> n1["How this changes the details"]:::c1
+    a --> n2["How this changes the usage"]:::c2
+    a --> n3["How this changes the notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 The repository's size limit is 1.5B parameters for models it downloads. The estimates above go well past
 that on purpose: they answer what the hardware could hold, not what ferrum-gpu is meant to run. Within

@@ -6,6 +6,22 @@ Build: `cargo build --release -p ferrum_gpu_cli -p ferrum_gpu_server` gives `tar
 
 ## Commands
 
+```mermaid
+flowchart LR
+    a["Commands"]:::root
+    a --> n0["What --device auto does"]:::c0
+    a --> n1["Train, evaluate, generate"]:::c1
+    a --> n2["Memory pre-flight"]:::c2
+    a --> n3["Training"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `train`, `finetune-gguf`, `generate`, `run-gguf`, `eval`, `info`; `ferrum-gpu help` prints every flag. Unknown flags are errors. Device flags: `--device cpu|gpu|auto` (default `auto`), `--gpu-adapter NAME`, `--gpu-mem-mb N`, `--threads N`.
 
 ### What `--device auto` does
@@ -61,6 +77,22 @@ With `--gpu-mem-mb 1024` the same command trains (`preflight: GPU buffers 1.8 Mi
 
 ## The server
 
+```mermaid
+flowchart LR
+    a["The server"]:::root
+    a --> n0["Exposure."]:::c0
+    a --> n1["Routes."]:::c1
+    a --> n2["Exposure. On a loopback"]:::c2
+    a --> n3["Routes. GET /health GET"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Changed in M7 (2026-11-11): the routes, request shapes and limits now follow ferrum-cpu's `ferrum-serve`, GPT-2 files are served with their BPE tokenizer, and a bearer token is supported. The earlier single-object shapes (`{"prompt":..,"max_new":..}`) are gone.
 
 `ferrum-gpu-server --model m.gguf [--host 127.0.0.1] [--port 8080] [--token T] [--allow-unauthenticated] [--max-batch 64] [--max-chars 65536] [--max-body 8388608] [--max-tokens 4096] [--repetition-penalty 1.0] [--device ...] [--gpu-mem-mb N]`.
@@ -91,6 +123,22 @@ $ curl -s -H 'Authorization: Bearer s3cret' -d '{"texts":["the cat sat on the ma
 
 ## Tests
 
+```mermaid
+flowchart LR
+    a["Tests"]:::root
+    a --> n0["skip with a printed reason"]:::c0
+    a --> n1["Tests overview"]:::c1
+    a --> n2["Tests details"]:::c2
+    a --> n3["Tests usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `cargo test -p ferrum_gpu_cli -p ferrum_gpu_server -- --test-threads 1`: unit tests (flag parser, every command on the CPU backend, the `auto` rule over fake adapter tables, the pre-flight with a fake GPU backend, every route with a stub decoder, real sockets) plus end-to-end tests that run the real binaries: train, eval, generate, fine-tune and refusals on the CPU; a GPU train and a pre-flight refusal that **skip with a printed reason** when no hardware adapter is reported; the server binary answering all five routes for a Llama-style and a GPT-2 file, the token gate through `--token` and `FERRUM_TOKEN`, and the refusal to expose a server without a token.
 
 ## Not done
@@ -98,6 +146,22 @@ $ curl -s -H 'Authorization: Bearer s3cret' -d '{"texts":["the cat sat on the ma
 BPE tokenizer; a real ferrum-cpu GGUF fixture; GPU-side scoring; VRAM discovery for the budget; Windows and macOS runs.
 
 ## GPT-2 models with BPE (M4, 2026-11-11)
+
+```mermaid
+flowchart LR
+    a["GPT-2 models with BPE M4,"]:::root
+    a --> n0["Cross-load with ferrum-cpu"]:::c0
+    a --> n1["Options that were run"]:::c1
+    a --> n2["GPT-2 models with BPE M4, overview"]:::c2
+    a --> n3["GPT-2 models with BPE M4, details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `train` now defaults to `--arch gpt2`, the architecture ferrum-cpu trains. The output below is real, from the debug-free release build on the dev box (Intel Iris Xe + NVIDIA GeForce MX330 + llvmpipe, Vulkan, `wgpu` 30.0.1, ferrum-cpu `56a9d3a` for the cross-load). The earlier sections of this page used the Llama-style path, which is now `--arch llama`.
 
@@ -154,6 +218,22 @@ Validation with early stopping (`--val 0.2 --patience 3 --cosine --warmup 2 --cl
 
 ## Token files (M2, 2026-11-11)
 
+```mermaid
+flowchart LR
+    a["Token files M2, 2026-11-11"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `tokenize` encodes a text file (or the files directly inside a directory, in path order, with an end-of-text id between files) into a token file, the same `ferrum-tokens` GGUF layout ferrum-cpu writes. `train --data FILE.tok.gguf --tokenizer TOK.gguf` then reads windows from disk instead of holding the corpus; the tokenizer file must be the one the ids were made with (its SHA-256 is recorded in the token file and checked).
 
 Real output, using the corpus and tokenizer file in `fixtures/bpe/` (made by ferrum-cpu):
@@ -176,6 +256,22 @@ Our file is byte-identical to the one ferrum-cpu's `tokenize` wrote (`ferrum_mod
 
 ## prepare (M2, 2026-11-11)
 
+```mermaid
+flowchart LR
+    a["prepare M2, 2026-11-11"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `ferrum-gpu prepare --input FILE|DIR (repeatable) --out DIR [--nfkc] [--lowercase] [--strip-gutenberg] [--dedup] [--min-chars N] [--max-chars N] [--val-frac X] [--test-frac X] [--seed N] [--doc-sep S] [--lossy]` cleans each document (invisible characters, smart punctuation, blank lines, spaces), drops empty, short, long and duplicate documents, splits by a seeded content hash, and writes `train.txt`, `val.txt`, `test.txt` and `manifest.json` (SHA-256 of every input and output). Output is written to `*.part` files and renamed at the end, so a failed run leaves the old files alone.
 
 On the 7-document corpus in `fixtures/prepare/` the three split files are byte-identical to what ferrum-cpu's `prepare` wrote, and the manifest hashes and counts are equal (a test). Not verified: a large corpus run against ferrum-cpu. Not ported: progress callbacks and the stop hook.
@@ -183,6 +279,22 @@ On the 7-document corpus in `fixtures/prepare/` the three split files are byte-i
 `dvc.yaml`, `params.yaml` and `scripts/fetch.sh` give the fetch, prepare, train, eval pipeline. DVC itself was not run (not installed here); the same stages were run by hand on the BPE fixture corpus: prepare, train (loss 5.6535), eval (perplexity 278.05).
 
 ## Precisions (2026-11-18)
+
+```mermaid
+flowchart LR
+    a["Precisions 2026-11-18"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `--quant` (train, finetune-gguf, export-gguf, eval) takes `f32`, `f16`, `int8`/`q8_0`, `int4`/`q4_0`, `fp4`/`mxfp4` and
 `q2`/`q2_k`. `--gpu-weights` (how a GPU decoder stores weights, converted at load) takes `f32`, `f16`, `q8_0`, `q4_0`,

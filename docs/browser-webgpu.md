@@ -6,6 +6,22 @@
 
 ## How it works
 
+```mermaid
+flowchart LR
+    a["How it works"]:::root
+    a --> n0["ferrum_wgpushaders lists"]:::c0
+    a --> n1["web/gguf.js reads GGUF v3"]:::c1
+    a --> n2["web/webgpu.js wraps the"]:::c2
+    a --> n3["web/llama.js BrowserLlama"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - `ferrum_wgpu::shaders` lists every kernel by `group/name` plus the `gid` prelude; the GUI server serves them at `/shaders/<group>/<name>.wgsl`. The page compiles exactly those files. A unit test keeps the list equal to the files on disk, and all 51 kernels are compiled and validated with `naga` (no GPU needed).
 - `web/gguf.js` reads GGUF v3 (F32, F16, Q8_0, Q4_0): dequantisation is the same two-step arithmetic as `ferrum_gguf::quant::decode`, and `packQ` produces the same device layout as `ferrum_wgpu::ops::quant::pack`.
 - `web/webgpu.js` wraps the device: it asks for the adapter's own buffer-size limits (everything else stays at the WebGPU baseline), refuses a tensor larger than the binding limit naming it, builds pipelines from the served kernels, and records one command encoder per token.
@@ -14,6 +30,22 @@
 - The Generate tab's *Run on: this browser* downloads the current model from the server as GGUF and decodes on this tab's GPU. Greedy output equals the server's (checked in the Chrome UI run); with a temperature the browser uses its own seeded sampler, so sampled text is not bit-identical to the server's.
 
 ## What was verified, and how
+
+```mermaid
+flowchart LR
+    a["What was verified, and how"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Check | Where it runs | Result |
 |---|---|---|
@@ -24,6 +56,36 @@
 For quantised files the oracle is the model *decoded from the same bytes*, so these tests check the kernels and the repack, not how good Q8_0 or Q4_0 are as approximations.
 
 ## Speed (ms per token, single-stream decode)
+
+```mermaid
+flowchart LR
+    a["Speed ms per token,"]:::root
+    a --> n0["faster in the browser than"]:::c0
+    a --> n1["f32 the browser is 1.2x to"]:::c1
+    a --> n2["Q8_0 and Q4_0 faster in"]:::c2
+    a --> n3["SwiftShader's f32 numbers"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Speed ms per token,"]:::root
+    a --> n0["Speed ms per token, overview"]:::c0
+    a --> n1["Speed ms per token, details"]:::c1
+    a --> n2["Speed ms per token, usage"]:::c2
+    a --> n3["Speed ms per token, notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Chrome (headless, `--use-gl=angle --use-angle=vulkan`) on the same laptop as the native benchmarks, `cargo test -p ferrum_gpu_gui --test browser_bench -- --ignored`, the three shapes of `docs/llama-speed.md` with random weights, mean of 48 tokens after a 4-token prompt (includes one submit and one readback per token, like the native numbers). One run per adapter; numbers move about 20% run to run.
 
@@ -53,5 +115,21 @@ What to take from it:
 - SwiftShader's f32 numbers are very large (1.9 s per token on the large shape) because a software rasteriser running a 64x64-tile matmul for a single row wastes almost all of its work; quantised weights avoid that kernel and are 15x to 20x faster there.
 
 ## What was not run
+
+```mermaid
+flowchart LR
+    a["What was not run"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Firefox and Safari (Firefox's WebGPU is off by default on Linux; Safari needs a Mac); Windows and macOS Chrome (different backends: D3D12 and Metal); any model over about 32M parameters; training in the browser (not implemented; training stays native); models whose single tensor exceeds the adapter's binding limit are refused, not split. The three adapters above were exercised through Chrome's ANGLE/Vulkan path; without `--use-angle=vulkan` Chrome offered only SwiftShader on this machine.

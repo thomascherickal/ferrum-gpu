@@ -18,17 +18,81 @@ Host for every row: Linux 7.0.0-42-generic x86_64, `wgpu` 30.0.1, 2026-11-11. Dr
 
 ## The red row
 
+```mermaid
+flowchart LR
+    a["The red row"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `ops::tests::gelu_matches_cpu_including_saturation` fails on the Gl adapter: max relative error 4.04e-3 against a tolerance of 1e-5. The same adapter silicon passes on Vulkan, so the difference is in the OpenGL path (its `tanh` is the likely cause, not checked). Consequence: the unprompted adapter choice (`select::choose`) now skips every adapter whose backend is `Gl`; naming one with `--gpu-adapter` still works.
 
 ## The default
+
+```mermaid
+flowchart LR
+    a["The default"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `auto` still means: training on a hardware GPU, decoding on the CPU (Phase 3/4 measurements). The only change from this phase is that an OpenGL adapter, like a software one, is never picked unprompted. Apple, AMD and Windows hardware have no row, so nothing about them is claimed; their adapters are still selectable by name, as before.
 
 ## To add a row
 
+```mermaid
+flowchart LR
+    a["To add a row"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Run `scripts/device-matrix.sh` on the machine (it lists the adapters `ferrum-gpu info` finds), paste its lines here with the driver version, and note any failing test as above.
 
 ## CI
+
+```mermaid
+flowchart LR
+    a["CI"]:::root
+    a --> n0["runner itself died"]:::c0
+    a --> n1["Linux the server panicked"]:::c1
+    a --> n2["Windows the tests crate"]:::c2
+    a --> n3["macOS hosted macos-latest,"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 **First CI runs (2026-11-12) found real problems, all fixed except the macOS GPU one.**
 - Linux: the server panicked on a broken pipe when its parent stopped reading stdout (`println!`), which killed it mid-test. Fixed in `ferrum_gpu_server` (status lines no longer panic) and covered by a test. Linux is green.

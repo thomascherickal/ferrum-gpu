@@ -5,6 +5,22 @@ Intel Xe through wgpu 30, llama.cpp b11521 CPU build); what was not run is liste
 
 ## What exists, where
 
+```mermaid
+flowchart LR
+    a["What exists, where"]:::root
+    a --> n0["not in a file"]:::c0
+    a --> n1["FP8 is GPU storage only."]:::c1
+    a --> n2["FP4 is MXFP4"]:::c2
+    a --> n3["Q2_K"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | Precision | In a GGUF file we write (`--quant`) | On the GPU (`--gpu-weights`) | llama.cpp reads the file | ferrum-cpu reads the file |
 |---|---|---|---|---|
 | f32 | `f32` | `f32` (no conversion) | yes | yes |
@@ -36,6 +52,22 @@ Intel Xe through wgpu 30, llama.cpp b11521 CPU build); what was not run is liste
 
 ## Measured
 
+```mermaid
+flowchart LR
+    a["Measured"]:::root
+    a --> n0["Q2_K encoder against"]:::c0
+    a --> n1["llama.cpp reads our files."]:::c1
+    a --> n2["GPU kernels against the"]:::c2
+    a --> n3["Value tables."]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - **Q2_K encoder against llama.cpp.** `llama-quantize` (b11521) turned the same f32 model into Q2_K, and ours did
   too: on both tensors that are Q2_K in both files (`token_embd.weight`, `blk.0.ffn_up.weight`) every byte is equal
   (22596 of 22596 and 43008 of 43008). The reconstruction error against f32 is therefore identical (rmse 0.005820
@@ -57,6 +89,22 @@ Intel Xe through wgpu 30, llama.cpp b11521 CPU build); what was not run is liste
 
 ## How it is built
 
+```mermaid
+flowchart LR
+    a["How it is built"]:::root
+    a --> n0["Codecs"]:::c0
+    a --> n1["One place decides the"]:::c1
+    a --> n2["GPU"]:::c2
+    a --> n3["ferrum-gpu lab checks"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Codecs: `ferrum_gguf/src/codec/{mxfp4,q2k,fp8}.rs`. MXFP4 and Q2_K are ggml types 39 and 10 in `blocks`/`quant`,
   so every reader and writer in the repository handles them; FP8 has its own block functions (Q8_0's layout) that
   never reach a file.
@@ -69,6 +117,22 @@ Intel Xe through wgpu 30, llama.cpp b11521 CPU build); what was not run is liste
   no 256-wide matrix).
 
 ## Not done
+
+```mermaid
+flowchart LR
+    a["Not done"]:::root
+    a --> n0["A faster kernel per-column"]:::c0
+    a --> n1["Other formats BF16, NVFP4,"]:::c1
+    a --> n2["Anything on Apple Silicon,"]:::c2
+    a --> n3["FP8 or FP4 activations and"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - A faster kernel (per-column and tiled) for the new formats, and any speed measurement of them.
 - Other formats: BF16, NVFP4, the I-quants, Q3_K to Q6_K as a write target.

@@ -4,6 +4,22 @@
 
 ## Progress (2026-11-11)
 
+```mermaid
+flowchart LR
+    a["Progress 2026-11-11"]:::root
+    a --> n0["Gate"]:::c0
+    a --> n1["x 7.1"]:::c1
+    a --> n2["x 7.2 docs/devices.md"]:::c2
+    a --> n3["x 7.3 Default adjusted for"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - [x] 7.1 `scripts/device-matrix.sh` runs the `ferrum_wgpu` suite once per adapter and prints a row.
 - [x] 7.2 `docs/devices.md`: MX330 (Vulkan), Iris Xe (Vulkan) and llvmpipe green; Mesa Iris Xe (Gl) red on the GELU parity test (4.04e-3 vs 1e-5); Apple, AMD, Windows not run.
 - [x] 7.3 Default adjusted for the red row: `select::choose` never picks a `Gl` adapter unprompted (test `never_picks_an_opengl_adapter_unprompted`).

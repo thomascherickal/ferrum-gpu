@@ -5,6 +5,22 @@ changing it see [developing.md](developing.md). Measured claims link to the repo
 
 ## 1. Layers
 
+```mermaid
+flowchart LR
+    a["1. Layers"]:::root
+    a --> n0["ferrum_gpu_core"]:::c0
+    a --> n1["1. Layers overview"]:::c1
+    a --> n2["1. Layers details"]:::c2
+    a --> n3["1. Layers usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ```
                  ferrum-gpu (CLI)   ferrum-gpu-server   ferrum_gpu_gui (+ browser page)
                         \                 |                  /
@@ -33,6 +49,22 @@ Every crate has `#![forbid(unsafe_code)]` and `#![warn(missing_docs)]`.
 
 ## 2. The CPU reference (`ferrum_ref`)
 
+```mermaid
+flowchart LR
+    a["2. The CPU reference"]:::root
+    a --> n0["specification the GPU is"]:::c0
+    a --> n1["kernels/ matmul the simple"]:::c1
+    a --> n2["models/gpt2, models/llama"]:::c2
+    a --> n3["training/ grad"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The reference is the **specification the GPU is tested against**, not a product. It holds plain host-`f32`
 code with no GPU anywhere:
 
@@ -47,6 +79,22 @@ code with no GPU anywhere:
 The backward passes are checked against finite differences, so the oracle itself is not trusted blindly.
 
 ## 3. The device layer (`ferrum_wgpu::device`)
+
+```mermaid
+flowchart LR
+    a["3. The device layer"]:::root
+    a --> n0["Errors are values."]:::c0
+    a --> n1["Limits come from the"]:::c1
+    a --> n2["Batching."]:::c2
+    a --> n3["Hardware-free logic is"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | File | Responsibility |
 |---|---|
@@ -72,6 +120,22 @@ Principles:
   this to run the "no GPU" paths).
 
 ## 4. Kernels (`ferrum_wgpu::ops`, `shaders/`)
+
+```mermaid
+flowchart LR
+    a["4. Kernels ferrum_wgpuops,"]:::root
+    a --> n0["Quantised weights."]:::c0
+    a --> n1["4. Kernels ferrum_wgpuops, overview"]:::c1
+    a --> n2["4. Kernels ferrum_wgpuops, details"]:::c2
+    a --> n3["4. Kernels ferrum_wgpuops, usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 WGSL only, `f32`/`u32`/`i32` only, no optional features. The sources live in
 `ferrum_wgpu/src/shaders/<group>/<name>.wgsl` and are registered in `shaders.rs` by `group/name`; a test keeps
@@ -100,6 +164,22 @@ decode is not faster on the two real GPUs.
 
 ## 5. Determinism and parity
 
+```mermaid
+flowchart LR
+    a["5. Determinism and parity"]:::root
+    a --> n0["GPU vs the CPU oracle"]:::c0
+    a --> n1["GPU vs itself"]:::c1
+    a --> n2["5. Determinism and parity overview"]:::c2
+    a --> n3["5. Determinism and parity details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Two different promises:
 
 1. **GPU vs the CPU oracle: tolerance.** Tolerances are frozen in `tolerance.rs`: `EXACT` 1e-6 (add, bias),
@@ -116,6 +196,22 @@ Other parity rules: Q8_0 snapping rounds half away from zero; f16 scales use int
 attention mask is `-1e9` with a max-subtracted softmax.
 
 ## 6. Memory planning (`budget.rs`, `plan.rs`, `cli::preflight`)
+
+```mermaid
+flowchart LR
+    a["6. Memory planning"]:::root
+    a --> n0["plan, sum, then allocate"]:::c0
+    a --> n1["before any allocation"]:::c1
+    a --> n2["Each engine lists every"]:::c2
+    a --> n3["BufferPlancheckmax_binding"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `wgpu` has no portable VRAM query, so the engine uses **plan, sum, then allocate**:
 
@@ -134,6 +230,22 @@ refused with advice before the device is even opened for work.
 
 ## 7. Models on the device (`ferrum_wgpu::models`)
 
+```mermaid
+flowchart LR
+    a["7. Models on the device"]:::root
+    a --> n0["resident"]:::c0
+    a --> n1["7. Models on the device overview"]:::c1
+    a --> n2["7. Models on the device details"]:::c2
+    a --> n3["7. Models on the device usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `GpuGpt2` and `GpuLlama` keep every weight, the KV cache and all activations **resident**. Per decoded token
 the host sends one token index and receives one logits row; the whole token is recorded as one batch.
 `GpuLlama::new(gpu, &Llama, Option<QKind>, Option<Budget>)` optionally packs the weights as Q8_0 / Q4_0;
@@ -142,6 +254,22 @@ and argmax flags (only `2 * (len-1)` floats leave the device), and `dequantised(
 a quantised run must match.
 
 ## 8. Training
+
+```mermaid
+flowchart LR
+    a["8. Training"]:::root
+    a --> n0["The loop"]:::c0
+    a --> n1["One step"]:::c1
+    a --> n2["Quantisation-aware"]:::c2
+    a --> n3["Limits today"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 **The loop** (`ferrum_ref::training::trainer`) is backend-independent. An `Engine` runs one step
 (`StepConfig` in, `StepStats` out) and can snapshot / restore itself; `train` handles windowing, epoch order,
@@ -169,6 +297,22 @@ top-p and a repetition penalty over recent tokens, drawing from the seeded `Rng`
 `engine::generate_with` feeds the prompt, then samples until `max_new` tokens or a full context.
 
 ## 10. The front ends
+
+```mermaid
+flowchart LR
+    a["10. The front ends"]:::root
+    a --> n0["The auto device rule"]:::c0
+    a --> n1["Engine layer"]:::c1
+    a --> n2["CLI"]:::c2
+    a --> n3["Server"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **Engine layer** (`ferrum_gpu_core::engine`): presets (`tiny`, `small`, `medium`, byte vocabulary), the
   shared training loop, `generate_with`, and `trait Backend { kind, name, train, generate }` with a

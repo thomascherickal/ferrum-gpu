@@ -6,6 +6,22 @@ where it says so.
 
 ## The machine
 
+```mermaid
+flowchart LR
+    a["The machine"]:::root
+    a --> n0["2 GB"]:::c0
+    a --> n1["The machine overview"]:::c1
+    a --> n2["The machine details"]:::c2
+    a --> n3["The machine usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | | |
 |---|---|
 | OS, compiler | Linux 7.0.0-42-generic (Zorin OS 18), rustc 1.96.0, `wgpu` 30.0.1, release profile with LTO off |
@@ -15,6 +31,22 @@ where it says so.
 | Largest single buffer | 2047 MiB granted on both adapters (`max binding`) |
 
 ## How it was measured
+
+```mermaid
+flowchart LR
+    a["How it was measured"]:::root
+    a --> n0["shapes"]:::c0
+    a --> n1["Each row ran in its own"]:::c1
+    a --> n2["cargo bench -p ferrum_wgpu"]:::c2
+    a --> n3["One run per row, no"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - `cargo bench -p ferrum_wgpu --bench capability` (new): real-size model **shapes** with **random
   weights** (speed and memory depend on the shape, not the values; nothing is downloaded), at f32, Q8_0
@@ -31,6 +63,36 @@ where it says so.
 - Raw output is committed in `docs/logs/capability-2026-11-14-*.txt`; the tables below are copied from it.
 
 ## Decode of real-size shapes
+
+```mermaid
+flowchart LR
+    a["Decode of real-size shapes"]:::root
+    a --> n0["NVIDIA GeForce MX330 2 GB,"]:::c0
+    a --> n1["Intel Iris Xe integrated,"]:::c1
+    a --> n2["Fits and runs on the 2 GB"]:::c2
+    a --> n3["1.1B"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Decode of real-size shapes"]:::root
+    a --> n0["Does not fit"]:::c0
+    a --> n1["Intel Xe"]:::c1
+    a --> n2["not run"]:::c2
+    a --> n3["Does not fit the 1.78B"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ### NVIDIA GeForce MX330 (2 GB, discrete)
 
@@ -84,6 +146,22 @@ How to read it:
 
 ## Smaller shapes, with the CPU for comparison
 
+```mermaid
+flowchart LR
+    a["Smaller shapes, with the"]:::root
+    a --> n0["Intel Xe, decode"]:::c0
+    a --> n1["Intel Xe, fine-tuning step"]:::c1
+    a --> n2["not"]:::c2
+    a --> n3["not run"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `cargo bench -p ferrum_wgpu --bench llama`, same day. CPU column: `ferrum_ref`, one thread (how a CPU
 runtime runs one token); fine-tuning baseline: 8 threads.
 
@@ -127,6 +205,22 @@ runtime runs one token); fine-tuning baseline: 8 threads.
 
 ## Findings
 
+```mermaid
+flowchart LR
+    a["Findings"]:::root
+    a --> n0["total"]:::c0
+    a --> n1["free"]:::c1
+    a --> n2["The memory formula"]:::c2
+    a --> n3["The memory budget was too"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 1. **The memory budget was too generous, and missing for other GPUs. (Corrected 2026-11-17; fixed in
    Studio phase G1.)** This finding was first worded wrongly: it said the pre-flight had no total, and
    blamed it for the "fits" verdicts in this document's benchmark. Those verdicts came from the
@@ -149,12 +243,44 @@ runtime runs one token); fine-tuning baseline: 8 threads.
 
 ## Decode model fitted to the MX330 runs
 
+```mermaid
+flowchart LR
+    a["Decode model fitted to the"]:::root
+    a --> n0["33 ms"]:::c0
+    a --> n1["10.3 GB/s"]:::c1
+    a --> n2["Q4_0 rows, time = floor +"]:::c2
+    a --> n3["Q8_0 rows 3 points floor"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Q4_0 rows, time = floor + weight bytes / bandwidth: floor **33 ms**, effective bandwidth **10.3 GB/s** (4 points).
 - Q8_0 rows (3 points): floor 44 ms, effective bandwidth 13.0 GB/s.
 - The MX330's memory is 64-bit GDDR5; its published peak is about 56 GB/s (product specification, not measured here).
   So the engine reaches roughly 18% of the peak, plus a fixed cost per token (about 30 layers of small dispatches).
 
 ## Reproduce
+
+```mermaid
+flowchart LR
+    a["Reproduce"]:::root
+    a --> n0["one shape, precision per"]:::c0
+    a --> n1["Reproduce overview"]:::c1
+    a --> n2["Reproduce details"]:::c2
+    a --> n3["Reproduce usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ```bash
 export CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
@@ -167,6 +293,22 @@ FERRUM_GPU_ADAPTER="Iris(R) Xe" cargo bench -p ferrum_wgpu --bench llama
 `FERRUM_CAP_ONLY` is a substring of the shape name, `FERRUM_CAP_PREC` one of `f32`, `Q8_0`, `Q4_0`.
 
 ## Not run
+
+```mermaid
+flowchart LR
+    a["Not run"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Apple Silicon, AMD, desktop NVIDIA, Windows, macOS, more than 2 GB of dedicated memory, any real
 checkpoint (random weights only), batched decode, long contexts (the plan uses 2048 but only 20 tokens

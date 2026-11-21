@@ -6,6 +6,22 @@ This is the opposite of the Phase 3 decode result, and consistent with it: batch
 
 ## Setup
 
+```mermaid
+flowchart LR
+    a["Setup"]:::root
+    a --> n0["GPU"]:::c0
+    a --> n1["CPU data-parallel"]:::c1
+    a --> n2["not"]:::c2
+    a --> n3["ferrum-cpu real"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - Same machine as the earlier reports (8 CPU threads, rustc 1.96.0, `wgpu` 30.0.1, Vulkan, release). Driver versions not recorded. Median of 3 to 10 steps after one warm-up; one session per adapter.
 - `cargo bench -p ferrum_wgpu --bench train`. Random-token batches (the speed of a step does not depend on token values). Gradient clip 1.0, AdamW with weight decay 0.01.
 - **GPU:** `GpuTrainer::step`: weights, gradients, Adam moments and activations resident; one command batch per step; only the loss and gradient norm are read back.
@@ -14,6 +30,35 @@ This is the opposite of the Phase 3 decode result, and consistent with it: batch
 - Sizes: small = reference preset (0.5M params, batch 16 x 128); medium = dim 256, 4 layers (5.3M, batch 8 x 128); large = dim 512, 6 layers, hidden 2048, vocab 4096 (23.2M, batch 8 x 128).
 
 ## Results
+
+```mermaid
+flowchart LR
+    a["Results"]:::root
+    a --> n0["NVIDIA GeForce MX330"]:::c0
+    a --> n1["Intel Iris Xe Graphics"]:::c1
+    a --> n2["Against ferrum-cpu's real"]:::c2
+    a --> n3["Results overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Results"]:::root
+    a --> n0["Results details"]:::c0
+    a --> n1["Results usage"]:::c1
+    a --> n2["Results notes"]:::c2
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ### NVIDIA GeForce MX330
 
@@ -44,6 +89,22 @@ The `ferrum_ref` baseline is faster than the real ferrum-cpu trainer on this sha
 
 ## Quantisation-aware training costs almost nothing
 
+```mermaid
+flowchart LR
+    a["Quantisation-aware"]:::root
+    a --> n0["Run-to-run variance is"]:::c0
+    a --> n1["Quantisation-aware overview"]:::c1
+    a --> n2["Quantisation-aware details"]:::c2
+    a --> n3["Quantisation-aware usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 QAT snaps the matrices onto their Q8_0 values once per optimizer step (the forward and backward pass
 read the snapped copies, Adam updates the full-precision masters). The snap is bit-exact with the
 CPU reference and with the encoder the GGUF export uses, on all three adapters. A later benchmark
@@ -64,6 +125,22 @@ on the large model", not as a precise figure; the gate (at least 2x) holds in bo
 
 ## How the step got fast (a profiling story worth keeping)
 
+```mermaid
+flowchart LR
+    a["How the step got fast a"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The first GPU trainer was correct but slow: **2093 ms per large step, only 1.49x the CPU, short of the 2x gate**. A per-kernel profile (`benches/profile_train.rs`, each kernel alone at the large shapes) summed to 2127 ms, matching the measured step, and showed where the time went:
 
 | kernel | before (ms each) | after (ms each) |
@@ -76,6 +153,22 @@ The first GPU trainer was correct but slow: **2093 ms per large step, only 1.49x
 Attention backward recomputed the full `dO . V` dot product for every output element, a 64x redundancy. It now computes the score-gradient matrix once, then dQ, dK and dV are cheap gathers. Attention forward computes all scores in parallel (one invocation per cell) and softmaxes per row. Both changes keep every sum in the same ascending order, so every parity test still passes at the same tolerance. After the fix the matmuls are about 70% of a step, so the remaining speed comes from the matmul kernel.
 
 ## What this does not show
+
+```mermaid
+flowchart LR
+    a["What this does not show"]:::root
+    a --> n0["Dropout and weight tying"]:::c0
+    a --> n1["Larger batches or longer"]:::c1
+    a --> n2["Convergence loss curve"]:::c2
+    a --> n3["Memory the large model's"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **Dropout and weight tying are not implemented on the GPU**, while ferrum-cpu has both. Quantisation-aware training *is* implemented (below); the tables above are the plain AdamW path.
 - Larger batches or longer contexts, other GPUs (Apple Silicon, AMD, NVIDIA desktop parts) and multi-GPU were not run.

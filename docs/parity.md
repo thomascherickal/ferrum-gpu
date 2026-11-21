@@ -8,12 +8,58 @@ Status words: **have** (works here), **partial**, **gap**, **different** (delibe
 
 ## Findings that change the plan
 
+```mermaid
+flowchart LR
+    a["Findings that change the"]:::root
+    a --> n0["Presets differ."]:::c0
+    a --> n1["Closed in M4, 2026-11-11."]:::c1
+    a --> n2["Presets differ. See the"]:::c2
+    a --> n3["Quantization is a bigger"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 1. **(Closed in M4, 2026-11-11.) `train` made a different architecture.** ferrum-cpu `train` writes a `gpt2` GGUF (learned positions, LayerNorm, GELU, byte-level BPE) that also runs in llama.cpp. `ferrum-gpu train` builds a Llama-style model (RMSNorm, RoPE, GQA, SwiGLU; heads shown as `4/2`) and writes a `llama` GGUF. The engine has a GPT-2 trainer (`ferrum_wgpu::training::gpt2`) but the CLI does not expose it. Parity needs `train --arch gpt2|llama` (M4), with `gpt2` the default to match ferrum-cpu.
 2. **Presets differ.** See the table below. They are different models under the same names.
 3. **Quantization is a bigger gap than listed.** ferrum-cpu reads 11 block formats; we read 3 plus F32/F16.
 4. **(Closed in M7.) The server has one more route** than the plan said (`/v1/loglikelihood_rolling`) and a fixed in-flight cap of 32.
 
 ## Presets
+
+```mermaid
+flowchart LR
+    a["Presets"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Presets"]:::root
+    a --> n0["Presets overview"]:::c0
+    a --> n1["Presets details"]:::c1
+    a --> n2["Presets usage"]:::c2
+    a --> n3["Presets notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | name | ferrum-cpu (gpt2, BPE) | ferrum-gpu (llama-style, byte) |
 |---|---|---|
@@ -24,6 +70,36 @@ Status words: **have** (works here), **partial**, **gap**, **different** (delibe
 Decision: when `--arch gpt2` is selected the ferrum-cpu preset sizes are used (M4); the current llama-style presets stay under `--arch llama`. Preset `lr` values are applied as defaults only if the user gives none.
 
 ## Commands and flags
+
+```mermaid
+flowchart LR
+    a["Commands and flags"]:::root
+    a --> n0["have M4"]:::c0
+    a --> n1["have CPU and GPU engines"]:::c1
+    a --> n2["have M2"]:::c2
+    a --> n3["have 2026-11-12"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Commands and flags"]:::root
+    a --> n0["have M5"]:::c0
+    a --> n1["have M3"]:::c1
+    a --> n2["have M6"]:::c2
+    a --> n3["Commands and flags overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 
@@ -61,6 +137,35 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 
 ## Formats
 
+```mermaid
+flowchart LR
+    a["Formats"]:::root
+    a --> n0["have M3, 2026-11-11"]:::c0
+    a --> n1["have M3"]:::c1
+    a --> n2["have M1, 2026-11-11"]:::c2
+    a --> n3["Formats overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Formats"]:::root
+    a --> n0["Formats details"]:::c0
+    a --> n1["Formats usage"]:::c1
+    a --> n2["Formats notes"]:::c2
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | Item | ferrum-cpu | ferrum-gpu | Status | Phase |
 |---|---|---|---|---|
 | Architectures read | `llama`, `qwen2` (imported), `gpt2` (own) | `gpt2`, `llama`, `qwen2` | have | |
@@ -73,6 +178,33 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | Refusals | refuses biases on any projection except q/k/v, and any RoPE scaling type other than `linear` or `none` (with factor 1.0) | refuses yarn, longrope, attention factor other than 1, and biases outside attention q/k/v | have (same intent; ours is at least as strict; exact messages not compared) | |
 
 ## Server
+
+```mermaid
+flowchart LR
+    a["Server"]:::root
+    a --> n0["have M7"]:::c0
+    a --> n1["Server overview"]:::c1
+    a --> n2["Server details"]:::c2
+    a --> n3["Server usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Server"]:::root
+    a --> n0["Server notes"]:::c0
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Feature | ferrum-cpu | ferrum-gpu | Status | Phase |
 |---|---|---|---|---|
@@ -87,6 +219,35 @@ ferrum-cpu flags are from its flag tables. "Phase" is where the gap closes.
 | Framework | axum + tokio | std only | different, on purpose (keeps dependencies at zero) | |
 
 ## Other
+
+```mermaid
+flowchart LR
+    a["Other"]:::root
+    a --> n0["validation share"]:::c0
+    a --> n1["stop strings 2026-11-12"]:::c1
+    a --> n2["have"]:::c2
+    a --> n3["Other overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Other"]:::root
+    a --> n0["Other details"]:::c0
+    a --> n1["Other usage"]:::c1
+    a --> n2["Other notes"]:::c2
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Feature | ferrum-cpu | ferrum-gpu | Status |
 |---|---|---|---|

@@ -20,6 +20,22 @@ repository (`ferrum_ref`), and every figure in the docs comes from a real run or
 
 ## What it is
 
+```mermaid
+flowchart LR
+    a["What it is"]:::root
+    a --> n0["train or fine-tune"]:::c0
+    a --> n1["Parity first"]:::c1
+    a --> n2["No unsafe, no outside"]:::c2
+    a --> n3["not"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 A small-model engine, not a general LLM runtime. It is meant for models from a few thousand to a few hundred
 million parameters that you **train or fine-tune yourself** on a laptop or desktop GPU, and then use or hand to
 other tools as an ordinary GGUF file. It covers the whole loop in one binary:
@@ -40,6 +56,22 @@ multi-GPU engine (one adapter per process), or a hosted service (the server and 
 default).
 
 ## How it works
+
+```mermaid
+flowchart LR
+    a["How it works"]:::root
+    a --> n0["ferrum_gguf"]:::c0
+    a --> n1["ferrum_ref"]:::c1
+    a --> n2["ferrum_wgpu"]:::c2
+    a --> n3["ferrum_model"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ```
         ferrum-gpu (CLI)     ferrum-gpu-server     ferrum_gpu_gui (+ page in your browser)
@@ -78,6 +110,22 @@ default).
 
 ## What it does
 
+```mermaid
+flowchart LR
+    a["What it does"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | | |
 |---|---|
 | Models | GPT-2 style (learned positions, LayerNorm, GELU) and Llama / Qwen2 style (RMSNorm, RoPE, grouped-query attention, SwiGLU, optional q/k/v biases, tied or untied head) |
@@ -89,6 +137,22 @@ default).
 | Exports | `export-gguf`, `export-ollama` (registers with a running Ollama), `export-lmstudio` (`lms import`) |
 
 ## Quick start
+
+```mermaid
+flowchart LR
+    a["Quick start"]:::root
+    a --> n0["train a tiny GPT-2 model"]:::c0
+    a --> n1["The file is a GPT-2 GGUF"]:::c1
+    a --> n2["serve it --token to"]:::c2
+    a --> n3["a Llama-style byte-level"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Requirements: Rust 1.87 or newer, and a GPU driver with Vulkan, Metal or DX12 if you want the GPU path
 (everything also runs on the CPU, and the test suite passes on a machine with no GPU).
@@ -119,6 +183,22 @@ where the figure came from ([capability.md](capability.md), finding 1). With no 
 with several GPUs, say) only the per-buffer limit is checked.
 
 ## Commands
+
+```mermaid
+flowchart LR
+    a["Commands"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 `ferrum-gpu help` prints every flag; unknown, repeated and valueless flags are errors.
 
@@ -153,6 +233,22 @@ non-loopback host is refused unless a token is set. Limits are checked before an
 
 ## The desktop app
 
+```mermaid
+flowchart LR
+    a["The desktop app"]:::root
+    a --> n0["Ferrum GPU Studio"]:::c0
+    a --> n1["The desktop app overview"]:::c1
+    a --> n2["The desktop app details"]:::c2
+    a --> n3["The desktop app usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `scripts/build-apps.sh` builds the command line and the desktop app and puts them side by side in `dist/`
 (`ferrum-gpu`, `ferrum-gpu-server` and `ferrum-gpu-studio`); both are thin programs over the same core, so a command run
 from either does the same thing. `scripts/build-studio.sh --run` builds and starts **Ferrum GPU Studio**, a native window (Tauri 2) around the GUI below,
@@ -161,6 +257,22 @@ Cargo workspace (`ferrum_gpu_studio`), so the Tauri dependency tree stays out of
 Linux so far; macOS and Windows builds and installers are configured in CI but not run by hand (on Windows the app builds in CI but its unit tests do not start, a known Tauri manifest issue). See [docs/gui.md](docs/gui.md).
 
 ## The GUI
+
+```mermaid
+flowchart LR
+    a["The GUI"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 The Studio has tabs for Datasets, Prepare, Train (GPT-2 style with BPE, with a live loss chart), Models (inspect any GGUF),
 Fine-tune, Evaluate, Generate, Export (precision, Ollama, LM Studio), Serve, Capable (what fits in a given memory), GPU lab
@@ -171,6 +283,22 @@ the first run picks the adapter and thread count for the machine and saves them 
 [docs/browser-webgpu.md](docs/browser-webgpu.md).
 
 ## Works with llama.cpp, Ollama, LM Studio and Unsloth
+
+```mermaid
+flowchart LR
+    a["Works with llama.cpp,"]:::root
+    a --> n0["the same greedy text"]:::c0
+    a --> n1["CUDA and Vulkan"]:::c1
+    a --> n2["not tested against a real"]:::c2
+    a --> n3["Works with llama.cpp, overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 The meeting point is the GGUF file, and it is tested against real tools ([docs/interop.md](docs/interop.md)):
 
@@ -187,6 +315,22 @@ The runs that touch `~/.lmstudio` or use the GPU through an outside tool are opt
 
 ## What size can it run?
 
+```mermaid
+flowchart LR
+    a["What size can it run?"]:::root
+    a --> n0["capability.md"]:::c0
+    a --> n1["hardware-caps.md"]:::c1
+    a --> n2["capability.md what was"]:::c2
+    a --> n3["What size can it run? overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Short answer for the machine this is developed on (an NVIDIA MX330 with 2 GB, plus an Intel Xe sharing 15 GB of
 RAM): **models up to about 1.1 billion parameters decode on the 2 GB card at Q4_0 or Q8_0**, and up to about
 0.6 billion on the integrated GPU in what was run; full fine-tuning is measured up to 32 million
@@ -199,6 +343,22 @@ parameters. For other hardware there are hand estimates, clearly separated from 
   multi-channel server RAM, with the formulas and every assumption stated.
 
 ## Measured on this machine
+
+```mermaid
+flowchart LR
+    a["Measured on this machine"]:::root
+    a --> n0["Found while measuring"]:::c0
+    a --> n1["f32 does not fit the 2 GB"]:::c1
+    a --> n2["Training wins on the GPU,"]:::c2
+    a --> n3["Found while measuring the"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Linux 7.0, rustc 1.96, `wgpu` 30.0.1, Vulkan, release profile, 2026-11-14. Random weights (speed depends on the
 shape, not the values), single-stream decode, one run per row, one process per row. Full tables, the raw logs in
@@ -221,6 +381,22 @@ shape, not the values), single-stream decode, one run per row, one process per r
   until the process ends ([capability.md](capability.md), findings 1 and 2).
 
 ## Hardware estimates
+
+```mermaid
+flowchart LR
+    a["Hardware estimates"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Hand estimates (formulas in [hardware-caps.md](hardware-caps.md); **only the MX330 and Xe rows above were run**).
 Inference at Q4_0, context 2048, `discrete VRAM / unified memory` (90% / 70% of the memory usable); the small-model
@@ -245,6 +421,22 @@ ferrum-gpu has no tuned CPU inference path.
 
 ## Testing and quality
 
+```mermaid
+flowchart LR
+    a["Testing and quality"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Tests first, every file has unit tests, and the suite must pass on a machine with no GPU. At the last full run
 (2026-11-14) 820 tests passed with none over their time limit, in four configurations (the default adapter,
 no GPU, llvmpipe, the Intel Xe), with `cargo fmt`, `cargo clippy -D warnings`, a line-coverage floor of 98%
@@ -263,6 +455,22 @@ Each real external run is opt-in and logged; see [docs/interop.md](docs/interop.
 
 ## Status
 
+```mermaid
+flowchart LR
+    a["Status"]:::root
+    a --> n0["Not run"]:::c0
+    a --> n1["Status overview"]:::c1
+    a --> n2["Status details"]:::c2
+    a --> n3["Status usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Phases 0 to 6 are complete: kernels and parity, GGUF I/O, GPT-2 and Llama/Qwen inference, training and
 fine-tuning, the GUI and browser WebGPU runtime, and the CLI and server. Phase 7 (a verification matrix
 over more devices, then making `auto` the default everywhere) has not started. The plan is in
@@ -273,6 +481,22 @@ llvmpipe (software Vulkan), on Linux. **Not run:** Apple Silicon, AMD, desktop N
 Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) checkpoint beyond the small fixtures.
 
 ## Repository map
+
+```mermaid
+flowchart LR
+    a["Repository map"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Crate | Role |
 |---|---|
@@ -288,6 +512,22 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 | [`tests`](tests) | Cross-crate guards (independence from ferrum-cpu, the context-window scripts, the capability tables) |
 
 ## Documentation
+
+```mermaid
+flowchart LR
+    a["Documentation"]:::root
+    a --> n0["overview"]:::c0
+    a --> n1["details"]:::c1
+    a --> n2["usage"]:::c2
+    a --> n3["notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 | Document | For |
 |---|---|

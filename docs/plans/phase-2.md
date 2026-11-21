@@ -10,6 +10,22 @@ Kernels, one commit each, each with CPU-parity tests on adversarial shapes (`T=1
 
 ## Status (2026-11-10)
 
+```mermaid
+flowchart LR
+    a["Status 2026-11-10"]:::root
+    a --> n0["Fusion decision"]:::c0
+    a --> n1["2.0 done"]:::c1
+    a --> n2["Phase 2 closed with one"]:::c2
+    a --> n3["Status 2026-11-10 overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Kernels done and parity-tested on MX330, Intel Xe and llvmpipe: add, bias add, GELU, LayerNorm, causal attention (probs + P·V), cross-entropy with `dlogits` and mean loss, score (log-prob + argmax flag), embedding gather, plus matmul from Phase 0. Worst observed error 3.3e-7, so tolerances are frozen at 1e-5 (`tolerance.rs`). `tests/forward_pass.rs` composes a full 2-block forward pass and loss against the CPU reference: 4.8e-7. Index uploads are range-checked on the host.
 
 **Fusion decision:** none for now. Measured submit+wait is 0.03 ms (MX330) and 0.2 ms (Xe), and each op is one dispatch; fuse only if a Phase 3/4 profile shows dispatch cost dominating.

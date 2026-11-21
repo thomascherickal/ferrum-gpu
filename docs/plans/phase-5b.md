@@ -4,6 +4,22 @@ Run the same models in the browser tab, on the visitor's own GPU, with no server
 
 ## Decisions (taken 2026-11-11, autonomous)
 
+```mermaid
+flowchart LR
+    a["Decisions taken"]:::root
+    a --> n0["JavaScript runtime"]:::c0
+    a --> n1["Inference"]:::c1
+    a --> n2["Decisions taken overview"]:::c2
+    a --> n3["Decisions taken details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | Question | Decision | Why |
 |---|---|---|
 | How | A small **JavaScript runtime** (`ferrum_gpu_gui/web/`): GGUF reader, WebGPU device/pipeline/dispatch layer, and a `GpuLlama` port that records the same dispatch sequence as `ferrum_wgpu::models::llama`. | Compiling `ferrum_wgpu` to wasm needs an async rewrite of its blocking `block_on`/readback (every `Gpu::read` and open path), `wasm-bindgen` and a bundler; the shaders are plain WGSL and already shared, so the orchestration is the only thing to port. The cost is that the dispatch sequence exists twice; the parity test below is what keeps the copies honest. |
@@ -13,6 +29,22 @@ Run the same models in the browser tab, on the visitor's own GPU, with no server
 | Verification | Parity against the CPU oracle with vectors produced by the Rust side (a seeded tiny model as GGUF + token ids + oracle logits), run in headless Chrome. | Node has no WebGPU. Headless Chrome offers only SwiftShader (software) by default, but with `--use-gl=angle --use-angle=vulkan` it also offers the real adapters (found while executing this phase), so the tests run on every distinct adapter Chrome reports and the results name which were software. |
 
 ## Tasks
+
+```mermaid
+flowchart LR
+    a["Tasks"]:::root
+    a --> n0["x 5b.1 ferrum_wgpushaders"]:::c0
+    a --> n1["x 5b.2 JS runtime gguf.js"]:::c1
+    a --> n2["x 5b.3 llama.js GpuLlama"]:::c2
+    a --> n3["x 5b.4 Self-test page +"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - [x] 5b.1 `ferrum_wgpu::shaders`: registry of every shader (name, group, source) plus the prelude; tests: every `include_str!` kernel is registered, names are unique, all sources parse as WGSL (compiled through naga in a unit test, no GPU needed).
 - [x] 5b.2 JS runtime: `gguf.js` (v3 reader, f32/f16/Q8_0/Q4_0, same block repack as `ops::quant::pack`), `webgpu.js` (adapter limits, pipeline cache, uniform padding, `dispatch1d`, readback), tested in Node where WebGPU is not needed (GGUF parsing, repack vs Rust-produced fixtures, group arithmetic).
@@ -28,6 +60,22 @@ Run the same models in the browser tab, on the visitor's own GPU, with no server
 Training or fine-tuning in the browser, wasm builds of the engine, Safari/Firefox verification (Firefox WebGPU is not enabled by default on Linux), mobile browsers, WebGL fallback.
 
 ## Outcome notes
+
+```mermaid
+flowchart LR
+    a["Outcome notes"]:::root
+    a --> n0["Verified on three adapters"]:::c0
+    a --> n1["gemv.wgsl 1024-invocation"]:::c1
+    a --> n2["Browser decode is 1.2x to"]:::c2
+    a --> n3["Outcome notes overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - Verified on three adapters through Chrome's ANGLE/Vulkan path (MX330, Intel Xe, SwiftShader), worst error 6.0e-6; the browser tests print a skip reason instead of failing when Node, Chrome or WebGPU is missing.
 - `gemv.wgsl` (1024-invocation workgroup) is the one kernel the browser cannot use on a baseline device; single-row projections use `matmul_blocked4`.

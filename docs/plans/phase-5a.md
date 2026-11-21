@@ -4,6 +4,22 @@ A local graphical front end for the engine, so a person can see the device, trai
 
 ## Decisions (taken 2026-11-11, autonomous)
 
+```mermaid
+flowchart LR
+    a["Decisions taken"]:::root
+    a --> n0["local web GUI"]:::c0
+    a --> n1["byte-level tokenizer"]:::c1
+    a --> n2["Decisions taken overview"]:::c2
+    a --> n3["Decisions taken details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 | Question | Decision | Why |
 |---|---|---|
 | Toolkit | A **local web GUI**: a std-only HTTP server in a new crate `ferrum_gpu_gui` serving one HTML page and a JSON API on `127.0.0.1`. | No new dependencies (a native toolkit such as egui adds ~150 crates, needs a display to test, and must pass `cargo deny`); the page is also the host for Phase 5b's in-browser WebGPU. |
@@ -14,6 +30,22 @@ A local graphical front end for the engine, so a person can see the device, trai
 | Files | Model load/save through the browser (upload / download), never by server-side path from the page. | A page must not be able to make the server read arbitrary paths. |
 
 ## Tasks
+
+```mermaid
+flowchart LR
+    a["Tasks"]:::root
+    a --> n0["x 5a.1 ferrum_gpu_gui"]:::c0
+    a --> n1["x 5a.2 Engine session"]:::c1
+    a --> n2["x 5a.3 API GET /api/info,"]:::c2
+    a --> n3["x 5a.4 The page Device,"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - [x] 5a.1 `ferrum_gpu_gui` crate: std-only HTTP/1.1 server (request line, headers, `Content-Length` bodies, size limits, timeouts), a small JSON reader/writer, routing; each with unit tests and hostile-input tests (oversized headers, bad lengths, truncated bodies, path traversal on static routes).
 - [x] 5a.2 Engine session behind a trait (`Backend`): `info`, `new_model`, `train`, `generate`, `score`, `export`, `import`; a CPU implementation (oracle) and a GPU implementation; tests run both and compare.
@@ -29,6 +61,22 @@ A local graphical front end for the engine, so a person can see the device, trai
 Authentication, remote access, multi-user sessions, the real tokenizer (Phase 6), the CLI (Phase 6).
 
 ## Outcome notes
+
+```mermaid
+flowchart LR
+    a["Outcome notes"]:::root
+    a --> n0["The training text and"]:::c0
+    a --> n1["tests/api.rs runs the"]:::c1
+    a --> n2["One crash seen and"]:::c2
+    a --> n3["Outcome notes overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - The training text and generation use the byte tokenizer; the GUI holds one model at a time.
 - `tests/api.rs` runs the identical user journey on the CPU and the GPU backend (loss 6.7 -> 0.2 in 60 steps on both; the GPU/CPU loss curves differ by at most 4.5e-7 in the engine test), `tests/browser_ui.rs` drives the real page in headless Chrome.

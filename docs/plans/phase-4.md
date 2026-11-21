@@ -11,9 +11,41 @@
 
 ## Result (2026-11-10)
 
+```mermaid
+flowchart LR
+    a["Result 2026-11-10"]:::root
+    a --> n0["Gate met."]:::c0
+    a --> n1["Result 2026-11-10 overview"]:::c1
+    a --> n2["Result 2026-11-10 details"]:::c2
+    a --> n3["Result 2026-11-10 usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 **Gate met.** (Speedups vary run to run on this laptop: the large model measured 5.1x in the main run and 4.2x in a later one; the 2x gate held in both.) A full training step is 5.1x (MX330) and 5.5x (Intel Xe) faster than an 8-thread data-parallel CPU step on a 23.2M-parameter model, and 2.5x / 1.9x ferrum-cpu's own trainer on the reference preset (8,339 tokens/s measured, no QAT). A profile found attention backward at 67% of the first version's step; restructuring it took the large step from 2093 ms to 623 ms.
 
 ## Open items
+
+```mermaid
+flowchart LR
+    a["Open items"]:::root
+    a --> n0["Weight tying and dropout"]:::c0
+    a --> n1["Only a single Vulkan"]:::c1
+    a --> n2["No full-length convergence"]:::c2
+    a --> n3["Open items overview"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - Weight tying and dropout on the GPU.
 - Only a single Vulkan vendor pair was measured; no Apple Silicon, AMD or desktop NVIDIA numbers.

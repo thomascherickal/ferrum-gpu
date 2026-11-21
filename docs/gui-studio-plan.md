@@ -7,6 +7,22 @@ phases 1 to 3 of version 1 are done and kept (they are the page, not the plumbin
 
 ## What ferrum-cpu's Studio is (read from `ferrum-cpu/ferrum_gui`, never modified)
 
+```mermaid
+flowchart LR
+    a["What ferrum-cpu's Studio"]:::root
+    a --> n0["Tauri 2"]:::c0
+    a --> n1["in-process"]:::c1
+    a --> n2["What ferrum-cpu's Studio overview"]:::c2
+    a --> n3["What ferrum-cpu's Studio details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 A **Tauri 2** desktop app (`tauri`, `tauri-plugin-dialog`), in its own crate outside the main workspace with its own
 lockfile, whose Rust side links the engine **in-process** (no child processes) and exposes it as `#[tauri::command]`
 functions; the page is vanilla HTML/CSS/JS under `ui/`, with a strict CSP (`script-src 'self'`, no inline script or
@@ -15,6 +31,36 @@ progress streamed to the page. Its CLI crate is also a library that the app call
 every command.
 
 ## What this repository has now, and what is wrong with it for that goal
+
+```mermaid
+flowchart LR
+    a["What this repository has"]:::root
+    a --> n0["depends on"]:::c0
+    a --> n1["subprocess"]:::c1
+    a --> n2["ferrum_gpu_cli holds the"]:::c2
+    a --> n3["ferrum_gpu_gui holds the"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["What this repository has"]:::root
+    a --> n0["Phases 1 to 3 added the"]:::c0
+    a --> n1["What this repository has overview"]:::c1
+    a --> n2["What this repository has details"]:::c2
+    a --> n3["What this repository has usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - `ferrum_gpu_cli` holds the commands (train, finetune, eval, generate, prepare, tokenize, exports) behind a flag
   parser, and **depends on** `ferrum_gpu_gui` for the engine layer. The GUI therefore cannot call the commands.
@@ -25,6 +71,36 @@ every command.
   `since`, stop; output lines with progress events) and all the page code stay.
 
 ## Architecture as built
+
+```mermaid
+flowchart LR
+    a["Architecture as built"]:::root
+    a --> n0["ferrum_gpu_core"]:::c0
+    a --> n1["Jobs run as threads"]:::c1
+    a --> n2["One transport."]:::c2
+    a --> n3["ferrum_gpu_studio"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Architecture as built"]:::root
+    a --> n0["The page"]:::c0
+    a --> n1["ferrum_gpu_core does the"]:::c1
+    a --> n2["One transport. The page"]:::c2
+    a --> n3["ferrum_gpu_studio is its"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 ```
   ferrum_gpu_studio                 ferrum-gpu (CLI)          ferrum-gpu-server
@@ -63,6 +139,34 @@ every command.
 
 ## Is a desktop app better than a web app for performance?
 
+```mermaid
+flowchart LR
+    a["Is a desktop app better"]:::root
+    a --> n0["natively in Rust"]:::c0
+    a --> n1["Not measured"]:::c1
+    a --> n2["Is a desktop app better overview"]:::c2
+    a --> n3["Is a desktop app better details"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Is a desktop app better"]:::root
+    a --> n0["Is a desktop app better usage"]:::c0
+    a --> n1["Is a desktop app better notes"]:::c1
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 The computation never ran in the page. Training, decoding and the exports run **natively in Rust** (wgpu on the GPU, or the
 CPU reference) inside the application process, in both the browser case and the desktop case. The page only draws forms,
 tables and the loss chart, and polls for text every few hundred milliseconds. So the limits of a *web app* (the browser's
@@ -75,6 +179,36 @@ interface, not the engine, is the bottleneck. Note one practical difference: the
 WebGPU, so the browser runner is unavailable there (generation then runs on the server side of the application).
 
 ## Decisions taken while building (2026-11-17)
+
+```mermaid
+flowchart LR
+    a["Decisions taken while"]:::root
+    a --> n0["Cancellation is"]:::c0
+    a --> n1["Device-using commands take"]:::c1
+    a --> n2["R2 kept the command"]:::c2
+    a --> n3["R3 did not add a second"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Decisions taken while"]:::root
+    a --> n0["Decisions taken while overview"]:::c0
+    a --> n1["Decisions taken while details"]:::c1
+    a --> n2["Decisions taken while usage"]:::c2
+    a --> n3["Decisions taken while notes"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - **R2 kept the command interface as "argument list in, report out".** Instead of a second typed-options layer that
   could drift from the CLI, the whole command layer moved into `ferrum_gpu_core::commands`; a job calls
@@ -90,6 +224,36 @@ WebGPU, so the browser runner is unavailable there (generation then runs on the 
 - **Device-using commands take turns** (adapter enumeration is not safe from several threads); the others run beside them.
 
 ## Phases
+
+```mermaid
+flowchart LR
+    a["Phases"]:::root
+    a --> n0["Refactor required first"]:::c0
+    a --> n1["Extract ferrum_gpu_core"]:::c1
+    a --> n2["Commands as library"]:::c2
+    a --> n3["In-process jobs"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["Phases"]:::root
+    a --> n0["The desktop app"]:::c0
+    a --> n1["The JSON server into the"]:::c1
+    a --> n2["Tabs on the in-process"]:::c2
+    a --> n3["Train GPT-2, BPE"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 **Refactor (required first)**
 
@@ -129,6 +293,36 @@ after R1, R3, R4, and after each group of tabs (tabs 6 to 8 with R5 were gated t
 
 ## What cannot be verified here, said plainly
 
+```mermaid
+flowchart LR
+    a["What cannot be verified"]:::root
+    a --> n0["Apple Silicon"]:::c0
+    a --> n1["Desktop bundles on macOS"]:::c1
+    a --> n2["Very large models"]:::c2
+    a --> n3["Apple Silicon M5 Max or"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+```mermaid
+flowchart LR
+    a["What cannot be verified"]:::root
+    a --> n0["Very large models no model"]:::c0
+    a --> n1["What cannot be verified overview"]:::c1
+    a --> n2["What cannot be verified details"]:::c2
+    a --> n3["What cannot be verified usage"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - **Apple Silicon** (M5 Max or any M-series): this machine is Linux with an NVIDIA MX330 (2 GB) and an Intel Xe. The macOS
   CI runner has a paravirtual GPU that already disagrees with the CPU in one test. Everything for Apple is built to be
   correct by construction and by parity tests against the CPU reference on the adapters available, and carries "not run on
@@ -139,6 +333,22 @@ after R1, R3, R4, and after each group of tabs (tabs 6 to 8 with R5 were gated t
   random-weight shapes, as in capability.md, and with limits lowered artificially.
 
 ## Rules that apply throughout
+
+```mermaid
+flowchart LR
+    a["Rules that apply"]:::root
+    a --> n0["Tests first, one concern"]:::c0
+    a --> n1["No unsafe, no dependency"]:::c1
+    a --> n2["Estimates in the UI say"]:::c2
+    a --> n3["The CLI keeps working"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 - Tests first, one concern per file, a `tests/` sibling per module; the suite passes with no GPU, no Chrome, no node.
 - No unsafe, no dependency outside this repository except the registry crates the app needs (Tauri and its plugin, in the

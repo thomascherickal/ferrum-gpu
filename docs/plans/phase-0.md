@@ -4,6 +4,22 @@
 
 ## Tasks (each: tests first, one commit)
 
+```mermaid
+flowchart LR
+    a["Tasks each tests first,"]:::root
+    a --> n0["x 0.1 ferrum_refmatmul"]:::c0
+    a --> n1["x 0.2 ferrum_wgpuselect"]:::c1
+    a --> n2["x 0.3 ferrum_wgpubudget"]:::c2
+    a --> n3["x 0.4 ferrum_wgpudevice"]:::c3
+    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
+    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
+    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 - [x] 0.1 `ferrum_ref::matmul` (copied logic: row-major f32 `[m,k]x[k,n]`, ascending-k accumulation) plus `Mat` helpers. Provenance header. Tests: known values, shape errors, non-square.
 - [x] 0.2 `ferrum_wgpu::select`: `AdapterSummary { name, backend, kind, max_buffer, max_binding, max_workgroup_invocations, integrated }` and pure `choose(&[AdapterSummary], Option<&str>) -> Result<usize, SelectError>`: named substring wins (software allowed only if named), else discrete, else integrated, never software otherwise. Tests over fake lists, including empty list and unknown name (error lists what exists).
 - [x] 0.3 `ferrum_wgpu::budget`: `parse_nvidia_smi`, `parse_vram_mb`, `sysfs_gpus(root)`, `Budget::resolve(override, smi, integrated, ram)`; `BufferPlan` with `check` that refuses before allocating, naming required/available bytes and any tensor over the binding limit. Tests on fixtures and temp-dir sysfs trees. No process is spawned in tests.
