@@ -30,7 +30,7 @@ class Steps(unittest.TestCase):
 
     def test_a_failing_repo_lists_every_open_item_in_order(self):
         md = n.build(inp())
-        for needle in ["[ ] 1. Tests pass", "99.04%", "[x] 3.", "[ ] 4. No file over 200 lines (2 over)", "[ ] 5.", "failed: xe",
+        for needle in ["[ ] 1. Tests pass", "99.04%", "[x] 3.", "[ ] 4. No file over 100 lines (2 over)", "[ ] 5.", "failed: xe",
                        "1. Commit the working tree", "2. Run `scripts/gate.sh`", "big.rs (900)", "merge `topic` (3 commits", "one thing"]:
             self.assertIn(needle, md)
         self.assertLess(md.index("Commit the working tree"), md.index("Run `scripts/gate.sh`"))
