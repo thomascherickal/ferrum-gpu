@@ -1,4 +1,4 @@
-use super::support::{app_with_model, call, field, train};
+use crate::support::{app_with_model, call, field, train};
 use ferrum_gpu_gui::json::Json;
 
 fn num(j: &Json, k: &str) -> Option<f64> {
@@ -59,7 +59,7 @@ fn the_validation_text_is_never_trained_on() {
     ]);
     let (s, _) = call(&a, "POST", "/api/train", &body.to_string());
     assert_eq!(s, 200);
-    let done = super::support::wait(&a);
+    let done = crate::support::wait(&a);
     let (before, after) = (
         num(&done, "val_before").unwrap(),
         num(&done, "val_after").unwrap(),

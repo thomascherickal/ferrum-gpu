@@ -6,7 +6,7 @@ use crate::device::{Gpu, GpuError};
 use crate::ops_llama;
 use crate::tensor::GpuBuf;
 
-pub(super) enum Embedding {
+pub(crate) enum Embedding {
     Whole(GpuBuf),
     /// `(first row, rows, block)`.
     Rows(Vec<(usize, usize, GpuBuf)>),

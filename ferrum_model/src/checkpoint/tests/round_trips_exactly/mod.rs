@@ -1,0 +1,5 @@
+use super::*;
+
+mod a_config_that_lies_about_sizes_is_refused_before_allocating;
+mod atomic_write_replaces_the_target_and_leaves_no_temp_file;
+mod round_trips_exactly_x;

@@ -1,4 +1,4 @@
-use super::support::finish;
+use crate::support::finish;
 
 #[test]
 fn help_prints_the_usage_and_exits_cleanly() {

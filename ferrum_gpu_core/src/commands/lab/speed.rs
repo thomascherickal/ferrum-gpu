@@ -2,7 +2,6 @@
 //! prefill (a whole sequence at once). Random weights give the same speed as trained ones, but not
 //! text, and the model is small, so this measures launch and dispatch cost more than bandwidth;
 //! the report says so.
-
 use super::report::Speed;
 use super::text;
 use ferrum_ref::llama::{Config, Llama, RopeType};
@@ -10,127 +9,10 @@ use ferrum_wgpu::bench_util::time_ms;
 use ferrum_wgpu::llama::{plan, GpuLlama};
 use ferrum_wgpu::ops_quant::QKind;
 use ferrum_wgpu::Gpu;
-
-/// The two model sizes the lab can measure.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Size {
-    /// 4 layers, width 256 (about 3 million weights): quick.
-    Small,
-    /// 8 layers, width 512 (about 26 million weights): closer to a real small model.
-    Medium,
-}
-
-impl Size {
-    pub fn parse(s: &str) -> Result<Size, String> {
-        match s {
-            "small" => Ok(Size::Small),
-            "medium" => Ok(Size::Medium),
-            o => Err(format!("--size: unknown '{o}' (small, medium)")),
-        }
-    }
-
-    pub fn config(self) -> Config {
-        let (vocab, dim, heads, head_dim, layers, hidden) = match self {
-            Size::Small => (512, 256, 8, 32, 4, 704),
-            Size::Medium => (2048, 512, 8, 64, 8, 1408),
-        };
-        Config {
-            vocab,
-            ctx: 64,
-            dim,
-            heads,
-            kv_heads: 4,
-            head_dim,
-            layers,
-            hidden,
-            rope_dim: head_dim,
-            rope_base: 10000.0,
-            rope_type: RopeType::Norm,
-            eps: 1e-5,
-        }
-    }
-
-    /// The sentence the report prints about the model.
-    pub fn describe(self) -> String {
-        let c = self.config();
-        format!(
-            "random weights, {} layers, width {}, vocabulary {}, 32 tokens per run",
-            c.layers, c.dim, c.vocab
-        )
-    }
-}
-
-/// Tokens per run of both measurements.
-pub const TOKENS: usize = 32;
-
-fn ids(vocab: usize) -> Vec<usize> {
-    (0..TOKENS).map(|i| (i * 7 + 3) % vocab).collect()
-}
-
-/// Tokens per second for `tokens` processed in `ms` milliseconds.
-pub fn tps(tokens: usize, ms: f64) -> f64 {
-    if ms <= 0.0 {
-        0.0
-    } else {
-        tokens as f64 / (ms / 1e3)
-    }
-}
-
-/// Run `f` `reps` times and return the mean milliseconds, or the first error it reported.
-fn time_fallible(reps: usize, mut f: impl FnMut() -> Result<(), String>) -> Result<f64, String> {
-    let mut fault: Option<String> = None;
-    let ms = time_ms(reps, || {
-        if let Err(e) = f() {
-            fault.get_or_insert(e);
-        }
-    });
-    fault.map_or(Ok(ms), Err)
-}
-
-/// Measure one precision (`None` is f32).
-pub fn measure(gpu: &Gpu, w: &Llama, quant: Option<QKind>, reps: usize) -> Result<Speed, String> {
-    let c = w.cfg;
-    let ids = ids(c.vocab);
-    let mut m = GpuLlama::new(gpu, w, quant, None).map_err(text)?;
-    let decode_ms = time_fallible(reps, || {
-        m.reset();
-        ids.iter()
-            .try_for_each(|&t| m.feed(t).map(drop).map_err(text))
-    })?;
-    let prefill_ms = time_fallible(reps, || m.forward_all(&ids).map(drop).map_err(text))?;
-    Ok(Speed {
-        precision: quant.map_or("f32", QKind::label).into(),
-        model_mib: plan(&c, quant).total() as f64 / 1048576.0,
-        decode_tps: tps(TOKENS, decode_ms),
-        prefill_tps: tps(TOKENS, prefill_ms),
-    })
-}
-
-/// The CPU reference's prefill speed on the same model, for scale.
-pub fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
-    let ids = ids(w.cfg.vocab);
-    let ms = time_fallible(reps, || w.forward_logits(&ids).map(drop))?;
-    Ok(tps(TOKENS, ms))
-}
-
-/// Every precision.
-pub fn run(gpu: &Gpu, size: Size, reps: usize) -> Result<(Vec<Speed>, f64), String> {
-    let w = Llama::random(size.config(), 5, false, false);
-    let mut speeds = Vec::new();
-    for q in [
-        None,
-        Some(QKind::F16),
-        Some(QKind::Q8_0),
-        Some(QKind::Q4_0),
-        Some(QKind::Fp4),
-        Some(QKind::Fp8E4M3),
-        Some(QKind::Fp8E5M2),
-        Some(QKind::Q2K),
-    ] {
-        speeds.push(measure(gpu, &w, q, reps)?);
-    }
-    Ok((speeds, cpu_prefill(&w, reps)?))
-}
+mod size;
+pub use size::*;
+mod measure;
+pub use measure::*;
 
 #[cfg(test)]
 mod tests;

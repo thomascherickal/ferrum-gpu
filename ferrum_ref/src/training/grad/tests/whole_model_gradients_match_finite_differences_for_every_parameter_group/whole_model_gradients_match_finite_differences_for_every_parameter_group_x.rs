@@ -1,0 +1,82 @@
+use super::*;
+
+#[test]
+fn whole_model_gradients_match_finite_differences_for_every_parameter_group() {
+    let cfg = tiny();
+    let m = Gpt2::random(cfg, 21);
+    let (batch, t) = (2, 4);
+    let (ids, targets) = data(&cfg, batch, t);
+    let (loss, g) = loss_and_grads(&m, &ids, &targets, batch, 1).unwrap();
+    assert!(loss.is_finite() && loss > 0.0);
+    let h = 1e-2;
+    let eval = |m: &Gpt2| loss_and_grads(m, &ids, &targets, batch, 1).unwrap().0;
+    let n_params = m.params().len();
+    let mut checked = 0;
+    for pi in 0..n_params {
+        let len = m.params()[pi].len();
+        // Check up to 6 spread-out elements of every tensor (all of them when small).
+        let picks: Vec<usize> = if len <= 6 {
+            (0..len).collect()
+        } else {
+            (0..6).map(|j| j * (len - 1) / 5).collect()
+        };
+        for &i in &picks {
+            let (mut p, mut q) = (m.clone(), m.clone());
+            p.params_mut()[pi][i] += h;
+            q.params_mut()[pi][i] -= h;
+            let num = (eval(&p) - eval(&q)) / (2.0 * h);
+            let ana = g.params()[pi][i];
+            assert!(
+                (ana - num).abs() < 4e-3 + 2e-2 * num.abs(),
+                "param {pi}[{i}]: analytic {ana} vs numeric {num}"
+            );
+            checked += 1;
+        }
+    }
+    assert!(checked > 100, "only {checked} elements checked");
+    let norm: f32 = g
+        .params()
+        .iter()
+        .flat_map(|p| p.iter())
+        .map(|v| v * v)
+        .sum::<f32>()
+        .sqrt();
+    assert!(norm > 1e-3, "gradient is suspiciously zero");
+}
+
+#[test]
+fn token_embedding_gradient_sums_repeated_tokens() {
+    let cfg = tiny();
+    let m = Gpt2::random(cfg, 22);
+    // The same token three times: its row is the sum of three position contributions.
+    let ids = vec![2usize, 2, 2, 5];
+    let targets = vec![1usize, 3, 4, 0];
+    let (_, g) = loss_and_grads(&m, &ids, &targets, 1, 1).unwrap();
+    assert!(g.tok[2 * 4..3 * 4].iter().any(|v| v.abs() > 1e-6));
+    assert!(
+        g.tok[..4].iter().all(|&v| v == 0.0),
+        "unused token has no gradient"
+    );
+}
+
+#[test]
+fn batching_equals_two_separate_sequences() {
+    let cfg = tiny();
+    let m = Gpt2::random(cfg, 23);
+    let (ids, targets) = data(&cfg, 2, 3);
+    let (l, g) = loss_and_grads(&m, &ids, &targets, 2, 1).unwrap();
+    let (l1, g1) = loss_and_grads(&m, &ids[..3], &targets[..3], 1, 1).unwrap();
+    let (l2, g2) = loss_and_grads(&m, &ids[3..], &targets[3..], 1, 1).unwrap();
+    assert!(
+        (l - (l1 + l2) / 2.0).abs() < 1e-5,
+        "mean loss is the average of the sequences"
+    );
+    for ((a, b), c) in g.params().iter().zip(g1.params()).zip(g2.params()) {
+        for i in 0..a.len() {
+            assert!(
+                (a[i] - (b[i] + c[i]) / 2.0).abs() < 1e-5,
+                "gradient is the average too"
+            );
+        }
+    }
+}

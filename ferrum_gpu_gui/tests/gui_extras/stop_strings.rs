@@ -1,4 +1,4 @@
-use super::support::{call, field, trained};
+use crate::support::{call, field, trained};
 use ferrum_gpu_gui::json::Json;
 use std::sync::Arc;
 

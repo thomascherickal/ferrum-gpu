@@ -1,4 +1,4 @@
-use super::support::{get, serve, spawn};
+use crate::support::{get, serve, spawn};
 use std::io::BufRead;
 
 #[test]
