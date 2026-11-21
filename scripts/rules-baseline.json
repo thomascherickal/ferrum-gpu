@@ -91,11 +91,9 @@
   "ferrum_wgpu/src/training/llama/mod.rs": 323,
   "ferrum_wgpu/src/training/llama/record.rs": 224,
   "ferrum_wgpu/src/training/llama/tests.rs": 296,
-  "scripts/metrics.py": 239,
   "tests/tests/test_context_scripts.rs": 362
  },
  "missing": [
-  "next-steps.md",
   "test-time-report.md",
   "system-profile.md"
  ],
