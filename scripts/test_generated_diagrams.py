@@ -28,7 +28,7 @@ class Diagrams(unittest.TestCase):
         self.assertEqual([s[0] for s in secs], ["Alpha", "Beta"])
         self.assertGreater(do.words(secs[0][1]), 440)
         self.assertEqual(do.labels(secs[0][1])[:3], ["Sub", "Bold term", "Bold term one"])
-        self.assertEqual(do.clean("`ferrum_gguf` (the **file** reader) with a very long tail here"), "ferrum_gguf the file reader with")
+        self.assertEqual(do.clean("`ferrum_gguf` (the **file** reader) with a very long tail here"), "ferrum_gguf the file")
         self.assertEqual([s[0] for s in do.sections("### Only\ntext")], ["Only"])
 
     def test_pages_get_exactly_the_diagrams_they_lack_and_no_more(self):
