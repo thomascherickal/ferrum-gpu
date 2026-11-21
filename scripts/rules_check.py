@@ -24,7 +24,7 @@ BASELINE = "scripts/rules-baseline.json"
 
 
 def tracked(root):
-    out = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True).stdout
+    out = subprocess.run(["git", "-C", root, "ls-files", "--cached", "--others", "--exclude-standard"], capture_output=True, text=True).stdout
     return [p for p in out.split("\n") if p and not p.startswith(".claude/") and os.path.isfile(f"{root}/{p}")]
 
 

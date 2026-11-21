@@ -51,7 +51,7 @@ def duplicates(files):
 
 
 def load(root):
-    out = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True).stdout
+    out = subprocess.run(["git", "-C", root, "ls-files", "--cached", "--others", "--exclude-standard"], capture_output=True, text=True).stdout
     files = {}
     for p in out.split("\n"):
         if p and CODE.search(p) and not p.startswith((".claude/", "fixtures/")):

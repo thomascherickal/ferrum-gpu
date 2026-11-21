@@ -1,5 +1,6 @@
 use super::*;
 
+#[allow(clippy::module_inception)]
 mod gate_tests {
     use super::*;
     use crate::engine::{Backend, CpuBackend, GenOpts, Progress, TrainSpec};
