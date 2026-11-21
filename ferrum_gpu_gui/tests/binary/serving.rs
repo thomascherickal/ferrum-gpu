@@ -66,19 +66,17 @@ fn with_a_serve_time_it_serves_then_exits_normally() {
 
 #[test]
 fn an_auto_device_that_falls_back_to_the_cpu_says_why_before_the_address() {
-    let mut child = spawn(&[
-        "--port",
-        "0",
-        "--device",
-        "auto",
-        "--gpu-adapter",
-        "no-such-adapter-xyz",
-    ]);
-    let mut lines = std::io::BufReader::new(child.stdout.take().unwrap()).lines();
-    let device = lines.next().unwrap().unwrap();
-    let note = lines.next().unwrap().unwrap();
-    child.kill().ok();
-    child.wait().ok();
-    assert!(device.starts_with("device: CPU"), "{device}");
-    assert!(note.starts_with("note: no usable GPU"), "{note}");
+    // it exits by itself, so its coverage data is written (a killed process writes none)
+    let o = std::process::Command::new(env!("CARGO_BIN_EXE_ferrum_gpu_gui"))
+        .args(["--port", "0", "--device", "auto", "--threads", "1"])
+        .args(["--gpu-adapter", "no-such-adapter-xyz"])
+        .env("FERRUM_SERVE_SECONDS", "1")
+        .output()
+        .unwrap();
+    let out = String::from_utf8_lossy(&o.stdout);
+    let lines: Vec<&str> = out.lines().collect();
+    assert_eq!(o.status.code(), Some(0), "{out}");
+    assert!(lines[0].starts_with("device: CPU"), "{out}");
+    assert!(lines[1].starts_with("note: no usable GPU"), "{out}");
+    assert!(lines[2].starts_with("ferrum-gpu GUI: http://"), "{out}");
 }
