@@ -6,17 +6,46 @@ changing it see [developing.md](developing.md). Measured claims link to the repo
 ## 1. Layers
 
 ```mermaid
+flowchart TD
+    cli["ferrum_gpu_cli"]:::host
+    srv["ferrum_gpu_server"]:::host
+    gui["ferrum_gpu_gui"]:::host
+    core["ferrum_gpu_core<br/>engine, commands, jobs, serving"]:::core
+    wgpu["ferrum_wgpu<br/>device, WGSL kernels, trainers"]:::gpu
+    model["ferrum_model<br/>GGUF to models, sampling"]:::core
+    ref["ferrum_ref<br/>CPU oracle"]:::cpu
+    gguf["ferrum_gguf<br/>container, codecs"]:::io
+    cli --> core
+    srv --> core
+    gui --> core
+    core --> wgpu
+    core --> model
+    wgpu --> ref
+    wgpu --> gguf
+    model --> ref
+    model --> gguf
+    ref --> gguf
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
 flowchart LR
-    a["1. Layers"]:::root
-    a --> n0["ferrum_gpu_core"]:::c0
-    a --> n1["1. Layers overview"]:::c1
-    a --> n2["1. Layers details"]:::c2
-    a --> n3["1. Layers usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    f["Front end<br/>CLI, server, GUI"]:::host --> b{"Backend trait<br/>train, generate"}:::core
+    b --> c["CpuBackend<br/>the oracle"]:::cpu
+    b --> g["GpuBackend"]:::gpu
+    g --> w["ferrum_wgpu"]:::gpu
+    c --> r["ferrum_ref"]:::cpu
+    w -. "parity tests" .-> r
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -51,16 +80,16 @@ Every crate has `#![forbid(unsafe_code)]` and `#![warn(missing_docs)]`.
 
 ```mermaid
 flowchart LR
-    a["2. The CPU reference"]:::root
-    a --> n0["specification the GPU is"]:::c0
-    a --> n1["kernels/ matmul the simple"]:::c1
-    a --> n2["models/gpt2, models/llama"]:::c2
-    a --> n3["training/ grad"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    k["kernels<br/>matmul, tuned, nn, rng"]:::cpu --> m["models<br/>gpt2, llama forward and KV cache"]:::cpu
+    m --> t["training<br/>grad, optim, qat, trainer"]:::cpu
+    t -- "backward checked by" --> fd["finite differences"]:::io
+    m -- "GPU outputs compared to" --> o(["oracle result"]):::core
+    gp["ferrum_wgpu kernels"]:::gpu --> o
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -82,16 +111,32 @@ The backward passes are checked against finite differences, so the oracle itself
 
 ```mermaid
 flowchart LR
-    a["3. The device layer"]:::root
-    a --> n0["Errors are values."]:::c0
-    a --> n1["Limits come from the"]:::c1
-    a --> n2["Batching."]:::c2
-    a --> n3["Hardware-free logic is"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    sel["select.rs<br/>pick adapter"]:::core --> open["mod.rs<br/>open device, limits"]:::gpu
+    open --> rt["runtime.rs"]:::gpu
+    rt --> pc["pipeline cache<br/>shader + entry"]:::gpu
+    rt --> bt["begin_batch<br/>record dispatches"]:::gpu
+    bt --> sub["one submit"]:::gpu --> rb["one readback<br/>GpuBuf.read"]:::io
+    rt --> es["error scopes<br/>GpuError, device health"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    adapters["adapter list<br/>real or injected fake"]:::io --> pick{"name fragment?"}:::core
+    pick -- yes --> frag["that adapter<br/>software allowed"]:::gpu
+    pick -- no --> kind{"discrete, integrated, other"}:::core
+    kind --> hw["first hardware adapter"]:::gpu
+    kind -. "never unprompted" .-> sw["software adapter"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -123,16 +168,31 @@ Principles:
 
 ```mermaid
 flowchart LR
-    a["4. Kernels ferrum_wgpuops,"]:::root
-    a --> n0["Quantised weights."]:::c0
-    a --> n1["4. Kernels ferrum_wgpuops, overview"]:::c1
-    a --> n2["4. Kernels ferrum_wgpuops, details"]:::c2
-    a --> n3["4. Kernels ferrum_wgpuops, usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    w["shaders/group/name.wgsl"]:::io --> reg["shaders.rs registry<br/>group/name"]:::core
+    reg --> nat["native engine<br/>pipe! macro"]:::gpu
+    reg --> br["browser runtime<br/>downloads same text"]:::host
+    reg --> nv["test: registry equals files,<br/>naga compiles every entry"]:::cpu
+    nat --> ops["ops wrappers<br/>record dispatches, no host trip"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    gg["GGUF Q8_0 or Q4_0 blocks"]:::io --> pk["ops::quant<br/>block-major records on device"]:::gpu
+    pk --> ql["qlinear kernel<br/>dequantise on the fly"]:::gpu
+    ql --> out["f32 activations"]:::core
+    gg -. "bit-identical to" .-> dq["ferrum_gguf::quant::decode"]:::cpu
+    dq -. "identity read-back test" .-> pk
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -165,17 +225,17 @@ decode is not faster on the two real GPUs.
 ## 5. Determinism and parity
 
 ```mermaid
-flowchart LR
-    a["5. Determinism and parity"]:::root
-    a --> n0["GPU vs the CPU oracle"]:::c0
-    a --> n1["GPU vs itself"]:::c1
-    a --> n2["5. Determinism and parity overview"]:::c2
-    a --> n3["5. Determinism and parity details"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+flowchart TD
+    run["same input on the GPU"]:::gpu --> a["vs the CPU oracle"]:::cpu
+    run --> b["vs itself, same adapter and driver"]:::gpu
+    a --> tol["tolerance.rs<br/>EXACT 1e-6, REDUCING 1e-5<br/>BACKWARD 1e-5, FORWARD 1e-5"]:::core
+    b --> bits["bit-identical output"]:::core
+    bits --> how["fixed ascending reductions, no atomics<br/>sorted CSR embedding gradient<br/>host-side Adam, clip, RoPE, dropout masks"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -199,16 +259,30 @@ attention mask is `-1e9` with a max-subtracted softmax.
 
 ```mermaid
 flowchart LR
-    a["6. Memory planning"]:::root
-    a --> n0["plan, sum, then allocate"]:::c0
-    a --> n1["before any allocation"]:::c1
-    a --> n2["Each engine lists every"]:::c2
-    a --> n3["BufferPlancheckmax_binding"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    eng["each engine lists buffers<br/>BufferPlan: name, bytes"]:::gpu --> sum["sum the plan"]:::core
+    sum --> chk{"check(max_binding, budget)"}:::core
+    chk -- "over limit" --> refuse["refuse by name<br/>before any allocation"]:::cpu
+    chk -- ok --> alloc["allocate buffers"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    o["--gpu-mem-mb override"]:::host --> r{"budget::resolve"}:::core
+    n["nvidia-smi or sysfs VRAM"]:::io --> r
+    h["half of system RAM<br/>integrated adapters"]:::io --> r
+    r --> bud["Budget bytes + source"]:::core
+    r -. "unknown" .-> lim["binding limit only"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -232,16 +306,16 @@ refused with advice before the device is even opened for work.
 
 ```mermaid
 flowchart LR
-    a["7. Models on the device"]:::root
-    a --> n0["resident"]:::c0
-    a --> n1["7. Models on the device overview"]:::c1
-    a --> n2["7. Models on the device details"]:::c2
-    a --> n3["7. Models on the device usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    tok["host: one token index"]:::host --> emb["embed"]:::gpu
+    emb --> blk["per block: rmsnorm, qkv, RoPE<br/>attention with KV cache, SwiGLU"]:::gpu
+    blk --> lg["final norm, logits row"]:::gpu
+    lg --> rd["host reads one row"]:::host
+    kv[("KV cache, weights<br/>resident on device")]:::io --- blk
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -256,17 +330,31 @@ a quantised run must match.
 ## 8. Training
 
 ```mermaid
+flowchart TD
+    s1["sync tied head"]:::gpu --> s2["QAT: snap weights to Q8_0"]:::gpu
+    s2 --> s3["forward, cross-entropy"]:::gpu --> s4["backward"]:::gpu
+    s4 --> s5["restore full-precision masters"]:::gpu
+    s5 --> s6["global-norm clip"]:::gpu --> s7["AdamW update"]:::gpu
+    s7 --> read["host reads loss and gradient norm"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
 flowchart LR
-    a["8. Training"]:::root
-    a --> n0["The loop"]:::c0
-    a --> n1["One step"]:::c1
-    a --> n2["Quantisation-aware"]:::c2
-    a --> n3["Limits today"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    tr["trainer::train<br/>windows, epochs, schedule,<br/>checkpoints, hooks"]:::core --> eng{"Engine trait<br/>step, snapshot, restore"}:::core
+    eng --> c["CPU engine"]:::cpu
+    eng --> g1["GpuTrainer<br/>GPT-2"]:::gpu
+    eng --> g2["GpuLlamaTrainer<br/>Llama, Qwen2"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -292,6 +380,22 @@ micro-batching, no QAT; the CLI's training loop is the simple shared one in `fer
 
 ## 9. Sampling and generation
 
+```mermaid
+flowchart LR
+    p["prompt tokens"]:::host --> f["feed each token"]:::gpu
+    f --> l["logits"]:::gpu --> s["sample: temperature, top-k,<br/>top-p, repetition penalty, seeded Rng"]:::core
+    s --> n{"max_new reached<br/>or context full?"}:::core
+    n -- no --> f
+    n -- yes --> out["generated tokens"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 `ferrum_model::sampling::{Params, sample}`: temperature (0 is exact argmax, first maximum wins), top-k,
 top-p and a repetition penalty over recent tokens, drawing from the seeded `Rng`. The shared
 `engine::generate_with` feeds the prompt, then samples until `max_new` tokens or a full context.
@@ -300,16 +404,30 @@ top-p and a repetition penalty over recent tokens, drawing from the seeded `Rng`
 
 ```mermaid
 flowchart LR
-    a["10. The front ends"]:::root
-    a --> n0["The auto device rule"]:::c0
-    a --> n1["Engine layer"]:::c1
-    a --> n2["CLI"]:::c2
-    a --> n3["Server"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    cli["CLI flag tables<br/>six commands, preflight"]:::host --> eng["engine layer<br/>presets, shared loop, generate_with"]:::core
+    srv["server routes<br/>Decoder trait"]:::host --> eng
+    gui["GUI page and API"]:::host --> srv
+    eng --> be["Backend: CPU or GPU"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    req["--device auto"]:::host --> w{"workload"}:::core
+    w -- training --> hw{"hardware GPU exists?"}:::core
+    hw -- yes --> gpu["GPU"]:::gpu
+    hw -- no --> cpu["CPU plus one note line"]:::cpu
+    w -- "decode, generate, serve" --> cpu2["CPU"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -336,6 +454,21 @@ flowchart LR
 were not measured.
 
 ## 11. Testing strategy (summary)
+
+```mermaid
+flowchart LR
+    ext["adapters, nvidia-smi, sysfs, Chrome"]:::io --> inj["injected inputs or fakes"]:::core
+    inj --> t["unit, functional, integration, regression"]:::core
+    t --> sk["no real adapter: skip with a printed reason"]:::cpu
+    t --> orc["GPU kernels vs the oracle on adversarial shapes"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 Unit tests per file; functional tests per feature; integration tests per module; a regression test with every
 fix. GPU kernels are tested against the oracle on adversarial shapes and with fault sweeps that pin command

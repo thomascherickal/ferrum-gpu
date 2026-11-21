@@ -22,16 +22,31 @@ repository (`ferrum_ref`), and every figure in the docs comes from a real run or
 
 ```mermaid
 flowchart LR
-    a["What it is"]:::root
-    a --> n0["train or fine-tune"]:::c0
-    a --> n1["Parity first"]:::c1
-    a --> n2["No unsafe, no outside"]:::c2
-    a --> n3["not"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    t["1 train on your text<br/>own BPE tokenizer or bytes"]:::gpu --> f["2 fine-tune<br/>gpt2, llama, qwen2 GGUF, QAT"]:::gpu
+    f --> u["3 generate, score,<br/>serve, GUI"]:::host
+    u --> e["4 export GGUF<br/>f32, Q8_0, Q4_0"]:::io
+    e --> o["llama.cpp, Ollama,<br/>LM Studio"]:::core
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    ref["CPU reference exists first<br/>ferrum_ref"]:::cpu --> k["GPU kernel added"]:::gpu
+    k --> c{"checked against the reference"}:::core
+    c -- "kernels about 1e-6" --> ok["accepted"]:::core
+    c -- "gradients vs finite differences" --> ok
+    c -- "training curves step by step" --> ok
+    c -- mismatch --> bug["a bug, not a looser tolerance"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -58,17 +73,49 @@ default).
 ## How it works
 
 ```mermaid
+flowchart TD
+    fe["CLI, server, GUI"]:::host --> en["engine layer<br/>Backend: train, generate"]:::core
+    en --> cb["CpuBackend<br/>oracle"]:::cpu
+    en --> gb["GpuBackend"]:::gpu
+    cb --> rf["ferrum_ref"]:::cpu
+    gb --> wg["ferrum_wgpu"]:::gpu
+    rf --> md["ferrum_model"]:::core
+    wg --> md
+    md --> gg["ferrum_gguf"]:::io
+    wg -. "parity checks" .-> rf
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
 flowchart LR
-    a["How it works"]:::root
-    a --> n0["ferrum_gguf"]:::c0
-    a --> n1["ferrum_ref"]:::c1
-    a --> n2["ferrum_wgpu"]:::c2
-    a --> n3["ferrum_model"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    txt["corpus text or token file"]:::io --> bpe["BPE tokenizer<br/>trained with the model"]:::core
+    bpe --> win["windows, epoch order"]:::core
+    win --> step["GPU step: forward, backward,<br/>clip, AdamW"]:::gpu
+    step --> ck["checkpoint, validation,<br/>early stop"]:::core
+    ck --> gg["GGUF with tokenizer inside"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    plan["add up weights, gradients,<br/>Adam moments, activations"]:::gpu --> lim{"fits per-buffer limit<br/>and --gpu-mem-mb?"}:::core
+    lim -- yes --> up["upload and run"]:::gpu
+    lim -- no --> adv["refuse with advice<br/>before upload"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -112,16 +159,16 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    a["What it does"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    gg["GGUF v3 in"]:::io --> mp["map to GPT-2 or Llama/Qwen2"]:::core
+    mp --> pk["weights packed on device<br/>f32, Q8_0, Q4_0"]:::gpu
+    pk --> dec["KV-cached decode<br/>or full-sequence score"]:::gpu
+    dec --> sm["sampler on the host"]:::host
+    mp --> tr["trainers on the device"]:::gpu --> out["GGUF out"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -140,16 +187,17 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    a["Quick start"]:::root
-    a --> n0["train a tiny GPT-2 model"]:::c0
-    a --> n1["The file is a GPT-2 GGUF"]:::c1
-    a --> n2["serve it --token to"]:::c2
-    a --> n3["a Llama-style byte-level"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    b["cargo build --release"]:::host --> i["ferrum-gpu info"]:::core
+    i --> tr["train --data corpus.txt --out m.gguf"]:::gpu
+    tr --> ev["eval, perplexity"]:::core
+    tr --> ge["generate --prompt"]:::gpu
+    tr --> sv["ferrum-gpu-server --model m.gguf"]:::host
+    tr --> gu["ferrum_gpu_gui"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -186,16 +234,33 @@ with several GPUs, say) only the per-buffer limit is checked.
 
 ```mermaid
 flowchart LR
-    a["Commands"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    cli["ferrum-gpu command"]:::host --> par["flag table parser<br/>unknown or repeated flag is an error"]:::core
+    par --> cmd{"command"}:::core
+    cmd --> a["info, lab"]:::io
+    cmd --> b["train, finetune-gguf, run"]:::gpu
+    cmd --> c["generate, run-gguf, eval, tokenize"]:::gpu
+    cmd --> d["export-gguf, export-ollama,<br/>export-lmstudio"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    r["--device auto"]:::host --> w{"workload"}:::core
+    w -- training --> h{"hardware GPU?"}:::core
+    h -- yes --> g["GPU"]:::gpu
+    h -- no --> c["CPU, one note line"]:::cpu
+    w -- "decode, generate, serve" --> c2["CPU"]:::cpu
+    n["--device cpu or gpu"]:::host -. "never overridden" .-> w
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -223,6 +288,22 @@ Training flags, device flags, checkpoint and resume behaviour, and what each ref
 
 ## The server
 
+```mermaid
+flowchart LR
+    cl["client request"]:::host --> g["Host and Origin guard,<br/>loopback, token"]:::core
+    g --> l["size limits<br/>checked before model work"]:::core
+    l --> rt["route: health, info, generate,<br/>loglikelihood"]:::core
+    rt --> dc["Decoder<br/>serialises calls"]:::gpu
+    dc --> rs["JSON response"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 ```bash
 ferrum-gpu-server --model m.gguf [--host 127.0.0.1] [--port 8080] [--token T] [--device cpu|gpu|auto]
 ```
@@ -235,16 +316,15 @@ non-loopback host is refused unless a token is set. Limits are checked before an
 
 ```mermaid
 flowchart LR
-    a["The desktop app"]:::root
-    a --> n0["Ferrum GPU Studio"]:::c0
-    a --> n1["The desktop app overview"]:::c1
-    a --> n2["The desktop app details"]:::c2
-    a --> n3["The desktop app usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    sc["scripts/build-apps.sh"]:::host --> di["dist/<br/>ferrum-gpu, ferrum-gpu-server,<br/>ferrum-gpu-studio"]:::io
+    st["Ferrum GPU Studio<br/>Tauri 2 window"]:::host --> pg["GUI page"]:::host
+    pg --> core["engine and commands<br/>in-process, no other binary"]:::core
+    core --> gpu["GPU or CPU"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -260,16 +340,16 @@ Linux so far; macOS and Windows builds and installers are configured in CI but n
 
 ```mermaid
 flowchart LR
-    a["The GUI"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    tabs["tabs: Datasets, Prepare, Train, Models,<br/>Fine-tune, Evaluate, Generate, Export, Serve"]:::host --> api["local JSON API<br/>loopback"]:::core
+    api --> jobs["jobs: run, progress, cancel"]:::core
+    jobs --> cmd["the same commands as the CLI"]:::gpu
+    tabs --> wb["Lab tabs<br/>run in the browser on WebGPU"]:::host
+    wb --> sh["same WGSL shaders<br/>as the native engine"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -285,17 +365,17 @@ the first run picks the adapter and thread count for the machine and saves them 
 ## Works with llama.cpp, Ollama, LM Studio and Unsloth
 
 ```mermaid
-flowchart LR
-    a["Works with llama.cpp,"]:::root
-    a --> n0["the same greedy text"]:::c0
-    a --> n1["CUDA and Vulkan"]:::c1
-    a --> n2["not tested against a real"]:::c2
-    a --> n3["Works with llama.cpp, overview"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+flowchart TD
+    ours["ferrum-gpu GGUF file"]:::io --> lc["llama.cpp<br/>same greedy text, CPU and Vulkan"]:::gpu
+    ours --> ol["Ollama<br/>export-ollama, CPU, CUDA, Vulkan"]:::gpu
+    ours --> lm["LM Studio<br/>lms import"]:::host
+    ours -. "via llama.cpp, not run" .-> un["Unsloth Studio"]:::cpu
+    lq["llama-quantize files"]:::io --> rd["load in ferrum-gpu"]:::core
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -317,16 +397,16 @@ The runs that touch `~/.lmstudio` or use the GPU through an outside tool are opt
 
 ```mermaid
 flowchart LR
-    a["What size can it run?"]:::root
-    a --> n0["capability.md"]:::c0
-    a --> n1["hardware-caps.md"]:::c1
-    a --> n2["capability.md what was"]:::c2
-    a --> n3["What size can it run? overview"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    m["model parameters"]:::host --> q{"precision"}:::core
+    q -- f32 --> f["409M and up<br/>does not fit 2 GB"]:::cpu
+    q -- "Q8_0" --> b["1.1B at 7.3 tokens/s"]:::gpu
+    q -- "Q4_0" --> c["1.1B at 10.6 tokens/s"]:::gpu
+    c --> oom["1.78B: out of memory<br/>1925 MiB plan"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -345,17 +425,20 @@ parameters. For other hardware there are hand estimates, clearly separated from 
 ## Measured on this machine
 
 ```mermaid
-flowchart LR
-    a["Measured on this machine"]:::root
-    a --> n0["Found while measuring"]:::c0
-    a --> n1["f32 does not fit the 2 GB"]:::c1
-    a --> n2["Training wins on the GPU,"]:::c2
-    a --> n3["Found while measuring the"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+xychart-beta
+    title "Q4_0 decode, tokens per second (measured, MX330)"
+    x-axis ["163M", "409M", "630M", "1.1B"]
+    y-axis "tokens/s" 0 --> 30
+    bar [24.7, 16.0, 16.6, 10.6]
+```
+
+
+```mermaid
+xychart-beta
+    title "Q4_0 decode, tokens per second (measured, Intel Xe)"
+    x-axis ["163M", "409M", "630M"]
+    y-axis "tokens/s" 0 --> 30
+    bar [14.2, 9.5, 9.9]
 ```
 
 
@@ -384,16 +467,16 @@ shape, not the values), single-stream decode, one run per row, one process per r
 
 ```mermaid
 flowchart LR
-    a["Hardware estimates"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    mem["memory size"]:::host --> use["90% discrete or 70% unified usable"]:::core
+    use --> fit["largest model that fits<br/>weights x 1.10 + 300 MB"]:::core
+    bw["memory bandwidth"]:::io --> ceil["ceiling = bandwidth / weight bytes"]:::core
+    fit --> est["estimate, not a measurement"]:::cpu
+    ceil --> est
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -423,16 +506,17 @@ ferrum-gpu has no tuned CPU inference path.
 
 ```mermaid
 flowchart LR
-    a["Testing and quality"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    f["cargo fmt"]:::core --> c["clippy -D warnings"]:::core
+    c --> t["tests in four configurations<br/>default, no GPU, llvmpipe, Intel Xe"]:::gpu
+    t --> i["interop under time limit"]:::io
+    i --> cov["coverage floor"]:::core
+    cov --> d["cargo deny"]:::core
+    d --> ok["gate passes"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -457,16 +541,13 @@ Each real external run is opt-in and logged; see [docs/interop.md](docs/interop.
 
 ```mermaid
 flowchart LR
-    a["Status"]:::root
-    a --> n0["Not run"]:::c0
-    a --> n1["Status overview"]:::c1
-    a --> n2["Status details"]:::c2
-    a --> n3["Status usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    p0["Phase 0 to 6<br/>kernels, GGUF, inference,<br/>training, GUI, CLI and server"]:::gpu --> p7["Phase 7<br/>verification matrix<br/>not started"]:::cpu
+    p7 --> a["auto default everywhere"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -483,17 +564,21 @@ Firefox, Safari, more than 2 GB of dedicated memory, any real (non-random) check
 ## Repository map
 
 ```mermaid
-flowchart LR
-    a["Repository map"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+flowchart TD
+    cli["ferrum_gpu_cli<br/>binary ferrum-gpu"]:::host --> core["ferrum_gpu_core"]:::core
+    srv["ferrum_gpu_server<br/>binary ferrum-gpu-server"]:::host --> core
+    gui["ferrum_gpu_gui<br/>web GUI"]:::host --> core
+    stu["ferrum_gpu_studio<br/>Tauri app, own workspace"]:::host --> gui
+    core --> wg["ferrum_wgpu"]:::gpu
+    core --> md["ferrum_model"]:::core
+    wg --> rf["ferrum_ref"]:::cpu
+    md --> gg["ferrum_gguf"]:::io
+    ts["tests<br/>cross-crate guards"]:::io -. checks .-> core
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -512,22 +597,6 @@ flowchart LR
 | [`tests`](tests) | Cross-crate guards (independence from ferrum-cpu, the context-window scripts, the capability tables) |
 
 ## Documentation
-
-```mermaid
-flowchart LR
-    a["Documentation"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
-```
-
-
 
 | Document | For |
 |---|---|
@@ -549,6 +618,21 @@ flowchart LR
 | [CLAUDE.md](CLAUDE.md) | The binding project rules |
 
 ## Independence from ferrum-cpu
+
+```mermaid
+flowchart LR
+    cpu["ferrum-cpu<br/>never modified"]:::cpu -. "code copied in once,<br/>with provenance header" .-> gpu["ferrum-gpu"]:::gpu
+    cpu --> fx["GGUF fixtures<br/>stored in this repo"]:::io
+    fx --> gpu
+    t["test_independence.rs"]:::core -- "no path or git dependency,<br/>no file read outside the repo" --> gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
 
 No dependency (path, git or otherwise) on ferrum-cpu, no file read outside this repository, and
 ferrum-cpu is never modified. Code that originated there is copied in with a provenance header naming the

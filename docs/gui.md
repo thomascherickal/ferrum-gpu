@@ -1,5 +1,39 @@
 # The ferrum-gpu GUI: Ferrum GPU Studio
 
+```mermaid
+flowchart LR
+    app["desktop app<br/>ferrum_gpu_studio, Tauri"]:::host --> page["the same page"]:::host
+    web["local web server<br/>SSH tunnel, browser tests"]:::host --> page
+    page --> api["loopback JSON API"]:::core
+    api --> eng["engine runs natively in Rust<br/>train, decode, export"]:::gpu
+    page -. "Lab tabs only" .-> wg["model in the tab on WebGPU"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    run["cargo run -p ferrum_gpu_gui<br/>--device, --gpu-adapter, --threads, --port"]:::host --> d{"--device"}:::core
+    d -- cpu --> cpu["CPU oracle"]:::cpu
+    d -- gpu --> g["named adapter"]:::gpu
+    d -- auto --> t{"a GPU opens?"}:::core
+    t -- yes --> g
+    t -- no --> n["CPU, and says so"]:::cpu
+    g --> url["prints http://127.0.0.1:PORT/"]:::io
+    cpu --> url
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+
 Ferrum GPU Studio is a tabbed interface to everything the command line does: prepare and tokenize text, train a GPT-2 style model with its own BPE tokenizer, fine-tune, evaluate, generate, inspect any GGUF, export it (precision, Ollama, LM Studio), serve it, work out what a machine can run, and check a GPU against the CPU reference. It is the same page in two forms: **a native desktop app** (`ferrum_gpu_studio`, below), and a local web server for headless use over an SSH tunnel and for the browser tests. It also runs a small model **in your browser tab on WebGPU** (the Lab tabs, [browser-webgpu.md](browser-webgpu.md)). The engine never runs in the page: training, decoding and the exports run natively in Rust inside the application, so the desktop window changes packaging, not speed. The plan and what was built is [gui-studio-plan.md](gui-studio-plan.md).
 
 ```
@@ -14,30 +48,61 @@ It prints `ferrum-gpu GUI: http://127.0.0.1:PORT/`; open that URL. Flags: `--por
 
 ```mermaid
 flowchart LR
-    a["The Studio shell"]:::root
-    a --> n0["Mode"]:::c0
-    a --> n1["Theme"]:::c1
-    a --> n2["jobs, inside this process"]:::c2
-    a --> n3["Stop"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    tb["tab bar<br/>arrows, Home, End"]:::host --> st["mode, theme, last tab<br/>kept in this browser only"]:::io
+    md["Beginner hides Expert tabs"]:::core --> tb
+    tt["tool-tip on hover or focus<br/>aria-describedby copy"]:::host --> tb
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
+
 
 ```mermaid
 flowchart LR
-    a["The Studio shell"]:::root
-    a --> n0["The Studio shell overview"]:::c0
-    a --> n1["The Studio shell details"]:::c1
-    a --> n2["The Studio shell usage"]:::c2
-    a --> n3["The Studio shell notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    ck["click Run"]:::host --> ap["POST to the jobs API"]:::core
+    ap --> th["job thread"]:::gpu
+    th --> fn["commands::run<br/>same function as the CLI"]:::gpu
+    fn --> rp["report line by line<br/>progress lines parsed"]:::core
+    rp --> pg["page log and chart"]:::host
+    sp["Stop raises the cancel flag"]:::cpu -. "next step or token" .-> fn
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+stateDiagram-v2
+    [*] --> running
+    running --> done: command returns
+    running --> stopped: cancel flag, model so far kept
+    running --> error: command fails
+    running --> error: panic caught, GUI survives
+    done --> [*]
+    stopped --> [*]
+    error --> [*]
+    classDef ok fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef bad fill:#fee2e2,stroke:#dc2626,color:#111
+    class done,stopped ok
+    class error bad
+```
+
+
+```mermaid
+flowchart TD
+    j["a job starts"]:::core --> o{"opens a device?<br/>info, train, finetune-gguf,<br/>run, generate, run-gguf"}:::core
+    o -- yes --> q["takes its turn<br/>adapter enumeration is single-threaded"]:::gpu
+    o -- no --> p["runs beside the others<br/>prepare, tokenize, exports"]:::io
+    w["only a fixed command list,<br/>arguments never through a shell"]:::cpu --> j
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -50,28 +115,29 @@ Long commands (prepare, tokenize, and later train, fine-tune, evaluate, export) 
 
 ```mermaid
 flowchart LR
-    a["The desktop app 2026-11-17"]:::root
-    a --> n0["in its own process"]:::c0
-    a --> n1["Not run"]:::c1
-    a --> n2["The desktop app 2026-11-17 overview"]:::c2
-    a --> n3["The desktop app 2026-11-17 details"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    win["Tauri window<br/>no native commands"]:::host --> srv["loopback server<br/>in the app's own process"]:::core
+    srv --> grd["Host and Origin guard,<br/>strict Content-Security-Policy"]:::cpu
+    grd --> pg["one page, one server"]:::host
+    srv --> eng["engine in-process"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
+
 
 ```mermaid
 flowchart LR
-    a["The desktop app 2026-11-17"]:::root
-    a --> n0["The desktop app 2026-11-17 usage"]:::c0
-    a --> n1["The desktop app 2026-11-17 notes"]:::c1
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    sc["scripts/build-studio.sh --run"]:::host --> ws["own Cargo workspace and lockfile"]:::io
+    ws --> bin["release build"]:::core
+    bin --> st["Ferrum GPU Studio window<br/>1320 x 880"]:::host
+    mm["mock-runtime tests<br/>no display needed"]:::core -. checks .-> bin
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -89,30 +155,107 @@ It is its own Cargo workspace with its own lockfile, so the Tauri dependency tre
 
 ```mermaid
 flowchart LR
-    a["What each tab does"]:::root
-    a --> n0["Browse"]:::c0
-    a --> n1["Inspect"]:::c1
-    a --> n2["Use for training"]:::c2
-    a --> n3["Use"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    ds["Datasets<br/>Inspect"]:::io -- "Use for training" --> pr["Prepare<br/>clean, dedupe, split, tokenize"]:::io
+    pr --> tr["Train<br/>BPE, live chart"]:::gpu
+    tr --> mo["Models<br/>inspect, Use"]:::core
+    mo --> ft["Fine-tune"]:::gpu
+    mo --> ev["Evaluate<br/>loss, perplexity"]:::core
+    mo --> ge["Generate"]:::gpu
+    mo --> ex["Export<br/>precision, Ollama, LM Studio"]:::io
+    mo --> sv["Serve<br/>JSON service in the app"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
+
+
+```mermaid
+flowchart TD
+    in["Train tab inputs<br/>size, run length, batch, lr, vocab"]:::host --> jb["train job"]:::gpu
+    jb --> ch["live chart<br/>loss every step, validation dots"]:::host
+    jb --> val{"validation share set?"}:::core
+    val -- yes --> es["early stopping"]:::core
+    jb --> stp["Stop"]:::cpu --> kp["keeps the model reached"]:::io
+    jb --> sv["saved precision<br/>int8, int4, f32, f16, FP4, Q2_K"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
 
 ```mermaid
 flowchart LR
-    a["What each tab does"]:::root
-    a --> n0["inside this application"]:::c0
-    a --> n1["the optional features it"]:::c1
-    a --> n2["its memory budget"]:::c2
-    a --> n3["Validation share %"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    f["pick a .gguf folder<br/>up to three levels deep"]:::io --> r["read the first 64 MiB only"]:::core
+    r --> ok{"valid GGUF v3,<br/>supported tensor types?"}:::core
+    ok -- yes --> sh["architecture, parameters,<br/>tensor types, metadata, tokenizer"]:::host
+    ok -- no --> rf["refused with the reason"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    pr["prompt"]:::host --> ch{"instruct model and not Raw?"}:::core
+    ch -- yes --> tp["wrapped in its chat template"]:::core
+    ch -- no --> dc["decoder"]:::gpu
+    tp --> dc
+    dc --> tx["only the reply is shown,<br/>apart from status lines"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    m["saved model"]:::io --> eg["export-gguf<br/>f32, int8, int4, never over the original"]:::io
+    m --> eo["export-ollama<br/>or only write the Modelfile"]:::host
+    m --> el["export-lmstudio"]:::host
+    t["page lists which of ollama and lms exist"]:::core -. gates .-> eo
+    t -. gates .-> el
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart TD
+    cfg["address, port, token, device,<br/>adapter, budget, threads"]:::host --> chk{"address beyond this computer?"}:::core
+    chk -- "no token" --> no["refused in page and server"]:::cpu
+    chk -- "token or loopback" --> srv["server inside the application<br/>one at a time"]:::gpu
+    srv --> stop["stops when the app closes"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
+
+```mermaid
+flowchart LR
+    ad["pick an adapter"]:::host --> lab["lab job"]:::gpu
+    lab --> par["GPU vs CPU reference<br/>f32, Q8_0, Q4_0, blocks"]:::core
+    lab --> sp["decode and prefill speed<br/>per precision"]:::gpu
+    lab --> js["--json report box<br/>to send back"]:::io
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -139,16 +282,16 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    a["Accessibility"]:::root
-    a --> n0["not checked"]:::c0
-    a --> n1["Accessibility overview"]:::c1
-    a --> n2["Accessibility details"]:::c2
-    a --> n3["Accessibility usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    a11["tests/a11y.rs scans the page"]:::core --> c1["language, unique ids"]:::core
+    a11 --> c2["named controls and buttons"]:::core
+    a11 --> c3["tablist, panels, table headers"]:::core
+    a11 --> c4["live regions"]:::core
+    a11 -. "not checked" .-> nc["contrast, screen readers,<br/>browser-built log and charts"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -159,16 +302,15 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    a["Tokens bytes, deliberately"]:::root
-    a --> n0["byte-level tokenizer"]:::c0
-    a --> n1["Tokens bytes, deliberately overview"]:::c1
-    a --> n2["Tokens bytes, deliberately details"]:::c2
-    a --> n3["Tokens bytes, deliberately usage"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    gui["GUI Lab models"]:::host --> by["byte-level tokenizer<br/>one token per UTF-8 byte, vocab 256"]:::core
+    by --> tt["text in, text out"]:::gpu
+    cli["CLI and server"]:::host --> bpe["BPE vocabulary, tokenizer file"]:::core
+    og["GGUF with another vocabulary"]:::io --> ld["loads and runs,<br/>text generation refused"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -179,30 +321,30 @@ The CLI and the server have BPE (Phase 6); the GUI does not, and that is a decis
 
 ```mermaid
 flowchart LR
-    a["API"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    rq["request"]:::host --> hg["Host and Origin check<br/>403 on mismatch"]:::cpu
+    hg --> lm["head 16 KiB, 64 headers,<br/>body, JSON depth limits"]:::core
+    lm --> rt["route: info, model, train,<br/>generate, model.gguf, shaders"]:::core
+    rt --> en["engine: train or generate"]:::gpu
+    en --> js["JSON, or an error object<br/>with a status code, never a crash"]:::host
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
+
 ```mermaid
-flowchart LR
-    a["API"]:::root
-    a --> n0["API overview"]:::c0
-    a --> n1["API details"]:::c1
-    a --> n2["API usage"]:::c2
-    a --> n3["API notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+stateDiagram-v2
+    [*] --> idle
+    idle --> running: POST train
+    running --> done
+    running --> stopped: POST train stop
+    running --> error
+    running --> running: second POST gets 409
+    done --> idle
+    stopped --> idle
+    error --> idle
 ```
 
 
@@ -226,17 +368,17 @@ Limits: training text 1 MiB, prompt 4096 bytes, 1024 new tokens per call, reques
 ## Security notes
 
 ```mermaid
-flowchart LR
-    a["Security notes"]:::root
-    a --> n0["127.0.0.1 only"]:::c0
-    a --> n1["no authentication"]:::c1
-    a --> n2["It listens on 127.0.0.1"]:::c2
-    a --> n3["Requests whose Host is not"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+flowchart TD
+    r["incoming request"]:::host --> b["127.0.0.1 only, no authentication"]:::core
+    b --> h["foreign Host: 403<br/>blocks DNS rebinding"]:::cpu
+    b --> o["cross-site Origin: 403"]:::cpu
+    b --> f["files by exact name from a compiled-in table<br/>dot-dot is 404"]:::io
+    b --> l["bounded heads, bodies, timeouts,<br/>JSON depth, chunked refused"]:::cpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
@@ -250,16 +392,15 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    a["Tests"]:::root
-    a --> n0["Unit tests for the HTTP"]:::c0
-    a --> n1["tests/api.rs the real"]:::c1
-    a --> n2["tests/browser_ui.rs"]:::c2
-    a --> n3["Like the rest of the"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
+    u["unit: HTTP parser, JSON,<br/>tokenizer, loops, flags"]:::core --> a["tests/api: real server over TCP<br/>CPU and GPU journeys"]:::gpu
+    a --> br["browser_ui: headless Chrome<br/>drives the real page"]:::host
+    br -. "Chrome missing" .-> sk["skipped with a printed reason"]:::cpu
+    th["--test-threads 1<br/>several GPU devices can crash drivers"]:::io -.-> a
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef io fill:#fce7f3,stroke:#db2777,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
 
