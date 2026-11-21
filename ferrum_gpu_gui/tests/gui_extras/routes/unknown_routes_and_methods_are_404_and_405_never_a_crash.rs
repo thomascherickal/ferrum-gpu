@@ -71,6 +71,6 @@ fn the_page_offers_the_tied_option_and_the_script_sends_it() {
     let a = app();
     let page = call_raw(&a, "GET", "/", &[], b"").1;
     assert!(String::from_utf8_lossy(&page).contains(r#"id="tied""#));
-    let js = call_raw(&a, "GET", "/app.js", &[], b"").1;
+    let js = call_raw(&a, "GET", "/web/app/device.js", &[], b"").1;
     assert!(String::from_utf8_lossy(&js).contains("tied: $('tied').checked"));
 }

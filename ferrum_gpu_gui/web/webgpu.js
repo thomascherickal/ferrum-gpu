@@ -1,17 +1,11 @@
 // WebGPU layer: device and limits, pipelines built from the native WGSL files (served from the
 // Rust crate that owns them, with the same `gid` prelude), buffers with the binding-size check,
 // and one command encoder per batch of dispatches.
+import { groups1d } from './webgpu/dispatch_size.js';
+import { compileKernel, fetchPrelude } from './webgpu/kernel.js';
+import { readF32 } from './webgpu/readback.js';
 
-const GROUPS_X = 65535; // the 1-D dispatch geometry the shaders' `gid()` assumes
-
-export const f32bits = (x) => { const f = new Float32Array([x]); return new Uint32Array(f.buffer)[0]; };
-
-/** Workgroup counts for a 1-D kernel over n elements (mirror of runtime::groups_1d). */
-export function groups1d(n) {
-  const g = Math.max(Math.ceil(n / 64), 1), x = Math.min(g, GROUPS_X), y = Math.ceil(g / x);
-  if (y > GROUPS_X) throw new Error(`${n} elements exceed the 1-D dispatch limit`);
-  return [x, y];
-}
+export { f32bits, groups1d } from './webgpu/dispatch_size.js';
 
 export class Gpu {
   /** Open an adapter. `options` is a GPURequestAdapterOptions ({powerPreference} or {forceFallbackAdapter}). */
@@ -45,19 +39,12 @@ export class Gpu {
     const i = this.info;
     return { vendor: i.vendor || '', architecture: i.architecture || '', description: i.description || '', fallback: !!this.adapter.isFallbackAdapter, maxStorageBufferBindingSize: this.limits.maxStorageBufferBindingSize };
   }
-
   /** Build (once) the pipeline for the native kernel `group/name`. */
   async pipeline(path) {
     let p = this.pipes.get(path);
     if (!p) {
-      if (this.prelude === null) this.prelude = await (await fetch('/shaders/prelude.wgsl')).text();
-      const r = await fetch(`/shaders/${path}.wgsl`);
-      if (!r.ok) throw new Error(`kernel ${path} is not served (${r.status})`);
-      const module = this.device.createShaderModule({ code: `${this.prelude}\n${await r.text()}` });
-      const info = await module.getCompilationInfo();
-      const errors = info.messages.filter((m) => m.type === 'error');
-      if (errors.length) throw new Error(`kernel ${path}: ${errors.map((m) => `${m.lineNum}: ${m.message}`).join('; ')}`);
-      p = await this.device.createComputePipelineAsync({ layout: 'auto', compute: { module, entryPoint: 'main' } });
+      if (this.prelude === null) this.prelude = await fetchPrelude();
+      p = await compileKernel(this.device, path, this.prelude);
       this.pipes.set(path, p);
     }
     return p;
@@ -105,17 +92,6 @@ export class Gpu {
   dispatch1d(pipe, buffers, uniform, n) { this.dispatch(pipe, buffers, uniform, groups1d(n)); }
 
   copy(src, srcOff, dst, dstOff, n) { this.encoder.copyBufferToBuffer(src, srcOff * 4, dst, dstOff * 4, n * 4); }
-
   /** Read `n` f32s from the start of `buf` (after all recorded work has been submitted). */
-  async read(buf, n) {
-    const rb = this.device.createBuffer({ size: Math.max(n * 4, 4), usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST });
-    const enc = this.device.createCommandEncoder();
-    enc.copyBufferToBuffer(buf, 0, rb, 0, n * 4);
-    this.device.queue.submit([enc.finish()]);
-    await rb.mapAsync(GPUMapMode.READ);
-    const out = new Float32Array(rb.getMappedRange().slice(0, n * 4));
-    rb.unmap(); rb.destroy();
-    if (this.lost) throw new Error(`GPU device lost: ${this.lost}`);
-    return out;
-  }
+  read(buf, n) { return readF32(this, buf, n); }
 }

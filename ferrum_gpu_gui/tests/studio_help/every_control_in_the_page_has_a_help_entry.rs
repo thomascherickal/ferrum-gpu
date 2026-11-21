@@ -4,7 +4,7 @@ use super::*;
 fn every_control_in_the_page_has_a_help_entry() {
     let ids = control_ids(&read("web/index.html"));
     assert!(ids.len() > 25, "found only {} controls", ids.len());
-    let help = help_entries(&read("web/shell/help.js"));
+    let help = help_entries(&help_source());
     let missing: Vec<&String> = ids.iter().filter(|i| !help.contains_key(*i)).collect();
     assert!(missing.is_empty(), "controls without help: {missing:?}");
 }
@@ -12,7 +12,7 @@ fn every_control_in_the_page_has_a_help_entry() {
 #[test]
 fn no_help_entry_describes_a_control_that_is_not_in_the_page() {
     let ids = control_ids(&read("web/index.html"));
-    let help = help_entries(&read("web/shell/help.js"));
+    let help = help_entries(&help_source());
     let stale: Vec<&String> = help.keys().filter(|k| !ids.contains(k)).collect();
     assert!(
         stale.is_empty(),
@@ -22,7 +22,7 @@ fn no_help_entry_describes_a_control_that_is_not_in_the_page() {
 
 #[test]
 fn each_help_text_is_a_real_explanation() {
-    for (id, (expert, beginner)) in help_entries(&read("web/shell/help.js")) {
+    for (id, (expert, beginner)) in help_entries(&help_source()) {
         assert!(
             words(&expert) >= 25,
             "{id}: expert text has {} words",

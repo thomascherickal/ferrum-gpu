@@ -71,7 +71,9 @@ fn the_device_table_has_columns_for_both() {
         String::from_utf8_lossy(&crate::support::call_raw(&a, "GET", "/", &[], b"").1).into_owned();
     assert!(html.contains("<th scope=\"col\">Features</th>"));
     assert!(html.contains("Memory budget (estimate)"));
-    let js = String::from_utf8_lossy(&crate::support::call_raw(&a, "GET", "/app.js", &[], b"").1)
-        .into_owned();
+    let js = String::from_utf8_lossy(
+        &crate::support::call_raw(&a, "GET", "/web/app/device.js", &[], b"").1,
+    )
+    .into_owned();
     assert!(js.contains("memory_budget_mib") && js.contains("a.features"));
 }

@@ -10,7 +10,12 @@ pub fn serve(path: &str) -> Option<Response> {
         p => {
             if let Some(name) = p.strip_prefix("/web/") {
                 let (_, src) = MODULES.iter().find(|(n, _)| *n == name)?;
-                ("text/javascript; charset=utf-8", src)
+                let ct = if name.ends_with(".css") {
+                    "text/css; charset=utf-8"
+                } else {
+                    "text/javascript; charset=utf-8"
+                };
+                (ct, src)
             } else {
                 let name = p.strip_prefix("/shaders/")?.strip_suffix(".wgsl")?;
                 (

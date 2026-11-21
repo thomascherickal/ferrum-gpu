@@ -29,7 +29,21 @@ fn control_ids(html: &str) -> Vec<String> {
     ids
 }
 
-/// `id -> (expert, beginner)` from help.js, whose entries are one line each.
+/// The text of every help file: `shell/help.js` and the entry tables under `shell/help/`.
+fn help_source() -> String {
+    let mut files: Vec<_> = fs::read_dir(format!("{DIR}/web/shell/help"))
+        .unwrap()
+        .map(|e| e.unwrap().path())
+        .collect();
+    files.sort();
+    let mut text = read("web/shell/help.js");
+    for f in files {
+        text.push_str(&fs::read_to_string(f).unwrap());
+    }
+    text
+}
+
+/// `id -> (expert, beginner)` from the help files, whose entries are one line each.
 fn help_entries(js: &str) -> BTreeMap<String, (String, String)> {
     let mut out = BTreeMap::new();
     for line in js.lines() {

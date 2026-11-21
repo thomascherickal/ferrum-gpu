@@ -1,32 +1,16 @@
 // The Models tab: list the GGUF files in a folder, look inside one (header, metadata, tensors), and
 // choose it as the model the other tabs use. Everything is read on the server, from the start of the file.
-import { api, withQuery, humanBytes } from '../shell/api.js';
+import { api, withQuery } from '../shell/api.js';
 import { store } from '../shell/state.js';
-import { dimsText, summaryLine, kindsText, rowMatches, timeText, tokenizerLine } from './models_view.js';
+import { summaryLine, kindsText, tokenizerLine } from './models_view.js';
+import { renderTensors, renderMeta, renderModelList } from './models_dom.js';
 
 export function mountModels(doc = document, env = {}) {
   const $ = (id) => doc.getElementById(id);
   let current = null;   // the inspected model's path
   let info = null;
 
-  const cell = (tag, text, cls) => {
-    const e = doc.createElement(tag);
-    e.textContent = text;
-    if (cls) e.className = cls;
-    return e;
-  };
-
-  function showTensors() {
-    const body = $('md-tensors');
-    body.textContent = '';
-    if (!info) return;
-    const q = $('md-filter').value;
-    for (const t of info.tensors.filter((r) => rowMatches(r, q))) {
-      const tr = doc.createElement('tr');
-      tr.append(cell('td', t.name), cell('td', dimsText(t.dims)), cell('td', t.kind), cell('td', t.bytes === null ? '–' : humanBytes(t.bytes)));
-      body.append(tr);
-    }
-  }
+  function showTensors() { renderTensors(doc, $('md-tensors'), info, $('md-filter').value); }
 
   async function inspect(path) {
     const summary = $('md-summary');
@@ -49,13 +33,7 @@ export function mountModels(doc = document, env = {}) {
     summary.textContent = summaryLine(info);
     $('md-kinds').textContent = kindsText(info.kinds);
     $('md-tokenizer').textContent = tokenizerLine(info);
-    const meta = $('md-meta');
-    meta.textContent = '';
-    for (const m of info.metadata) {
-      const tr = doc.createElement('tr');
-      tr.append(cell('td', m.key), cell('td', m.value));
-      meta.append(tr);
-    }
+    renderMeta(doc, $('md-meta'), info);
     $('md-more').textContent = info.truncated ? `The model has ${info.n_tensors} tensors; the first ${info.tensors.length} are listed.` : '';
     showTensors();
     $('md-use').disabled = false;
@@ -70,14 +48,7 @@ export function mountModels(doc = document, env = {}) {
     try {
       const r = await api(withQuery('/api/gguf/models', { dir: $('md-dir').value.trim() || undefined }), {}, env.fetch);
       note.textContent = `${r.files.length} model${r.files.length === 1 ? '' : 's'} under ${r.dir}${r.truncated ? ' (the list was cut)' : ''}`;
-      for (const f of r.files) {
-        const li = doc.createElement('li');
-        const b = cell('button', f.name, 'link');
-        b.type = 'button';
-        b.addEventListener('click', () => { $('md-file').value = f.path; inspect(f.path); });
-        li.append(b, cell('span', ` ${humanBytes(f.size)} · ${timeText(f.modified)}`, 'muted'));
-        list.append(li);
-      }
+      renderModelList(doc, list, r.files, (f) => { $('md-file').value = f.path; inspect(f.path); });
     } catch (e) {
       note.textContent = e.message;
       note.className = 'bad';

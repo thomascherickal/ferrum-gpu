@@ -1,4 +1,4 @@
-//! Runs the Node tests of the Studio's page logic (shell, jobs client, paths, argument builders).
+//! Runs every Node test of the Studio's page logic under `js_tests/` (shell, jobs client, paths, argument builders).
 //! Skips, with the reason printed, when Node is not installed.
 
 // the deadline wrapper (`timeout`) lives in the unix-only harness
@@ -30,58 +30,22 @@ fn node(name: &str) -> Option<String> {
     Some(stdout)
 }
 
-#[test]
-fn the_studio_shell_passes_its_node_tests() {
-    if let Some(out) = node("shell.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
+/// Test files other tests run themselves (they need a server or have their own harness).
+const RUN_ELSEWHERE: [&str; 2] = ["reader.test.mjs", "stop.test.mjs"];
 
 #[test]
-fn the_gpu_lab_helpers_pass_their_node_tests() {
-    if let Some(out) = node("gpulab.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_capable_tab_helpers_pass_their_node_tests() {
-    if let Some(out) = node("capable.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_export_and_serve_builders_pass_their_node_tests() {
-    if let Some(out) = node("runtime.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_models_tab_helpers_pass_their_node_tests() {
-    if let Some(out) = node("models.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_flow_tabs_logic_passes_its_node_tests() {
-    if let Some(out) = node("flow.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_train_tab_logic_passes_its_node_tests() {
-    if let Some(out) = node("train.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
-    }
-}
-
-#[test]
-fn the_studio_page_logic_passes_its_node_tests() {
-    if let Some(out) = node("studio.test.mjs") {
-        assert!(out.contains("OK "), "{out}");
+fn every_node_test_file_passes() {
+    let dir = format!("{}/js_tests", env!("CARGO_MANIFEST_DIR"));
+    let mut names: Vec<String> = std::fs::read_dir(dir)
+        .unwrap()
+        .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+        .filter(|n| n.ends_with(".test.mjs") && !RUN_ELSEWHERE.contains(&n.as_str()))
+        .collect();
+    names.sort();
+    assert!(names.len() >= 12, "found only {names:?}");
+    for name in names {
+        if let Some(out) = node(&name) {
+            assert!(out.contains("OK "), "{name}: {out}");
+        }
     }
 }

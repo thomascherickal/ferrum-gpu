@@ -12,6 +12,10 @@ pub(super) const APP: &str = include_str!("../../web/app.js");
 
 /// The embedded browser modules, by file name under `/web/`.
 pub const MODULES: &[(&str, &str)] = &[
+    (
+        "style/panels.css",
+        include_str!("../../web/style/panels.css"),
+    ),
     ("gguf.js", include_str!("../../web/gguf.js")),
     ("webgpu.js", include_str!("../../web/webgpu.js")),
     ("llama.js", include_str!("../../web/llama.js")),
@@ -94,4 +98,90 @@ pub const MODULES: &[(&str, &str)] = &[
         include_str!("../../web/shell/tooltip.js"),
     ),
     ("shell/help.js", include_str!("../../web/shell/help.js")),
+    ("app/autotest.js", include_str!("../../web/app/autotest.js")),
+    ("app/device.js", include_str!("../../web/app/device.js")),
+    ("app/dom.js", include_str!("../../web/app/dom.js")),
+    ("app/generate.js", include_str!("../../web/app/generate.js")),
+    ("app/report.js", include_str!("../../web/app/report.js")),
+    ("app/train.js", include_str!("../../web/app/train.js")),
+    (
+        "app/ui_autotest.js",
+        include_str!("../../web/app/ui_autotest.js"),
+    ),
+    (
+        "autotest/data_stages.js",
+        include_str!("../../web/autotest/data_stages.js"),
+    ),
+    ("autotest/kit.js", include_str!("../../web/autotest/kit.js")),
+    (
+        "autotest/model_stages.js",
+        include_str!("../../web/autotest/model_stages.js"),
+    ),
+    (
+        "autotest/service_stages.js",
+        include_str!("../../web/autotest/service_stages.js"),
+    ),
+    (
+        "autotest/shell_stages.js",
+        include_str!("../../web/autotest/shell_stages.js"),
+    ),
+    (
+        "autotest/train_stages.js",
+        include_str!("../../web/autotest/train_stages.js"),
+    ),
+    (
+        "files/listing.js",
+        include_str!("../../web/files/listing.js"),
+    ),
+    ("gguf/fail.js", include_str!("../../web/gguf/fail.js")),
+    ("gguf/quant.js", include_str!("../../web/gguf/quant.js")),
+    ("gguf/reader.js", include_str!("../../web/gguf/reader.js")),
+    ("llama/config.js", include_str!("../../web/llama/config.js")),
+    (
+        "llama/forward.js",
+        include_str!("../../web/llama/forward.js"),
+    ),
+    (
+        "llama/sampling.js",
+        include_str!("../../web/llama/sampling.js"),
+    ),
+    ("llama/util.js", include_str!("../../web/llama/util.js")),
+    (
+        "llama/weights.js",
+        include_str!("../../web/llama/weights.js"),
+    ),
+    (
+        "shell/help/data_and_training.js",
+        include_str!("../../web/shell/help/data_and_training.js"),
+    ),
+    (
+        "shell/help/lab_and_page.js",
+        include_str!("../../web/shell/help/lab_and_page.js"),
+    ),
+    (
+        "shell/help/models_and_serving.js",
+        include_str!("../../web/shell/help/models_and_serving.js"),
+    ),
+    ("tabs/fields.js", include_str!("../../web/tabs/fields.js")),
+    (
+        "tabs/models_dom.js",
+        include_str!("../../web/tabs/models_dom.js"),
+    ),
+    ("tabs/options.js", include_str!("../../web/tabs/options.js")),
+    (
+        "tabs/train_sections.js",
+        include_str!("../../web/tabs/train_sections.js"),
+    ),
+    (
+        "webgpu/dispatch_size.js",
+        include_str!("../../web/webgpu/dispatch_size.js"),
+    ),
+    (
+        "webgpu/kernel.js",
+        include_str!("../../web/webgpu/kernel.js"),
+    ),
+    (
+        "webgpu/readback.js",
+        include_str!("../../web/webgpu/readback.js"),
+    ),
 ];

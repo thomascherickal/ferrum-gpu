@@ -2,16 +2,7 @@
 // mistake is caught before a job is started. Pure: `{ args }` or `{ error }`, tested under node.
 
 import { QUANTS } from './train_args.js';
-
-const blank = (v) => String(v ?? '').trim() === '';
-const text = (v) => String(v ?? '').trim();
-
-function whole(v, min, max = Number.MAX_SAFE_INTEGER) {
-  const s = text(v);
-  if (!/^\d+$/.test(s)) return null;
-  const n = Number(s);
-  return n >= min && n <= max ? n : null;
-}
+import { blank, text, whole, numeric, deviceFlags } from './fields.js';
 
 /** `export-gguf`: re-write a model in another precision. */
 export function exportGgufArgs(f) {
@@ -81,31 +72,13 @@ export function serveArgs(f) {
     return { error: 'Listening beyond this computer needs a token: set one, or keep the address at 127.0.0.1.' };
   }
   if (!blank(f.host)) args.push('--host', host);
-  if (!blank(f.port)) {
-    const n = whole(f.port, 0, 65535);
-    if (n === null) return { error: 'The port must be a whole number from 0 (any free port) to 65535.' };
-    args.push('--port', String(n));
-  }
+  const bad = numeric(args, [[f.port, '--port', (v) => whole(v, 0, 65535), 'The port must be a whole number from 0 (any free port) to 65535.']]);
+  if (bad) return bad;
   if (!blank(f.token)) {
     if (/\s/.test(f.token)) return { error: 'The token must not contain spaces.' };
     args.push('--token', text(f.token));
   }
-  if (!blank(f.device) && f.device !== 'auto') {
-    if (!['cpu', 'gpu'].includes(f.device)) return { error: 'Device must be automatic, GPU or CPU.' };
-    args.push('--device', f.device);
-  }
-  if (!blank(f.adapter)) args.push('--gpu-adapter', text(f.adapter));
-  if (!blank(f.gpuMem)) {
-    const n = whole(f.gpuMem, 1);
-    if (n === null) return { error: 'The GPU memory budget must be a whole number of MiB, 1 or more.' };
-    args.push('--gpu-mem-mb', String(n));
-  }
-  if (!blank(f.threads)) {
-    const n = whole(f.threads, 1);
-    if (n === null) return { error: 'Threads must be a whole number, 1 or more.' };
-    args.push('--threads', String(n));
-  }
-  return { args };
+  return deviceFlags(f, args, { devices: ['cpu', 'gpu'], deviceMessage: 'Device must be automatic, GPU or CPU.' }) ?? { args };
 }
 
 /** One line about a tool: where it is, or why it is not. */
