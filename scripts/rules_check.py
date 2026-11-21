@@ -5,7 +5,7 @@
   scripts/rules_check.py --update         # rewrite scripts/rules-baseline.json to today's debt
   scripts/rules_check.py --report         # print every violation, recorded or not
 
-AGENTS.md allows no file over 200 lines. Existing files over the limit are recorded in the baseline
+AGENTS.md allows no file over 100 lines. Existing files over the limit are recorded in the baseline
 as debt; a file may only get shorter, and a new file may not be over at all. The baseline is the
 list of work left, not a permission.
 """
@@ -15,7 +15,10 @@ import re
 import subprocess
 import sys
 
-MAX_LINES = 200
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from rules_docs import missing_diagrams  # noqa: E402
+
+MAX_LINES = 100
 CODE = re.compile(r"\.(rs|js|mjs|py|sh|wgsl|html|css)$")
 REQUIRED = ["readme.md", "next-steps.md", "metrics.md", "test-time-report.md", "system-profile.md"]
 UPPER_OK = {"AGENTS.md", "GEMINI.md", "CLAUDE.md", "SKILL.md", "LICENSE.md"}
@@ -44,7 +47,8 @@ def violations(root, files=None):
     long = {p: n for p in files if CODE.search(p) and (n := length(root, p)) > MAX_LINES}
     names = sorted(p for p in files if bad_md_name(p))
     present = {p.lower() for p in files}
-    return {"long": long, "names": names, "missing": [r for r in REQUIRED if r not in present]}
+    return {"long": long, "names": names, "missing": [r for r in REQUIRED if r not in present],
+            "diagrams": missing_diagrams(root, files)}
 
 
 def load_baseline(root):
@@ -52,7 +56,7 @@ def load_baseline(root):
         with open(f"{root}/{BASELINE}", encoding="utf-8") as f:
             return json.load(f)
     except (OSError, ValueError):
-        return {"long": {}, "names": [], "missing": []}
+        return {"long": {}, "names": [], "missing": [], "diagrams": {}}
 
 
 def new_problems(found, base):
@@ -61,6 +65,8 @@ def new_problems(found, base):
     for p, n in sorted(found["long"].items()):
         if n > base["long"].get(p, MAX_LINES):
             out.append(f"{p}: {n} lines (limit {MAX_LINES}" + (f", recorded {base['long'][p]})" if p in base["long"] else ")"))
+    out += [f"{p}: {n} Mermaid diagram(s) missing (one per 200 words)" for p, n in sorted(found.get("diagrams", {}).items())
+            if n > base.get("diagrams", {}).get(p, 0)]
     out += [f"{p}: Markdown file names are lowercase kebab-case" for p in found["names"] if p not in base["names"]]
     out += [f"{m}: required by AGENTS.md section 4" for m in found["missing"] if m not in base["missing"]]
     return out

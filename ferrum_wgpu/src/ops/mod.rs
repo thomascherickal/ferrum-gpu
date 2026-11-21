@@ -8,7 +8,15 @@
 /// short line.
 macro_rules! pipe {
     ($gpu:expr, $name:literal) => {
-        $gpu.pipeline($name, include_str!(concat!("../shaders/", $name, ".wgsl")))
+        $gpu.pipeline(
+            $name,
+            include_str!(concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/src/shaders/",
+                $name,
+                ".wgsl"
+            )),
+        )
     };
 }
 

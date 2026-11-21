@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # AGENTS.md commit gate, the fast half (the full gate is scripts/gate.sh and is checked on push):
-#   blocks the commit on a file over 200 lines (beyond the recorded debt), a badly named Markdown file, new
+#   blocks the commit on a file over 100 lines (beyond the recorded debt), a badly named Markdown file, new
 #   duplicated code, or code `cargo fmt` would change; then refreshes metrics.md and next-steps.md and puts
 #   them in the commit. If python3 or the scripts are missing the generated files are skipped, never the checks
 #   that can run. FERRUM_SKIP_PRECOMMIT=1 skips the checks (work in progress only).

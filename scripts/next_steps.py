@@ -73,7 +73,7 @@ def build(inp):
         status(verdict == "PASS", f"1. Tests pass in every category (last gate: {verdict}" + (f"; failed: {', '.join(failed)}" if failed else "") + ")"),
         status(cov is not None and cov[0] >= 100.0, "2. Coverage is 100% " + (f"(measured {cov[0]:.2f}%, {cov[1]} lines missed)" if cov else "(no run recorded)")),
         status(minutes is not None and minutes < 30, "3. The suite runs in under 30 minutes, timings in test-time-report.md " + (f"(measured {minutes:.1f} min)" if minutes is not None else "(no report yet)")),
-        status(not long_files, f"4. No file over 200 lines ({len(long_files)} over)"),
+        status(not long_files, f"4. No file over 100 lines ({len(long_files)} over)"),
         status(inp["dups"] == 0, f"5. No duplicated code ({inp['dups']} duplicated runs recorded)"),
         status(not failed, "6. Formatters, linters and static analysis are clean (fmt, clippy, deny: see the gate)"),
         status(inp["profile"], "7. CPU and GPU profile recorded in system-profile.md"),
@@ -93,7 +93,7 @@ def build(inp):
         way.append(f"Write tests for the uncovered lines until coverage is 100%: {spots}.")
     if long_files:
         top = ", ".join(f"{p} ({n})" for p, n in sorted(long_files.items(), key=lambda kv: -kv[1])[:5])
-        way.append(f"Split the longest files into modules of at most 200 lines, then run `scripts/rules_check.py --update`: {top}.")
+        way.append(f"Split the longest files into modules of at most 100 lines, then run `scripts/rules_check.py --update`: {top}.")
     if inp["dups"]:
         way.append("Remove duplicated code (`scripts/dup_check.py --report`), then `--update`.")
     for b, n, subject in inp["unmerged"]:

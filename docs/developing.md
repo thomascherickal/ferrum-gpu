@@ -158,7 +158,7 @@ It prints a per-run test summary and the lowest-covered files to the console and
 
 | Rule | Enforced by |
 |---|---|
-| No source or test file over 200 lines; Markdown names lowercase kebab-case; the five required files exist | `scripts/rules_check.py` (pre-commit and gate). Files already over the limit are recorded as debt in `scripts/rules-baseline.json`: they may only shrink, new files may not be over. `--report` lists the debt, `--update` records progress |
+| No source or test file over 100 lines; Markdown names lowercase kebab-case; the five required files exist | `scripts/rules_check.py` (pre-commit and gate). Files already over the limit are recorded as debt in `scripts/rules-baseline.json`: they may only shrink, new files may not be over. `--report` lists the debt, `--update` records progress |
 | No duplicated code | `scripts/dup_check.py` (pre-commit and gate), same ratchet in `scripts/dup-baseline.json` |
 | Formatting, lints, static analysis | `cargo fmt --check` in pre-commit; clippy `-D warnings`, `cargo deny` in the gate |
 | 100% coverage, all tests green, suite under 30 minutes | `scripts/gate.sh` (floor 100, every test in its own process, per-test times in `test-time-report.md`) |

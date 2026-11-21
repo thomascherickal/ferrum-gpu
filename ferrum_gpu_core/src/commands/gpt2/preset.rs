@@ -1,0 +1,154 @@
+use super::*;
+
+/// A named starting size (ferrum-cpu's `--preset`).
+pub struct Preset {
+    /// Name given to `--preset`.
+    pub name: &'static str,
+    pub(super) ctx: usize,
+    pub(super) dim: usize,
+    pub(super) heads: usize,
+    pub(super) layers: usize,
+    pub(super) hidden: usize,
+    pub(super) vocab: usize,
+    pub(super) lr: f32,
+}
+
+/// `tiny` ~0.2M parameters, `small` ~1.5M, `medium` ~7M.
+pub const PRESETS: [Preset; 3] = [
+    Preset {
+        name: "tiny",
+        ctx: 64,
+        dim: 64,
+        heads: 4,
+        layers: 2,
+        hidden: 256,
+        vocab: 512,
+        lr: 1e-2,
+    },
+    Preset {
+        name: "small",
+        ctx: 128,
+        dim: 128,
+        heads: 4,
+        layers: 4,
+        hidden: 512,
+        vocab: 2048,
+        lr: 3e-3,
+    },
+    Preset {
+        name: "medium",
+        ctx: 256,
+        dim: 256,
+        heads: 8,
+        layers: 6,
+        hidden: 1024,
+        vocab: 4096,
+        lr: 1e-3,
+    },
+];
+
+/// Model sizes after presets and explicit flags.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Sizes {
+    /// Context length.
+    pub ctx: usize,
+    /// Embedding width.
+    pub dim: usize,
+    /// Attention heads.
+    pub heads: usize,
+    /// Transformer blocks.
+    pub layers: usize,
+    /// Feed-forward width.
+    pub hidden: usize,
+    /// Vocabulary size to train the tokenizer to.
+    pub vocab: usize,
+    /// Default learning rate.
+    pub lr: f32,
+}
+
+impl Sizes {
+    /// ferrum-cpu's defaults (no preset): context 16, embed 32, 4 heads, 2 blocks, hidden 64,
+    /// vocab 512, lr 0.01.
+    pub const DEFAULT: Sizes = Sizes {
+        ctx: 16,
+        dim: 32,
+        heads: 4,
+        layers: 2,
+        hidden: 64,
+        vocab: 512,
+        lr: 0.01,
+    };
+
+    /// Defaults, then the preset, then explicit flags (flag order does not matter).
+    pub fn from_flags(a: &Args) -> Result<Sizes, String> {
+        let mut s = Sizes::DEFAULT;
+        if let Some(name) = a.get("--preset") {
+            let p = PRESETS.iter().find(|p| p.name == name).ok_or_else(|| {
+                let valid: Vec<&str> = PRESETS.iter().map(|p| p.name).collect();
+                format!("unknown --preset '{name}' (valid: {})", valid.join(", "))
+            })?;
+            s = Sizes {
+                ctx: p.ctx,
+                dim: p.dim,
+                heads: p.heads,
+                layers: p.layers,
+                hidden: p.hidden,
+                vocab: p.vocab,
+                lr: p.lr,
+            };
+        }
+        s.ctx = a.num("--context", s.ctx)?;
+        s.dim = a.num("--embed", s.dim)?;
+        s.heads = a.num("--heads", s.heads)?;
+        s.layers = a.num("--blocks", s.layers)?;
+        s.hidden = a.num("--hidden", s.hidden)?;
+        s.vocab = a.num("--vocab", s.vocab)?;
+        Ok(s)
+    }
+}
+
+/// The precisions `--quant` takes, for the error message.
+pub const QUANT_NAMES: &str = "f32, f16, int8/q8_0, int4/q4_0, fp4/mxfp4, q2/q2_k";
+
+/// `--quant`: ferrum-cpu's `int8`/`int4`/`f32`, our `q8_0`/`q4_0`, and `f16`, `fp4` (MXFP4), `q2` (Q2_K).
+pub fn quant(a: &Args, default: &str) -> Result<Quant, String> {
+    let v = a.get("--quant").unwrap_or(default);
+    Quant::parse(v).ok_or_else(|| format!("--quant: unknown '{v}' ({QUANT_NAMES})"))
+}
+
+/// Model-size flags.
+pub const SIZE_FLAGS: [Flag; 7] = [
+    val("--preset"),
+    val("--context"),
+    val("--embed"),
+    val("--heads"),
+    val("--blocks"),
+    val("--hidden"),
+    val("--vocab"),
+];
+
+/// Training-only flags of the GPT-2 path (`--arch llama` refuses them).
+pub const TRAIN_FLAGS: [Flag; 22] = [
+    val("--epochs"),
+    val("--tokens"),
+    val("--weight_decay"),
+    val("--dropout"),
+    val("--stride"),
+    switch("--cosine"),
+    val("--warmup"),
+    val("--clip"),
+    switch("--tie"),
+    switch("--no-qat"),
+    val("--tokenizer"),
+    val("--checkpoint"),
+    val("--checkpoint-every"),
+    val("--resume"),
+    val("--val"),
+    val("--patience"),
+    val("--max-seconds"),
+    val("--metrics-csv"),
+    switch("--verbose"),
+    switch("--debug"),
+    switch("--sample"),
+    switch("--force"),
+];
