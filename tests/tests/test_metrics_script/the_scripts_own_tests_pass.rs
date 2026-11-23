@@ -64,6 +64,15 @@ fn coverage_and_the_gate_feed_metrics_md() {
     ] {
         assert!(commit.contains(script), "pre-commit runs {script}");
     }
+    assert!(
+        commit.contains("gate_key.py --check"),
+        "the gate runs before every commit"
+    );
+    assert!(
+        read("scripts/gate.sh").contains("gate_key.py"),
+        "the gate records its key"
+    );
+    assert!(read("AGENTS.md").contains("The gate runs before every commit"));
     assert!(read("scripts/githooks/pre-push").contains("gate_ok.py"));
     // a merge keeps our side of metrics.md: the next commit refreshes it
     assert!(read(".gitattributes").contains("metrics.md merge=ours"));

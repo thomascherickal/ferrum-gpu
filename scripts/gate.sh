@@ -25,6 +25,7 @@ export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}"
 # no `rm` (the command ban list): files are overwritten, and a run is "not done" until gate.done says so
 echo RUNNING > "$OUT/gate.done"
 PROFILE="$OUT/profile-$$.csv"
+python3 scripts/gate_key.py > "$OUT/key"  # what the pre-commit hook compares (scripts/gate_key.py)
 echo "start rc=0 $(date +%T)" > "$OUT/gate.txt"
 if [ -z "$(git status --porcelain -- . ':!metrics.md' ':!next-steps.md' ':!test-time-report.md' ':!system-profile.md')" ]; then
   git rev-parse HEAD > "$OUT/commit"

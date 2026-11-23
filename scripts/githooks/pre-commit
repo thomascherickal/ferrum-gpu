@@ -6,10 +6,24 @@
 #   that can run. FERRUM_SKIP_PRECOMMIT=1 skips the checks (work in progress only).
 # Generated and staged on every commit: metrics.md, the measured block of readme.md, Mermaid diagrams missing
 # from documentation pages (scripts/docs_diagrams.py), next-steps.md.
+# The gate before every commit: skipped only with FERRUM_SKIP_GATE=1, which AGENTS.md reserves for the commit
+# that installs this rule and for commits that change no code.
 # Enable once per clone:  git config core.hooksPath scripts/githooks
 root=$(git rev-parse --show-toplevel) || exit 0
 cd "$root" || exit 0
 command -v python3 >/dev/null || exit 0
+# AGENTS.md: the gate passes before every commit. A passing gate must exist for exactly the staged content
+# (generated reports apart); if there is none, run the gate now and block the commit unless it passes.
+if [ "${FERRUM_SKIP_GATE:-}" != 1 ] && [ -f scripts/gate_key.py ]; then
+  python3 scripts/gate_key.py --check
+  case $? in
+    0) ;;
+    3) echo "pre-commit: commit blocked (stage everything first: git add -A)" >&2; exit 1 ;;
+    *) echo "pre-commit: running scripts/gate.sh (about 20 to 30 minutes)" >&2
+       env -u GIT_INDEX_FILE -u GIT_DIR -u GIT_WORK_TREE -u GIT_PREFIX scripts/gate.sh >&2
+       python3 scripts/gate_key.py --check || { echo "pre-commit: commit blocked, the gate did not pass" >&2; exit 1; } ;;
+  esac
+fi
 if [ "${FERRUM_SKIP_PRECOMMIT:-}" != 1 ]; then
   fail=0
   [ -f scripts/rules_check.py ] && { python3 scripts/rules_check.py || fail=1; }

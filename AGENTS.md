@@ -19,6 +19,7 @@ Project-wide rules and automation standards for all coding agents and contributo
 - **Test Suite Runtime Limit**: Optimize the complete test suite so that it never takes more than **30 minutes** to run.
 - **Live Test Timing**: Maintain `test-time-report.md` in every repository to record live execution times for all tests and suites, flagging slow tests for optimization.
 - **Commit Gate**: Enforce a commit/CI gate that blocks commits and merges if any test fails, if code coverage drops below 100%, or if the test suite exceeds the 30-minute limit.
+- **Gate before every commit**: `scripts/gate.sh` must pass on the exact content being committed (see project rule 19).
 
 ## 2. Code Quality, Modularity & Optimization
 
@@ -213,3 +214,15 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     and adds it to every commit, `scripts/coverage.sh` rewrites its coverage section and `scripts/gate.sh` its gate
     section. In a clone or worktree where the hook is not active, run `python3 scripts/metrics.py --next-commit` before
     committing. Nothing in it is estimated; a number that cannot be read shows as "-".
+19. **The gate runs before every commit (user decision 2026-11-23).** No commit is made until `scripts/gate.sh`
+    (fmt, clippy `-D warnings`, rules, duplicates, script tests, the tests on every adapter configuration, every
+    test in its own process, coverage, `cargo deny`, the desktop app) has passed on exactly the content being
+    committed. Workflow: stage everything (`git add -A`), run `scripts/gate.sh`, and commit only when it ends in
+    PASS; the pre-commit hook checks this with `scripts/gate_key.py --check` (a hash of the staged content,
+    leaving out the generated reports `metrics.md`, `next-steps.md`, `test-time-report.md` and
+    `system-profile.md`, which the gate and the hook rewrite by design) and, when there is no passing gate for
+    that content, runs the gate itself and blocks the commit unless it passes. Content changed after the gate
+    (including an unstaged edit) needs a new run. `FERRUM_SKIP_GATE=1` skips the check only for the commit that
+    installed this rule and for commits that change no code (documentation or generated files alone); never use it
+    to commit code that has not been gated. Batch related changes into one commit: a gate run takes about 20 to
+    30 minutes.
