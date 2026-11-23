@@ -12,6 +12,17 @@ pub fn write(
     meta: &TokenFileMeta,
     produce: impl FnOnce(&mut TokenSink) -> Result<(), String>,
 ) -> Result<TokenFileStats, String> {
+    write_boxed(path, meta, Box::new(produce))
+}
+
+type Producer<'a> = Box<dyn FnOnce(&mut TokenSink) -> Result<(), String> + 'a>;
+
+/// [`write`] with the producer boxed, so its body is compiled once and not per closure type.
+fn write_boxed(
+    path: &str,
+    meta: &TokenFileMeta,
+    produce: Producer<'_>,
+) -> Result<TokenFileStats, String> {
     if meta.vocab_size == 0 || meta.vocab_size > i32::MAX as usize {
         return Err(format!("vocab_size {} out of range", meta.vocab_size));
     }

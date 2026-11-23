@@ -7,7 +7,7 @@
 #   <step>.log the output of each step
 # Steps: fmt, clippy, the repository rules (file length, names, required files), duplicate code, the script
 # tests, the GPU crates' tests on llvmpipe and on the Intel Xe adapter, every test in its own process (this
-# is also the live timing for test-time-report.md; interop has its limit), coverage (summary floor 98, and zero lines uncovered by scripts/lcov_check.py; its two
+# is also the live timing for test-time-report.md; interop has its limit), coverage (summary floor 100, and zero lines uncovered by scripts/lcov_check.py; its two
 # runs are the whole workspace on the default adapter and on no adapter), cargo deny, and the desktop app
 # (its own workspace): fmt, clippy, tests, deny. CPU and GPU usage is sampled throughout (system-profile.md).
 #   scripts/gate.sh                 # run from the repository (or worktree) root
@@ -53,7 +53,7 @@ FERRUM_GPU_ADAPTER=llvmpipe step llvmpipe cargo test $ADAPTER_CRATES -- --test-t
 FERRUM_GPU_ADAPTER="Iris(R) Xe Graphics (TGL GT2)" step xe cargo test $ADAPTER_CRATES -- --test-threads 1
 step timelimit env TIMES_OUT="$OUT/test-times.txt" scripts/test-time-limit.sh 0
 step timing python3 scripts/timing_report.py "$OUT/test-times.txt"
-FLOOR=98 step coverage scripts/coverage.sh
+FLOOR=100 step coverage bash scripts/coverage.sh
 step deny cargo deny check
 FERRUM_GPU_ADAPTER=no-such-adapter step studio bash -c "cd ferrum_gpu_studio && cargo fmt --check && cargo clippy --all-targets --locked -- -D warnings && cargo test --locked -- --test-threads 1"
 step studiodeny cargo deny --manifest-path ferrum_gpu_studio/Cargo.toml check

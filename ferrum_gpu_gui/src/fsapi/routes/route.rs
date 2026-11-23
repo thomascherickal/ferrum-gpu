@@ -9,7 +9,7 @@ pub fn route(req: &Request) -> Response {
         "/api/fs/list" => {
             let dir = match req.param("dir") {
                 Some(d) if !d.is_empty() => PathBuf::from(d),
-                _ => std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+                _ => ferrum_gpu_core::places::cwd_or_dot(),
             };
             if dir.to_string_lossy().contains('\0') {
                 return Response::error(400, "dir contains a NUL byte");

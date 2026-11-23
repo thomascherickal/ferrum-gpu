@@ -1,0 +1,11 @@
+# Test runner settings for `cargo nextest` (used by scripts/coverage.sh; plain `cargo test` ignores this file).
+# Every test runs in its own process. Packages that open a GPU adapter run one at a time, because several
+# adapters opened at once crash some drivers (llvmpipe included: a SIGSEGV seen here); every other package runs
+# in parallel on all cores.
+
+[test-groups]
+gpu-serial = { max-threads = 1 }
+
+[[profile.default.overrides]]
+filter = 'package(ferrum_wgpu) | package(ferrum_gpu_core) | package(ferrum_gpu_gui) | package(ferrum_gpu_cli) | package(ferrum_gpu_server)'
+test-group = 'gpu-serial'

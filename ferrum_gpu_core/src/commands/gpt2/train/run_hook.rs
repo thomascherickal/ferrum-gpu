@@ -4,12 +4,17 @@ use super::*;
 fn metrics_csv(a: &Args) -> Result<Option<Box<dyn Write>>, String> {
     a.get("--metrics-csv")
         .map(|p| {
-            let mut f = std::fs::File::create(p).map_err(|e| format!("{p}: {e}"))?;
-            f.write_all(b"step,epoch,loss,lr,grad_norm,tokens_per_sec,elapsed\n")
-                .map_err(|e| format!("{p}: {e}"))?;
-            Ok::<_, String>(Box::new(f) as Box<dyn Write>)
+            let f = std::fs::File::create(p).map_err(|e| format!("{p}: {e}"))?;
+            Ok::<_, String>(Box::new(with_header(f, p)?) as Box<dyn Write>)
         })
         .transpose()
+}
+
+/// Write the metrics header row to `w`, which is the file `p`.
+pub(super) fn with_header<W: Write>(mut w: W, p: &str) -> Result<W, String> {
+    w.write_all(b"step,epoch,loss,lr,grad_norm,tokens_per_sec,elapsed\n")
+        .map_err(|e| format!("{p}: {e}"))?;
+    Ok(w)
 }
 
 /// What the loop knows about the run when it starts.

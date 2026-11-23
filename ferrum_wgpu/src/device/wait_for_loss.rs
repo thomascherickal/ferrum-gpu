@@ -24,10 +24,8 @@ impl Gpu {
             required_limits: limits.clone(),
             ..Default::default()
         };
-        let (device, queue) = stage(
-            block_on(adapter.request_device(&desc)),
-            "request_device failed",
-        )?;
+        let requested = block_on(adapter.request_device(&desc));
+        let (device, queue) = stage(requested, "request_device failed")?;
         // Device loss and uncaptured errors are recorded, never allowed to abort the process.
         let health = Arc::new(Mutex::new(None));
         let h = Arc::clone(&health);
@@ -49,8 +47,8 @@ impl Gpu {
             pipelines_built: AtomicUsize::new(0),
             buffers_created: AtomicUsize::new(0),
             batch: Mutex::new(None),
-            #[cfg(test)]
-            fault_after: AtomicUsize::new(usize::MAX),
+            #[cfg(any(test, feature = "fault-injection"))]
+            faults: Faults::default(),
         })
     }
 

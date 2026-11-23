@@ -12,6 +12,7 @@ use helpers::*;
 use http::*;
 use journey::*;
 
+mod a_file_that_is_not_a_model_is_refused_on_import;
 mod a_run_can_be_stopped_and_keeps_its_partial_weights;
 mod bad_input_gets_a_clear_error_and_never_a_crash;
 mod info_describes_the_device_the_models_and_the_limits;

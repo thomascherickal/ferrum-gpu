@@ -13,7 +13,10 @@ pub mod memory;
 pub mod runtime;
 pub mod select;
 pub mod tensor;
-pub(crate) use gpuerror::err;
+#[cfg(any(test, feature = "fault-injection"))]
+pub(crate) use runtime::Faults;
+mod error_from_text;
+pub(crate) use error_from_text::err;
 mod stage;
 pub use gpuerror::*;
 pub(crate) use stage::stage;

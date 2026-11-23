@@ -4,7 +4,7 @@ use super::*;
 pub fn start(app: Arc<App>, port: u16) -> Result<Running, String> {
     let listener = TcpListener::bind(("127.0.0.1", port))
         .map_err(|e| format!("cannot listen on port {port}: {e}"))?;
-    let addr = listener.local_addr().map_err(|e| e.to_string())?;
+    let addr = ferrum_gpu_core::error_text::text(listener.local_addr())?;
     let stop = Arc::new(AtomicBool::new(false));
     let handler: Handler = Arc::new(move |req| route(&app, req));
     let s = stop.clone();

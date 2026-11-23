@@ -35,7 +35,7 @@ impl Decoder for ModelDecoder {
         if r.top_p != 1.0 || r.repetition_penalty != 1.0 {
             return Err("top_p and repetition_penalty are only supported for GPT-2 models".into());
         }
-        let _g = self.gate.lock().unwrap_or_else(|e| e.into_inner());
+        let _g = crate::sync::lock(&self.gate);
         let opts = GenOpts {
             max_new: r.max_new,
             temperature: r.temperature,
@@ -50,7 +50,7 @@ impl Decoder for ModelDecoder {
 
     // ponytail: scoring runs on the CPU oracle; use GpuLlama::score if it becomes the bottleneck.
     fn score(&self, ids: &[usize]) -> Result<Vec<(f32, bool)>, String> {
-        let _g = self.gate.lock().unwrap_or_else(|e| e.into_inner());
+        let _g = crate::sync::lock(&self.gate);
         Ok(logprobs(
             &self.model.forward_logits(ids)?,
             self.model.cfg.vocab,

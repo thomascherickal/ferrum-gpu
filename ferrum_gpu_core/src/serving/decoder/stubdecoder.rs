@@ -22,7 +22,7 @@ impl Decoder for Gpt2Decoder {
     }
 
     fn complete(&self, prompt: &str, r: &GenReq) -> Result<(String, usize), String> {
-        let _g = self.gate.lock().unwrap_or_else(|e| e.into_inner());
+        let _g = crate::sync::lock(&self.gate);
         let mut feed = self.backend.gpt2_decoder(&self.model)?;
         let o = Opts {
             max_new: r.max_new,
@@ -49,7 +49,7 @@ impl Decoder for Gpt2Decoder {
 
     // ponytail: scoring runs on the CPU oracle, like the Llama path.
     fn score(&self, ids: &[usize]) -> Result<Vec<(f32, bool)>, String> {
-        let _g = self.gate.lock().unwrap_or_else(|e| e.into_inner());
+        let _g = crate::sync::lock(&self.gate);
         Ok(logprobs(
             &self.model.forward_logits(ids)?,
             self.model.cfg.vocab,

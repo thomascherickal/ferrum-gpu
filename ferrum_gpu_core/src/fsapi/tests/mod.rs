@@ -2,6 +2,7 @@
 
 mod list;
 mod preview;
+mod preview_unreadable;
 mod stat;
 
 pub(crate) mod support {

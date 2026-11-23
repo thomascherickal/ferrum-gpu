@@ -3,6 +3,8 @@ use super::*;
 impl Gpu {
     /// A zero-filled buffer of `len` f32 (at least 4 bytes are allocated).
     pub fn zeros(&self, len: usize) -> Result<GpuBuf, GpuError> {
+        #[cfg(any(test, feature = "fault-injection"))]
+        self.injected_alloc_fault()?;
         let bytes = (len.max(1) * 4) as u64;
         if bytes > self.info().max_binding {
             return Err(GpuError(format!(
@@ -37,13 +39,19 @@ impl Gpu {
     /// Upload `data` into a new buffer.
     pub fn upload(&self, data: &[f32]) -> Result<GpuBuf, GpuError> {
         let b = self.zeros(data.len())?;
-        if !data.is_empty() {
-            self.scoped(|| {
-                self.queue
-                    .write_buffer(&b.buf, 0, bytemuck::cast_slice(data))
-            })?;
-        }
+        self.write_host(&b, data)?;
         Ok(b)
+    }
+
+    /// Write `data` (the buffer's length) into `b`; nothing to do for an empty buffer.
+    fn write_host(&self, b: &GpuBuf, data: &[f32]) -> Result<(), GpuError> {
+        if data.is_empty() {
+            return Ok(());
+        }
+        self.scoped(|| {
+            self.queue
+                .write_buffer(&b.buf, 0, bytemuck::cast_slice(data))
+        })
     }
 
     /// Overwrite an existing buffer with `data` (same length).
@@ -60,12 +68,6 @@ impl Gpu {
                 "copy_from_host while a batch is recording: end the batch first".into(),
             ));
         }
-        if !data.is_empty() {
-            self.scoped(|| {
-                self.queue
-                    .write_buffer(&b.buf, 0, bytemuck::cast_slice(data))
-            })?;
-        }
-        Ok(())
+        self.write_host(b, data)
     }
 }

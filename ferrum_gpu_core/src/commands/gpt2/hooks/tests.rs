@@ -65,3 +65,13 @@ fn only_the_first_write_failure_is_kept() {
     r.note("b".into());
     assert_eq!(r.error.as_deref(), Some("closed"));
 }
+
+#[test]
+fn a_cancelled_request_stops_the_run_after_the_step() {
+    let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(true));
+    let _scope = crate::cancel::install(flag);
+    let mut sink = Vec::new();
+    let mut r = run(&mut sink, None, false);
+    assert!(!r.on_step(1, &STATS));
+    assert_eq!(r.reason.as_deref(), Some("cancelled; stopped after step 1"));
+}

@@ -10,7 +10,7 @@ impl Drop for Slot<'_> {
 pub fn start(d: Arc<dyn Decoder>, cfg: &Config) -> Result<Running, String> {
     let listener = TcpListener::bind((cfg.host.as_str(), cfg.port))
         .map_err(|e| format!("cannot listen on {}:{}: {e}", cfg.host, cfg.port))?;
-    let addr = listener.local_addr().map_err(|e| e.to_string())?;
+    let addr = crate::error_text::text(listener.local_addr())?;
     let stop = Arc::new(AtomicBool::new(false));
     let (token, limits, inflight) = (cfg.token.clone(), cfg.limits.clone(), AtomicUsize::new(0));
     let cap = cfg.max_inflight;

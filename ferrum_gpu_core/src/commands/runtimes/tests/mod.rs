@@ -39,3 +39,4 @@ mod export_lmstudio_imports_then_waits_for_the_listing;
 mod only_gpt2_files_are_exported_and_inputs_are_checked;
 mod the_modelfile_matches_ferrum_cpus_text;
 mod tools_are_found_in_flag_env_path_then_home_order;
+mod unusable_inputs_and_unwritable_outputs_are_named;

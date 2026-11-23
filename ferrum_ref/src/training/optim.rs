@@ -5,8 +5,9 @@
 //! optimizer kernels).
 use crate::gpt2::Gpt2;
 mod adam;
-pub(crate) use adam::AdamLists;
+mod adam_step;
 pub use adam::*;
+pub(crate) use adam_step::AdamLists;
 mod clip_grad_norm;
 pub use clip_grad_norm::*;
 

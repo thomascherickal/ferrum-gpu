@@ -2,7 +2,7 @@ use super::head::{parse_head, read_head};
 use super::*;
 
 /// Read one request from `r`, refusing heads over [`MAX_HEAD`] and bodies over `max_body`.
-pub fn read_request(r: &mut impl Read, max_body: usize) -> Result<Request, HttpError> {
+pub fn read_request(r: &mut dyn Read, max_body: usize) -> Result<Request, HttpError> {
     let (method, path, query, headers) = parse_head(&read_head(r)?)?;
     let find = |n: &str| headers.iter().find(|(k, _)| k == n).map(|(_, v)| v.clone());
     if find("transfer-encoding").is_some() {

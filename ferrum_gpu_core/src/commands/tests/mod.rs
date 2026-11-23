@@ -29,6 +29,7 @@ fn corpus(d: &std::path::Path) -> String {
 
 mod budget;
 mod decoder_plan;
+mod files_and_outputs_that_fail_are_named;
 mod fixtures;
 mod gpu_weights_names_parse_and_unknown_ones_list_the_choices;
 mod help_and_unknown_commands;

@@ -36,7 +36,7 @@ pub fn route(req: &Request) -> Response {
         "/api/gguf/models" => {
             let dir = clean(req.param("dir"))
                 .map(PathBuf::from)
-                .unwrap_or_else(|| std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")));
+                .unwrap_or_else(ferrum_gpu_core::places::cwd_or_dot);
             match scan(&dir) {
                 Ok((files, truncated)) => Response::json(
                     200,

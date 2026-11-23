@@ -54,7 +54,11 @@ fn a_lazy_source_trains_exactly_like_the_same_tokens_in_memory() {
     assert_eq!(a.calls, b.calls, "the same batches in the same order");
     // a slice and a boxed trait object work too
     let mut s = Mock::default();
-    train(&mut s, &toks[..], &c, None, None, &mut NoHooks).unwrap();
+    let slice = Prefix {
+        inner: &toks[..],
+        len: toks.len(),
+    };
+    train(&mut s, &slice, &c, None, None, &mut NoHooks).unwrap();
     let dynamic: &dyn TokenSource = &Lazy(60);
     train(&mut Mock::default(), dynamic, &c, None, None, &mut NoHooks).unwrap();
     assert_eq!(s.calls, a.calls);

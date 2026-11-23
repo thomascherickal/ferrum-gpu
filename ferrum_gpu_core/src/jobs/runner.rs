@@ -66,25 +66,31 @@ pub fn spawn(run: Arc<RunFn>, job: Arc<Job>) -> Result<(), String> {
     let argv: Vec<String> = std::iter::once(job.cmd.clone())
         .chain(job.args.iter().cloned())
         .collect();
-    thread::Builder::new()
-        .name(format!("job-{}", job.id))
-        .spawn(move || {
-            let _cancel = crate::cancel::install(job.cancel.clone());
-            let mut sink = LineSink::new(job.clone());
-            let result = catch_unwind(AssertUnwindSafe(|| run(&argv, &mut sink)));
-            sink.finish();
-            match result {
-                Ok(Ok(())) => job.finish(State::Ended(0)),
-                Ok(Err(e)) => {
-                    job.push(true, e);
-                    job.finish(State::Ended(2));
+    started(
+        thread::Builder::new()
+            .name(format!("job-{}", job.id))
+            .spawn(move || {
+                let _cancel = crate::cancel::install(job.cancel.clone());
+                let mut sink = LineSink::new(job.clone());
+                let result = catch_unwind(AssertUnwindSafe(|| run(&argv, &mut sink)));
+                sink.finish();
+                match result {
+                    Ok(Ok(())) => job.finish(State::Ended(0)),
+                    Ok(Err(e)) => {
+                        job.push(true, e);
+                        job.finish(State::Ended(2));
+                    }
+                    Err(p) => {
+                        job.push(true, format!("panicked: {}", panic_text(p.as_ref())));
+                        job.finish(State::Ended(101));
+                    }
                 }
-                Err(p) => {
-                    job.push(true, format!("panicked: {}", panic_text(p.as_ref())));
-                    job.finish(State::Ended(101));
-                }
-            }
-        })
-        .map(|_| ())
+            }),
+    )
+}
+
+/// `Ok` when the job's thread started; the reason it did not otherwise.
+pub(in crate::jobs) fn started(r: std::io::Result<thread::JoinHandle<()>>) -> Result<(), String> {
+    r.map(|_| ())
         .map_err(|e| format!("cannot start a thread for the job: {e}"))
 }

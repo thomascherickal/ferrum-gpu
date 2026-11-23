@@ -7,9 +7,7 @@ pub const MAX_RUNNING: usize = 4;
 /// Most jobs remembered; the oldest finished ones are forgotten first.
 pub const MAX_KEPT: usize = 50;
 
-pub(super) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
+pub(super) use crate::sync::lock;
 
 /// A command runner: the argument list (command name first) and where to write the report.
 /// The default is [`crate::commands::run`]; tests give a fake.

@@ -35,6 +35,8 @@ impl Gpu {
         if b.len == 0 {
             return Ok(Vec::new());
         }
+        #[cfg(any(test, feature = "fault-injection"))]
+        self.injected_read_fault()?;
         let bytes = (b.len * 4) as u64;
         let staging = self.scoped(|| {
             let staging = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -52,10 +54,8 @@ impl Gpu {
         staging.slice(..).map_async(wgpu::MapMode::Read, move |r| {
             let _ = tx.send(r);
         });
-        stage(
-            self.device.poll(wgpu::PollType::wait_indefinitely()),
-            "poll failed",
-        )?;
+        let polled = self.device.poll(wgpu::PollType::wait_indefinitely());
+        stage(polled, "poll failed")?;
         stage(stage(rx.recv(), "map callback lost")?, "map failed")?;
         let view = stage(staging.slice(..).get_mapped_range(), "mapped range")?;
         let out = bytemuck::cast_slice::<u8, f32>(&view).to_vec();

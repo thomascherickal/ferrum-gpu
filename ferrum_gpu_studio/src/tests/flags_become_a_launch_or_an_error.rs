@@ -1,6 +1,5 @@
 use super::*;
 
-
 #[test]
 fn flags_become_a_launch_or_an_error() {
     assert!(matches!(launch(&[]), Ok(Launch::Start(a)) if a.is_empty()));

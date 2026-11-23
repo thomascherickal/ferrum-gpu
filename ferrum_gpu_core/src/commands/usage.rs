@@ -54,6 +54,6 @@ pub(super) static ONE_AT_A_TIME: std::sync::Mutex<()> = std::sync::Mutex::new(()
 /// Run `args` (without the program name), writing the report to `out`.
 pub fn run(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     #[cfg(test)]
-    let _turn = ONE_AT_A_TIME.lock().unwrap_or_else(|e| e.into_inner());
+    let _turn = crate::sync::lock(&ONE_AT_A_TIME);
     dispatch(args, out)
 }

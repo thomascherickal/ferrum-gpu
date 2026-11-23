@@ -3,7 +3,7 @@ use super::*;
 type Pairs = Vec<(String, String)>;
 
 /// Read bytes up to and including the blank line that ends the head.
-pub(super) fn read_head(r: &mut impl Read) -> Result<Vec<u8>, HttpError> {
+pub(super) fn read_head(r: &mut dyn Read) -> Result<Vec<u8>, HttpError> {
     let mut head = Vec::new();
     let mut byte = [0u8; 1];
     loop {

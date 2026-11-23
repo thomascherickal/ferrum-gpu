@@ -3,7 +3,7 @@
 //! ([`boot`](super::boot::boot)) and keeps the status lines it printed.
 use super::boot::{boot, Booted};
 use std::io::Write;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 mod max_lines;
 pub use max_lines::*;

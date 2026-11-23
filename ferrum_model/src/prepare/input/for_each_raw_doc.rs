@@ -9,6 +9,19 @@ pub(crate) fn for_each_raw_doc(
     total: &mut u64,
     mut f: impl FnMut(&[u8], u64) -> Result<(), String>,
 ) -> Result<(), String> {
+    split_raw_docs(path, sep, hasher, total, &mut f)
+}
+
+type DocCallback<'a> = dyn FnMut(&[u8], u64) -> Result<(), String> + 'a;
+
+/// [`for_each_raw_doc`] with the callback behind a pointer, so the body is compiled once.
+fn split_raw_docs(
+    path: &Path,
+    sep: &str,
+    hasher: &mut Sha256,
+    total: &mut u64,
+    f: &mut DocCallback<'_>,
+) -> Result<(), String> {
     let mut file =
         std::fs::File::open(path).map_err(|e| format!("cannot open {}: {e}", path.display()))?;
     let sep = sep.as_bytes();

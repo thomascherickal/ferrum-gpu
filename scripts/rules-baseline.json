@@ -1,9 +1,6 @@
 {
  "diagrams": {},
- "long": {
-  "ferrum_ref/src/training/optim/adam.rs": 116,
-  "ferrum_wgpu/src/device/gpuerror.rs": 104
- },
+ "long": {},
  "missing": [
   "system-profile.md"
  ],

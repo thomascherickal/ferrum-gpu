@@ -33,3 +33,6 @@ pub use pipeline::train;
 use run_hook::*;
 use settings::*;
 use tokenizer::*;
+
+#[cfg(test)]
+mod tests;

@@ -1,6 +1,5 @@
 use super::*;
 
-
 /// Start the app: parse the flags, open the device, serve, open the window, and stop the server when
 /// the app exits.
 pub fn run() {

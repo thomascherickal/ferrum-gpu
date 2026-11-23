@@ -93,12 +93,8 @@ pub struct Gpu {
     pub(crate) buffers_created: AtomicUsize,
     /// The open command batch, if any (see `Gpu::begin_batch`).
     pub(crate) batch: Mutex<Option<wgpu::CommandEncoder>>,
-    /// Test-only fault injection: commands left to run before every later one fails.
-    #[cfg(test)]
-    pub(crate) fault_after: AtomicUsize,
-}
-
-/// A [`GpuError`] from any message; the one place the engine builds one from text.
-pub(crate) fn err(message: impl Into<String>) -> GpuError {
-    GpuError(message.into())
+    /// Fault injection (tests, or the `fault-injection` feature): how many commands and reads may
+    /// still succeed.
+    #[cfg(any(test, feature = "fault-injection"))]
+    pub(crate) faults: Faults,
 }

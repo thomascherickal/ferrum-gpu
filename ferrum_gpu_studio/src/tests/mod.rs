@@ -6,7 +6,6 @@ use std::net::TcpStream;
 use std::time::Duration;
 use tauri::test::{mock_builder, mock_context, noop_assets};
 
-
 fn args(s: &str) -> Vec<String> {
     s.split_whitespace().map(String::from).collect()
 }
@@ -29,5 +28,5 @@ fn get(port: u16, path: &str) -> String {
     out
 }
 
-mod the_main_window_shows_the_page_of_the_in_process_server;
 mod flags_become_a_launch_or_an_error;
+mod the_main_window_shows_the_page_of_the_in_process_server;

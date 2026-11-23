@@ -36,6 +36,7 @@ fn write(dir: &Path, name: &str, bytes: &[u8]) -> PathBuf {
     p
 }
 
+mod a_file_that_cannot_be_opened_is_named_with_the_reason;
 mod a_model_is_described_by_its_header_metadata_and_tensors;
 mod a_model_with_no_name_or_architecture_still_inspects;
 mod a_scan_stops_at_the_file_limit_and_at_the_depth_limit;

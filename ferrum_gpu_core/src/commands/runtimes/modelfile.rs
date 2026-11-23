@@ -21,10 +21,8 @@ pub(super) fn runnable(model: &str) -> Result<(PathBuf, usize), String> {
             "{model}: architecture '{arch}' cannot be exported; only gpt2 models (what `train` writes) run in Ollama and LM Studio from a Modelfile or `lms import`"
         ));
     }
-    let ctx = g
-        .uint("gpt2.context_length")
-        .map_err(|e| format!("{model}: {e}"))?;
-    let abs = std::path::absolute(model).map_err(|e| format!("{model}: {e}"))?;
+    let ctx = at(g.uint("gpt2.context_length"), model)?;
+    let abs = at(std::path::absolute(model), model)?;
     let s = abs.to_string_lossy();
     if s.contains('"') || s.contains('\n') {
         return Err(format!("{s}: the path contains a double quote or newline, which a Modelfile cannot quote; rename the file"));

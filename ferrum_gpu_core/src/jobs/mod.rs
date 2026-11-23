@@ -12,7 +12,7 @@ use progress::Event;
 use std::collections::{BTreeMap, VecDeque};
 use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 pub mod allow;
 mod max_lines;

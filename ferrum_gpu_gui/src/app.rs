@@ -5,7 +5,7 @@ pub use ferrum_gpu_core::session::{DeviceChoice, Session};
 use ferrum_ref::llama::Llama;
 use ferrum_wgpu::device::select::AdapterSummary;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 mod jobstate;
 pub use jobstate::*;
 mod constructors;

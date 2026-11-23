@@ -12,6 +12,10 @@ wgpu = "30.0.1"
 ferrum_ref = { path = "../ferrum_ref" }
 ferrum_gguf = { path = "../ferrum_gguf" }
 
+[features]
+# Lets other crates' tests make a chosen command or readback fail (see `Gpu::fail_after`).
+fault-injection = []
+
 [dev-dependencies]
 naga = { version = "30.0.1", features = ["wgsl-in"] }
 ferrum_model = { path = "../ferrum_model" }

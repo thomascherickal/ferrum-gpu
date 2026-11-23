@@ -3,9 +3,9 @@ use super::*;
 /// Run training. Continues from `engine.steps()` (0 for a fresh engine, the checkpoint's step
 /// after [`Engine::restore`]); pass the checkpoint's `shape` as `expect` to refuse a resume
 /// whose window order would differ.
-pub fn train<T: TokenSource + ?Sized>(
+pub fn train(
     engine: &mut dyn Engine,
-    tokens: &T,
+    tokens: &dyn TokenSource,
     cfg: &TrainConfig,
     expect: Option<&RunShape>,
     corpus_id: Option<&str>,

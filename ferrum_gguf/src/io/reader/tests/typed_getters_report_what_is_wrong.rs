@@ -16,6 +16,11 @@ fn typed_getters_report_what_is_wrong() {
     assert!(g.float("gpt2.block_count").is_err());
     assert!(g.string("gpt2.block_count").is_err());
     assert!(g
+        .string("missing")
+        .unwrap_err()
+        .to_string()
+        .contains("missing key"));
+    assert!(g
         .tensor_f32("nope")
         .unwrap_err()
         .to_string()

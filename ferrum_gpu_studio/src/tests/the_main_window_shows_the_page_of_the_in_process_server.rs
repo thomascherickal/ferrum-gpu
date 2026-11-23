@@ -1,6 +1,5 @@
 use super::*;
 
-
 #[test]
 fn the_main_window_shows_the_page_of_the_in_process_server() {
     let server = cpu_server();

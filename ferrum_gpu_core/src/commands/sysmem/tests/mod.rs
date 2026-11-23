@@ -42,4 +42,6 @@ fn adapter(name: &str, kind: Kind, backend: &str) -> AdapterSummary {
 const MEMINFO: &str = "MemTotal:       16094208 kB\nMemFree:         1020000 kB\nMemAvailable:    9313032 kB\nBuffers:          100 kB\n";
 
 mod a_lone_amd_card_falls_back_to_sysfs_but_several_cards_are_not_guessed;
+#[cfg(unix)]
+mod a_tool_that_failed_gives_no_output;
 mod meminfo_gives_total_and_available_in_bytes;

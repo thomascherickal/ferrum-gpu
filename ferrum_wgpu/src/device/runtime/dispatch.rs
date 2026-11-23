@@ -62,7 +62,7 @@ impl Gpu {
     /// one the commands join the batch encoder, and any error surfaces at [`Gpu::end_batch`].
     pub(crate) fn record(&self, f: impl FnOnce(&mut wgpu::CommandEncoder)) -> Result<(), GpuError> {
         self.check()?;
-        #[cfg(test)]
+        #[cfg(any(test, feature = "fault-injection"))]
         self.injected_fault()?;
         {
             let mut batch = self.batch.lock().unwrap_or_else(|e| e.into_inner());

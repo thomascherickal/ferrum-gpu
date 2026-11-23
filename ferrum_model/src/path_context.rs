@@ -12,10 +12,11 @@ mod tests {
 
     #[test]
     fn an_error_is_prefixed_with_its_path_and_a_value_passes() {
-        let failed = std::fs::read("/no/such/file");
-        assert!(at(failed, "/no/such/file")
-            .unwrap_err()
-            .starts_with("/no/such/file: "));
+        let failed = Err::<(), _>(std::io::Error::other("no such file"));
+        assert_eq!(
+            at(failed, "/gone/file").unwrap_err(),
+            "/gone/file: no such file"
+        );
         assert_eq!(at(Ok::<_, String>(7), "p").unwrap(), 7);
     }
 }

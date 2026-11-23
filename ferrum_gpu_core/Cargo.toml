@@ -12,3 +12,6 @@ ferrum_model = { path = "../ferrum_model" }
 ferrum_ref = { path = "../ferrum_ref" }
 ferrum_tok = { path = "../ferrum_tok" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
+
+[dev-dependencies]
+ferrum_wgpu = { path = "../ferrum_wgpu", features = ["fault-injection"] }

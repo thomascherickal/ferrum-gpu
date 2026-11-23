@@ -57,10 +57,7 @@ pub struct App {
     pub max_params: usize,
 }
 
-/// Lock, recovering the data if a worker panicked while holding the lock.
-pub fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
+pub use ferrum_gpu_core::sync::lock;
 
 impl std::ops::Deref for App {
     type Target = Session;

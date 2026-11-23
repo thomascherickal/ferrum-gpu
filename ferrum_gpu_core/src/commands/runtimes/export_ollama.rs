@@ -16,9 +16,7 @@ pub fn export_ollama(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         ".local/bin/ollama",
     )?;
     let dir = std::env::temp_dir().join(format!("ferrum_modelfile_{}", std::process::id()));
-    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
-    let mf = dir.join(format!("{}.Modelfile", name.replace('/', "_")));
-    std::fs::write(&mf, &text).map_err(|e| format!("{}: {e}", mf.display()))?;
+    let mf = write_modelfile(&dir, name, &text)?;
     let res = run_tool(&tool, &["create", name, "-f", &mf.to_string_lossy()]);
     let _ = std::fs::remove_dir_all(&dir);
     let (ok, output) = res?;
@@ -37,6 +35,14 @@ pub fn export_ollama(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         out,
         format!("created Ollama model '{name}' (run it with: ollama run {name})"),
     )
+}
+
+/// Write the Modelfile for `name` into `dir` (made if missing) and return its path.
+pub(super) fn write_modelfile(dir: &Path, name: &str, text: &str) -> Result<PathBuf, String> {
+    std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let mf = dir.join(format!("{}.Modelfile", name.replace('/', "_")));
+    std::fs::write(&mf, text).map_err(|e| format!("{}: {e}", mf.display()))?;
+    Ok(mf)
 }
 
 /// The `modelKey` of the `lms ls --json` entry whose path ends with `suffix` on a `/` boundary.

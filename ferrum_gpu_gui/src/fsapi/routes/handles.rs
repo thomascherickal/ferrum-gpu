@@ -15,9 +15,7 @@ pub(super) fn text(p: &Path) -> Json {
 
 pub(super) fn places() -> Json {
     let cwd = std::env::current_dir().ok();
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(PathBuf::from);
+    let home = ferrum_gpu_core::places::home_dir();
     let mut v = vec![];
     for (name, p) in [
         ("Where the server started", cwd),

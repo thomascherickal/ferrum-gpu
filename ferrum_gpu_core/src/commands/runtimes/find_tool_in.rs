@@ -30,9 +30,7 @@ pub(crate) fn find_tool_in(
             .flat_map(|d| names.iter().map(move |n| d.join(n)))
             .find(|c| c.is_file())
     });
-    let home = std::env::var_os("HOME")
-        .or_else(|| std::env::var_os("USERPROFILE"))
-        .map(|h| Path::new(&h).join(fallback));
+    let home = crate::places::home_dir().map(|h| h.join(fallback));
     on_path.or(home.filter(|h| h.is_file())).ok_or_else(|| {
         format!("cannot find `{name}`: pass --bin PATH, set {env}, or put it on PATH")
     })

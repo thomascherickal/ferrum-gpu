@@ -15,4 +15,6 @@ mod measure;
 pub(super) use measure::*;
 
 #[cfg(test)]
+mod fault_tests;
+#[cfg(test)]
 mod tests;

@@ -34,6 +34,8 @@ fn train_on(backend: &dyn Backend, steps: usize) -> (Llama, Vec<f32>) {
     (w, losses)
 }
 
+mod a_fault_at_any_command_or_readback_fails_every_gpu_backend_method_cleanly;
+mod a_fault_at_any_readback_fails_training_cleanly;
 mod generate_with_stops_at_once_when_the_request_is_cancelled;
 mod generation_respects_limits_and_the_sampler;
 mod presets_are_valid_models_and_unknown_names_are_refused;

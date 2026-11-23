@@ -9,6 +9,11 @@ impl ByteBpeTokenizer {
         mut reader: R,
         vocab_size: usize,
     ) -> Result<Self> {
+        Self::train_from_dyn_reader(&mut reader, vocab_size)
+    }
+
+    /// The body of [`train_from_reader`](Self::train_from_reader), not generic so it is compiled once.
+    fn train_from_dyn_reader(reader: &mut dyn std::io::BufRead, vocab_size: usize) -> Result<Self> {
         if vocab_size <= BASE_VOCAB {
             return Err(InferError::DimMismatch(format!(
                 "vocab_size {vocab_size} < {} (byte base vocabulary + EOS)",

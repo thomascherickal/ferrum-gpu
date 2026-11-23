@@ -1,6 +1,5 @@
 use super::*;
 
-
 /// The window title.
 pub const TITLE: &str = "Ferrum GPU Studio";
 

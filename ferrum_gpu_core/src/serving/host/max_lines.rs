@@ -3,9 +3,7 @@ use super::*;
 /// Most status lines kept.
 pub const MAX_LINES: usize = 200;
 
-pub(super) fn lock<T>(m: &Mutex<T>) -> MutexGuard<'_, T> {
-    m.lock().unwrap_or_else(|e| e.into_inner())
-}
+pub(super) use crate::sync::lock;
 
 /// What the slot holds, as seen from outside.
 #[derive(Clone, Debug, PartialEq)]

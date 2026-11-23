@@ -9,6 +9,10 @@ pub use map_error::*;
 mod copy_and_alloc;
 mod dispatch;
 mod fault_injection;
+#[cfg(any(test, feature = "fault-injection"))]
+mod faults;
+#[cfg(any(test, feature = "fault-injection"))]
+pub(crate) use faults::Faults;
 mod pipeline_cache;
 
 #[cfg(test)]

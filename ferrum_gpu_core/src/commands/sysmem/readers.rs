@@ -12,6 +12,13 @@ pub trait Readers {
     fn sysfs_vram_mb(&self) -> Vec<u64>;
 }
 
+/// What a tool printed, if it exited successfully.
+pub(super) fn stdout_if_ok(out: &std::process::Output) -> Option<String> {
+    out.status
+        .success()
+        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+}
+
 /// The real machine.
 pub struct System;
 
@@ -24,9 +31,7 @@ impl Readers for System {
             ])
             .output()
             .ok()?;
-        out.status
-            .success()
-            .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+        stdout_if_ok(&out)
     }
 
     fn meminfo(&self) -> Option<String> {
@@ -39,9 +44,7 @@ impl Readers for System {
             .args(["-n", "hw.memsize"])
             .output()
             .ok()?;
-        out.status
-            .success()
-            .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+        stdout_if_ok(&out)
     }
 
     fn sysfs_vram_mb(&self) -> Vec<u64> {
