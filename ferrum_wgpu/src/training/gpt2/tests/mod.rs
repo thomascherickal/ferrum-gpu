@@ -20,5 +20,6 @@ mod plans_are_consistent_with_the_allocated_buffers;
 mod qat_changes_the_trajectory_and_turning_it_off_restores_the_plain_path;
 mod split_steps_are_deterministic;
 mod the_loss_curve_matches_the_cpu_trainer_step_for_step;
+mod the_trainer_reports_what_it_cannot_do;
 mod two_full_gpu_runs_are_byte_identical;
 mod two_identical_runs_end_with_identical_bytes;

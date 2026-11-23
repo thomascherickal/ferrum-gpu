@@ -4,6 +4,8 @@
 #   duplicated code, or code `cargo fmt` would change; then refreshes metrics.md and next-steps.md and puts
 #   them in the commit. If python3 or the scripts are missing the generated files are skipped, never the checks
 #   that can run. FERRUM_SKIP_PRECOMMIT=1 skips the checks (work in progress only).
+# Generated and staged on every commit: metrics.md, the measured block of readme.md, Mermaid diagrams missing
+# from documentation pages (scripts/docs_diagrams.py), next-steps.md.
 # Enable once per clone:  git config core.hooksPath scripts/githooks
 root=$(git rev-parse --show-toplevel) || exit 0
 cd "$root" || exit 0
@@ -21,8 +23,13 @@ if [ "${FERRUM_SKIP_PRECOMMIT:-}" != 1 ]; then
     exit 1
   fi
 fi
+# Generated files, staged on every commit so it carries current metrics, readme figures, diagrams and next steps.
 if [ -f scripts/metrics.py ]; then
   python3 scripts/metrics.py --root "$root" --next-commit && git add metrics.md
+fi
+[ -f scripts/readme_stats.py ] && { python3 scripts/readme_stats.py && git add readme.md; }
+if [ -f scripts/docs_diagrams.py ]; then
+  for f in $(python3 scripts/docs_diagrams.py | sed -n 's/^diagrams added: //p'); do git add "$f"; done
 fi
 if [ -f scripts/next_steps.py ]; then
   python3 scripts/next_steps.py && git add next-steps.md

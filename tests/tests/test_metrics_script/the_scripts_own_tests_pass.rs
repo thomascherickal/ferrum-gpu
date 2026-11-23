@@ -54,6 +54,16 @@ fn coverage_and_the_gate_feed_metrics_md() {
             "{hook} refreshes next-steps.md"
         );
     }
+    // the commit hook keeps every generated file current: metrics, readme figures, diagrams, next steps
+    let commit = read("scripts/githooks/pre-commit");
+    for script in [
+        "metrics.py",
+        "readme_stats.py",
+        "docs_diagrams.py",
+        "next_steps.py",
+    ] {
+        assert!(commit.contains(script), "pre-commit runs {script}");
+    }
     assert!(read("scripts/githooks/pre-push").contains("gate_ok.py"));
     // a merge keeps our side of metrics.md: the next commit refreshes it
     assert!(read(".gitattributes").contains("metrics.md merge=ours"));

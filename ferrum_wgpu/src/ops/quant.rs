@@ -23,6 +23,7 @@ pub use qkind::*;
 mod eligible;
 pub use eligible::*;
 mod eligible_for;
+mod gguf_error;
 pub use eligible_for::*;
 mod pack;
 pub use pack::*;

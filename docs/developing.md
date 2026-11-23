@@ -276,5 +276,5 @@ flowchart LR
 | 100% coverage, all tests green, suite under 30 minutes | `scripts/gate.sh` (floor 100, every test in its own process, per-test times in `test-time-report.md`) |
 | CPU and GPU profile | the gate samples every 2 s (`scripts/system_profile.py`) into `system-profile.md` |
 | No push without a passing gate | `scripts/githooks/pre-push` runs `scripts/gate_ok.py`: a gate must have passed on a tree equal to HEAD's apart from the generated reports |
-| `metrics.md`, `next-steps.md` current | the pre-commit hook adds them to every commit; the pre-push hook refreshes `next-steps.md` |
+| `metrics.md`, the readme figures, documentation diagrams, `next-steps.md` current | the pre-commit hook regenerates each (`metrics.py`, `readme_stats.py`, `docs_diagrams.py`, `next_steps.py`) and stages what changed; the pre-push hook refreshes `next-steps.md` |
 

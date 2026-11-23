@@ -14,7 +14,7 @@ pub fn quantise_matrix(kind: QKind, w: &[f32], k: usize, n: usize) -> Result<Vec
     match kind {
         QKind::Fp8E4M3 => Ok(fp8::encode(Fp8::E4M3, &rows)),
         QKind::Fp8E5M2 => Ok(fp8::encode(Fp8::E5M2, &rows)),
-        other => encode(other.ggml().expect("a GGUF type"), &rows).map_err(|e| err(e.to_string())),
+        other => encode(other.ggml().expect("a GGUF type"), &rows).map_err(GpuError::from),
     }
 }
 
@@ -24,9 +24,7 @@ pub fn dequantise_bytes(kind: QKind, bytes: &[u8], n: usize) -> Result<Vec<f32>,
     match kind {
         QKind::Fp8E4M3 => Ok(fp8::decode(Fp8::E4M3, bytes)),
         QKind::Fp8E5M2 => Ok(fp8::decode(Fp8::E5M2, bytes)),
-        other => {
-            decode(other.ggml().expect("a GGUF type"), bytes, n).map_err(|e| err(e.to_string()))
-        }
+        other => decode(other.ggml().expect("a GGUF type"), bytes, n).map_err(GpuError::from),
     }
 }
 

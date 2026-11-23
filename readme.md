@@ -521,12 +521,25 @@ flowchart LR
 
 
 
-Tests first, every file has unit tests, and the suite must pass on a machine with no GPU. At the last full run
-(2026-11-14) 820 tests passed with none over their time limit, in four configurations (the default adapter,
-no GPU, llvmpipe, the Intel Xe), with `cargo fmt`, `cargo clippy -D warnings`, a line-coverage floor of 98%
-and `cargo deny` all green. Coverage figures are in [docs/coverage.md](docs/coverage.md). CI runs on Linux,
-Windows and macOS (the macOS runner's paravirtual GPU is known to differ from the CPU in one test; see
-[docs/devices.md](docs/devices.md)).
+Tests first, every file has unit tests, and the suite must pass on a machine with no GPU. The gate runs
+`cargo fmt`, `cargo clippy -D warnings`, the tests in four configurations (the default adapter, no GPU, llvmpipe,
+the Intel Xe), a coverage check and `cargo deny`. Coverage details are in [docs/coverage.md](docs/coverage.md).
+CI runs on Linux, Windows and macOS (the macOS runner's paravirtual GPU is known to differ from the CPU in one
+test; see [docs/devices.md](docs/devices.md)).
+
+<!-- stats:begin -->
+Measured figures, written from [`metrics.md`](metrics.md) by `scripts/readme_stats.py` (snapshot `90ea2af`); do not edit by hand.
+
+| measure | value |
+|---|---|
+| `#[test]` functions | 1146 |
+| Rust production lines | 26085 |
+| Rust test lines | 26800 |
+| line coverage | 99.15% |
+| function coverage | 94.52% |
+| region coverage | 96.62% |
+| last gate | PASS in 17m 52s |
+<!-- stats:end -->
 
 ```bash
 scripts/test-all.sh                  # every test, with and without a GPU, plus a coverage summary
