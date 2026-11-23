@@ -1,11 +1,11 @@
 use ferrum_wgpu::llama::GpuLlama;
 use std::time::Instant;
 
-pub const NEW_TOKENS: usize = 16;
+pub(crate) const NEW_TOKENS: usize = 16;
 const PROMPT: usize = 4;
 
 /// `MemAvailable` in bytes, from `/proc/meminfo` (Linux); `None` elsewhere.
-pub fn mem_available() -> Option<u64> {
+pub(crate) fn mem_available() -> Option<u64> {
     // the kernel's memory report: system information, not a file of this project or of ferrum-cpu
     let meminfo = std::path::Path::new("/proc").join("meminfo");
     let text = std::fs::read_to_string(meminfo).ok()?;
@@ -27,7 +27,7 @@ fn run(m: &mut GpuLlama, toks: &[usize]) -> Result<f64, String> {
 
 /// Milliseconds per token after a 4-token prompt. The first pass compiles the pipelines; the
 /// second is the one reported.
-pub fn decode_ms(m: &mut GpuLlama, vocab: usize) -> Result<f64, String> {
+pub(crate) fn decode_ms(m: &mut GpuLlama, vocab: usize) -> Result<f64, String> {
     let toks: Vec<usize> = (0..PROMPT + NEW_TOKENS)
         .map(|i| (i * 7 + 3) % vocab)
         .collect();

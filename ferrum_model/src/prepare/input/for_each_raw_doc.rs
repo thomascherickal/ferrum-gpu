@@ -2,7 +2,7 @@ use super::*;
 
 /// Stream `path` as raw documents split on `sep` (byte-exact; an empty separator yields the whole
 /// file). Calls `f(bytes, offset)`, hashes every byte into `hasher` and counts them in `total`.
-pub fn for_each_raw_doc(
+pub(crate) fn for_each_raw_doc(
     path: &Path,
     sep: &str,
     hasher: &mut Sha256,

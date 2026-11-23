@@ -2,7 +2,7 @@ use super::*;
 
 /// `program` under coreutils `timeout` (SIGTERM after `secs`, SIGKILL 5 s later), or plain when
 /// `timeout` is not installed.
-pub fn with_deadline(program: &Path, secs: u64) -> Command {
+pub(crate) fn with_deadline(program: &Path, secs: u64) -> Command {
     let have = Command::new("timeout")
         .arg("--version")
         .stdout(Stdio::null())
@@ -29,11 +29,11 @@ pub(super) fn signal_group(pgid: u32, sig: &str) -> bool {
 }
 
 /// A child in its own process group, ended with its whole group when dropped.
-pub struct Group(pub Child);
+pub(crate) struct Group(pub Child);
 
 impl Group {
     /// Start `cmd` as the leader of a new process group.
-    pub fn spawn(cmd: &mut Command) -> Group {
+    pub(crate) fn spawn(cmd: &mut Command) -> Group {
         Group(
             cmd.process_group(0)
                 .stdout(Stdio::null())
@@ -46,7 +46,7 @@ impl Group {
 
 impl Group {
     /// Like [`Group::spawn`], with the child's stdout and stderr appended to the file `log`.
-    pub fn spawn_logged(cmd: &mut Command, log: &Path) -> Group {
+    pub(crate) fn spawn_logged(cmd: &mut Command, log: &Path) -> Group {
         let f = std::fs::File::create(log).expect("create the tool's log");
         Group(
             cmd.process_group(0)

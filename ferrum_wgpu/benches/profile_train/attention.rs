@@ -2,7 +2,7 @@ use super::rig::Rig;
 use ferrum_wgpu::{ops, ops_bwd as bwd};
 
 /// Attention forward and backward.
-pub fn rows(rig: &mut Rig) {
+pub(crate) fn rows(rig: &mut Rig) {
     let (b, t, heads, layers) = (rig.d.b, rig.d.t, rig.d.heads, rig.d.layers);
     let hd = rig.d.c / heads;
     let n = rig.d.rows() * rig.d.c;

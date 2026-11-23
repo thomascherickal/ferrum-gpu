@@ -4,7 +4,7 @@ use crate::commands::flags::{switch, val, Flag};
 use crate::commands::{gpt2, table, DEVICE, GEN, TRAIN};
 
 /// What `train` accepts (including `--out`, which `run` refuses in favour of `--model`).
-pub fn train_flags() -> Vec<Flag> {
+pub(super) fn train_flags() -> Vec<Flag> {
     table(&[
         &DEVICE,
         &TRAIN,
@@ -15,7 +15,7 @@ pub fn train_flags() -> Vec<Flag> {
 }
 
 /// What `generate` accepts.
-pub fn generate_flags() -> Vec<Flag> {
+pub(super) fn generate_flags() -> Vec<Flag> {
     table(&[
         &DEVICE,
         &GEN,

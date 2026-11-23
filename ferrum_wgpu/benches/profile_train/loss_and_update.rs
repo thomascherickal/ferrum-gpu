@@ -2,7 +2,7 @@ use super::rig::Rig;
 use ferrum_wgpu::{ops, ops_bwd as bwd, ops_opt};
 
 /// Cross-entropy and the embedding gradient.
-pub fn loss_rows(rig: &mut Rig) {
+pub(crate) fn loss_rows(rig: &mut Rig) {
     let (r, c, t, v) = (rig.d.rows(), rig.d.c, rig.d.t, rig.d.v);
     let (logits, grad, rl, loss) = (rig.buf(r * v), rig.zeros(r * v), rig.zeros(r), rig.zeros(1));
     let targets: Vec<usize> = (0..r).map(|i| i % v).collect();
@@ -18,7 +18,7 @@ pub fn loss_rows(rig: &mut Rig) {
 }
 
 /// The optimizer over a 3.15M-element block (one transformer layer's worth, as a stand-in).
-pub fn optimizer_rows(rig: &mut Rig) {
+pub(crate) fn optimizer_rows(rig: &mut Rig) {
     let (n, layers) = (rig.d.h * rig.d.c, rig.d.layers);
     let (p, gr, mo, ve) = (rig.buf(n), rig.buf(n), rig.zeros(n), rig.zeros(n));
     let scale = rig.g.upload(&[1.0, 0.0]).unwrap();

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 /// One trained model and its exports.
-pub struct Wide {
+pub(crate) struct Wide {
     pub dir: PathBuf,
     pub f32: PathBuf,
     pub f16: PathBuf,
@@ -16,13 +16,13 @@ pub struct Wide {
 
 impl Wide {
     /// The exported files with a label.
-    pub fn all(&self) -> [(&'static str, &Path); 3] {
+    pub(crate) fn all(&self) -> [(&'static str, &Path); 3] {
         [("f16", &self.f16), ("fp4", &self.fp4), ("q2", &self.q2)]
     }
 }
 
 /// The shared wide fixture (trained on first use).
-pub fn wide() -> &'static Wide {
+pub(crate) fn wide() -> &'static Wide {
     static W: OnceLock<Wide> = OnceLock::new();
     W.get_or_init(|| {
         let dir = std::env::temp_dir().join(format!("ferrum_interop_wide_{}", std::process::id()));

@@ -2,7 +2,7 @@ use super::*;
 
 /// Which hardware the server may use.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mode {
+pub(crate) enum Mode {
     /// No GPU: `CUDA_VISIBLE_DEVICES=-1` and the CPU runner.
     Cpu,
     /// The GPU through CUDA (Ollama's default choice).
@@ -12,7 +12,7 @@ pub enum Mode {
 }
 
 /// A running server, ended with its process group when dropped.
-pub struct Server {
+pub(crate) struct Server {
     pub(super) _group: Group,
     pub host: String,
     pub home: PathBuf,

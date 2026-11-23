@@ -1,7 +1,7 @@
 use super::*;
 
 /// The shared fixture (trained on first use; later callers wait for it).
-pub fn fixture() -> &'static Fixture {
+pub(crate) fn fixture() -> &'static Fixture {
     static F: OnceLock<Fixture> = OnceLock::new();
     F.get_or_init(|| {
         sweep_old_fixtures();

@@ -3,14 +3,14 @@ use ferrum_wgpu::device::Gpu;
 use ferrum_wgpu::matmul::Matmul;
 
 /// Milliseconds of one GPU variant: compute only, plus readback, plus upload, plus both.
-pub struct Timings {
+pub(crate) struct Timings {
     pub compute: f64,
     pub with_readback: f64,
     pub with_upload: f64,
     pub with_all: f64,
 }
 
-pub fn measure(
+pub(crate) fn measure(
     gpu: &Gpu,
     mm: &Matmul,
     (a, b): (&[f32], &[f32]),

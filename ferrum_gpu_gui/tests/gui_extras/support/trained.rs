@@ -1,7 +1,7 @@
 use super::*;
 
 /// A trained app: 60 steps, no validation share.
-pub fn trained() -> Arc<App> {
+pub(crate) fn trained() -> Arc<App> {
     let a = app_with_model();
     let (first, done) = train(&a, None);
     assert_eq!(first.0, 200);
@@ -10,7 +10,7 @@ pub fn trained() -> Arc<App> {
 }
 
 /// Like [`call`], with query parameters (`?a=b`) and a raw reply body.
-pub fn call_raw(
+pub(crate) fn call_raw(
     app: &Arc<App>,
     method: &str,
     path: &str,

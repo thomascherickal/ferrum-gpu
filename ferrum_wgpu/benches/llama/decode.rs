@@ -9,7 +9,7 @@ fn per_token_ms(t0: Instant, n: usize) -> f64 {
     t0.elapsed().as_secs_f64() * 1e3 / n as f64
 }
 
-pub fn table(gpu: &Gpu) {
+pub(crate) fn table(gpu: &Gpu) {
     println!("### Decode (single stream, ms/token and tokens/s)\n");
     println!("| model | params | cpu f32 (1 thread) | gpu f32 | gpu Q8_0 | gpu Q4_0 |");
     println!("|---|---|---|---|---|---|");

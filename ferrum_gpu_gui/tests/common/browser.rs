@@ -7,7 +7,7 @@ use std::time::Duration;
 
 /// A running headless browser in its own process group, so that dropping it ends exactly the
 /// processes it started (Chrome forks helpers) and never anyone else's browser.
-pub struct Browser {
+pub(crate) struct Browser {
     child: Child,
     profile: PathBuf,
     log: PathBuf,
@@ -16,7 +16,7 @@ pub struct Browser {
 impl Browser {
     /// Open `url` with WebGPU enabled (software Vulkan is what Chrome offers on a headless box).
     /// `max_secs` is a hard lifetime enforced by `timeout`, even if this test process is killed.
-    pub fn open(binary: &str, url: &str, tag: &str, max_secs: u64) -> Browser {
+    pub(crate) fn open(binary: &str, url: &str, tag: &str, max_secs: u64) -> Browser {
         let base = std::env::temp_dir().join(format!("ferrum-gui-{tag}-{}", std::process::id()));
         let (profile, log) = (base.clone(), base.with_extension("log"));
         let stderr = std::fs::File::create(&log).expect("create the browser log");
@@ -53,7 +53,7 @@ impl Browser {
     }
 
     /// The console and error lines Chrome wrote so far (the raw tail when there are none).
-    pub fn console(&self) -> String {
+    pub(crate) fn console(&self) -> String {
         let all = std::fs::read_to_string(&self.log).unwrap_or_default();
         let picked: Vec<&str> = all
             .lines()

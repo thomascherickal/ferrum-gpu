@@ -3,14 +3,14 @@
 
 use std::collections::BTreeMap;
 
-pub enum Json {
+pub(super) enum Json {
     Num(u64),
     Str(String),
     Arr(Vec<Json>),
     Obj(BTreeMap<String, Json>),
 }
 
-pub fn obj<const N: usize>(items: [(&str, Json); N]) -> Json {
+pub(super) fn obj<const N: usize>(items: [(&str, Json); N]) -> Json {
     Json::Obj(items.into_iter().map(|(k, v)| (k.to_string(), v)).collect())
 }
 
@@ -31,7 +31,7 @@ fn quote(s: &str, out: &mut String) {
 }
 
 impl Json {
-    pub fn pretty(&self) -> String {
+    pub(super) fn pretty(&self) -> String {
         let mut out = String::new();
         self.write(0, &mut out);
         out

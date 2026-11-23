@@ -1,7 +1,7 @@
 use super::*;
 
 /// Start a server for test `tag`; `None` if it never became ready. Its output goes to a log file.
-pub fn start(bin: &Path, tag: &str, mode: Mode) -> Option<Server> {
+pub(crate) fn start(bin: &Path, tag: &str, mode: Mode) -> Option<Server> {
     let home = fixture().dir.join(format!("ollama-{tag}"));
     std::fs::create_dir_all(home.join("models")).unwrap();
     let host = format!("127.0.0.1:{}", free_port());
@@ -27,7 +27,7 @@ pub fn start(bin: &Path, tag: &str, mode: Mode) -> Option<Server> {
 }
 
 /// One HTTP request; the status and the (de-chunked) body, or `None` if the connection failed.
-pub fn http(host: &str, method: &str, path: &str, body: &str) -> Option<(u16, String)> {
+pub(crate) fn http(host: &str, method: &str, path: &str, body: &str) -> Option<(u16, String)> {
     let mut c = TcpStream::connect(host).ok()?;
     c.set_read_timeout(Some(std::time::Duration::from_secs(300)))
         .ok()?;

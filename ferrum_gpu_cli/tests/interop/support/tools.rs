@@ -38,7 +38,7 @@ fn newest_under_opt(vulkan: bool) -> Option<PathBuf> {
 
 /// A directory holding the CPU build's `llama-completion`, `llama-tokenize` and `llama-quantize`:
 /// `$FERRUM_LLAMACPP_DIR`, else the newest `~/.local/opt/llama.cpp-*`.
-pub fn llamacpp_dir() -> Option<PathBuf> {
+pub(crate) fn llamacpp_dir() -> Option<PathBuf> {
     match std::env::var_os("FERRUM_LLAMACPP_DIR") {
         Some(d) => release_root(Path::new(&d)),
         None => newest_under_opt(false),
@@ -47,7 +47,7 @@ pub fn llamacpp_dir() -> Option<PathBuf> {
 
 /// The Vulkan build of llama.cpp (it has `libggml-vulkan.so`): `$FERRUM_LLAMACPP_VULKAN_DIR`, else
 /// the newest `~/.local/opt/llama.cpp-*-vulkan`.
-pub fn llamacpp_vulkan_dir() -> Option<PathBuf> {
+pub(crate) fn llamacpp_vulkan_dir() -> Option<PathBuf> {
     let root = match std::env::var_os("FERRUM_LLAMACPP_VULKAN_DIR") {
         Some(d) => release_root(Path::new(&d)),
         None => newest_under_opt(true),
@@ -56,12 +56,12 @@ pub fn llamacpp_vulkan_dir() -> Option<PathBuf> {
 }
 
 /// The `ollama` binary: `$FERRUM_OLLAMA`, else `PATH`, else `~/.local/bin/ollama`.
-pub fn ollama() -> Option<PathBuf> {
+pub(crate) fn ollama() -> Option<PathBuf> {
     on_path_or("FERRUM_OLLAMA", "ollama", ".local/bin/ollama")
 }
 
 /// The `lms` CLI of LM Studio: `$FERRUM_LMS`, else `PATH`, else `~/.lmstudio/bin/lms`.
-pub fn lms() -> Option<PathBuf> {
+pub(crate) fn lms() -> Option<PathBuf> {
     on_path_or("FERRUM_LMS", "lms", ".lmstudio/bin/lms")
 }
 

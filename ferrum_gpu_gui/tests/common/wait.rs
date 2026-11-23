@@ -2,7 +2,10 @@ use std::time::{Duration, Instant};
 
 /// Poll `fetch` (which returns the page's reported JSON text, if any) until it yields or `limit`
 /// passes.
-pub fn wait_for(limit: Duration, mut fetch: impl FnMut() -> Option<String>) -> Option<String> {
+pub(crate) fn wait_for(
+    limit: Duration,
+    mut fetch: impl FnMut() -> Option<String>,
+) -> Option<String> {
     let t0 = Instant::now();
     while t0.elapsed() < limit {
         if let Some(s) = fetch() {

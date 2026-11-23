@@ -10,9 +10,9 @@ use ferrum_wgpu::llama::{plan, GpuLlama};
 use ferrum_wgpu::ops_quant::QKind;
 use ferrum_wgpu::Gpu;
 mod size;
-pub use size::*;
+pub(super) use size::*;
 mod measure;
-pub use measure::*;
+pub(super) use measure::*;
 
 #[cfg(test)]
 mod tests;

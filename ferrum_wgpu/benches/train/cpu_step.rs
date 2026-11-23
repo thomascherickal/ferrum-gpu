@@ -2,13 +2,13 @@ use ferrum_ref::gpt2::{Config, Gpt2};
 use ferrum_ref::grad::loss_and_grads;
 use ferrum_ref::optim::{adam_step, clip_scale, global_norm, Adam, AdamState};
 
-pub fn params(c: &Config) -> usize {
+pub(crate) fn params(c: &Config) -> usize {
     Gpt2::random(Config { layers: 1, ..*c }, 1).num_params()
         + (c.layers - 1) * (4 * c.dim * c.dim + 2 * c.dim * c.hidden + 10 * c.dim + c.hidden)
 }
 
 /// One batch: token ids and their targets.
-pub struct Batch<'a> {
+pub(crate) struct Batch<'a> {
     pub ids: &'a [usize],
     pub targets: &'a [usize],
     pub size: usize,
@@ -36,7 +36,13 @@ fn shard_grads(w: &Gpt2, b: &Batch, shards: usize) -> Vec<(f32, Gpt2)> {
 }
 
 /// Data-parallel CPU step over `shards` shards; returns the mean loss.
-pub fn cpu_step(w: &mut Gpt2, st: &mut AdamState, b: &Batch, shards: usize, adam: &Adam) -> f32 {
+pub(crate) fn cpu_step(
+    w: &mut Gpt2,
+    st: &mut AdamState,
+    b: &Batch,
+    shards: usize,
+    adam: &Adam,
+) -> f32 {
     let results = shard_grads(w, b, shards);
     let n = shards as f32;
     let loss = results.iter().map(|r| r.0).sum::<f32>() / n;

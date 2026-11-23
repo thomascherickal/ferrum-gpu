@@ -15,7 +15,7 @@ use std::io::Write;
 
 /// The validated `--tie` / `--dropout` options.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct Extras {
+pub(super) struct Extras {
     /// Share the embedding and the output head.
     pub tie: bool,
     /// FFN-hidden dropout rate (`0.0` is off).
@@ -31,7 +31,7 @@ impl Extras {
 
 /// Parse `--tie` and `--dropout`; a rate must be in `[0, 1)`, and one above [`MAX_RATE`] is used as
 /// that (ferrum-cpu clamps the same way).
-pub fn parse(a: &Args) -> Result<Extras, String> {
+pub(super) fn parse(a: &Args) -> Result<Extras, String> {
     let dropout: f32 = a.num("--dropout", 0.0)?;
     if !(0.0..1.0).contains(&dropout) {
         return Err(format!("--dropout must be in [0, 1), got {dropout}"));
@@ -43,7 +43,7 @@ pub fn parse(a: &Args) -> Result<Extras, String> {
 }
 
 /// The app for a run: the usual device choice. A rate above the maximum is announced as clamped.
-pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<Session, String> {
+pub(super) fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<Session, String> {
     if x.dropout > MAX_RATE {
         say(
             out,
@@ -54,7 +54,7 @@ pub fn app_for(a: &Args, x: &Extras, out: &mut dyn Write) -> Result<Session, Str
 }
 
 /// The training engine for `start`: the backend's plain one, or the one with [`Extras`].
-pub fn engine<'a>(
+pub(super) fn engine<'a>(
     app: &'a Session,
     start: &Gpt2,
     qat: bool,

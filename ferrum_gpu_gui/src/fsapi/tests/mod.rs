@@ -9,7 +9,7 @@ pub(crate) mod support {
     static N: AtomicU32 = AtomicU32::new(0);
 
     /// A fresh empty directory under the system temp directory.
-    pub fn tmp() -> PathBuf {
+    pub(crate) fn tmp() -> PathBuf {
         let d = std::env::temp_dir().join(format!(
             "ferrum_fsroutes_{}_{}",
             std::process::id(),
@@ -20,7 +20,7 @@ pub(crate) mod support {
     }
 
     /// Write `bytes` to `dir/rel`, creating folders.
-    pub fn put(dir: &Path, rel: &str, bytes: &[u8]) -> PathBuf {
+    pub(crate) fn put(dir: &Path, rel: &str, bytes: &[u8]) -> PathBuf {
         let p = dir.join(rel);
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
         std::fs::write(&p, bytes).unwrap();

@@ -1,5 +1,5 @@
 /// Collapse runs of spaces and tabs to a single space.
-pub fn squeeze_spaces(text: &str) -> String {
+pub(crate) fn squeeze_spaces(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut in_run = false;
     for ch in text.chars() {
@@ -18,7 +18,7 @@ pub fn squeeze_spaces(text: &str) -> String {
 
 /// The body of every Project Gutenberg book in `raw`: the text between each `*** START OF …` line
 /// and the following `*** END OF` marker. `vec![raw]` when no complete START/END pair exists.
-pub fn gutenberg_bodies(raw: &str) -> Vec<&str> {
+pub(crate) fn gutenberg_bodies(raw: &str) -> Vec<&str> {
     let mut out = Vec::new();
     let mut rest = 0usize;
     while let Some(s) = find_marker(&raw[rest..], "START OF") {

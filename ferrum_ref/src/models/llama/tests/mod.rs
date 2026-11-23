@@ -1,7 +1,7 @@
 use super::params::transpose;
 use super::*;
 
-pub fn cfg() -> Config {
+pub(super) fn cfg() -> Config {
     Config {
         vocab: 13,
         ctx: 12,

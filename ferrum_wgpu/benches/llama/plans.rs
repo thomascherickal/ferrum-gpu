@@ -6,7 +6,7 @@ use ferrum_wgpu::llama::plan;
 use ferrum_wgpu::llama_train::{activation_plan, param_sizes, static_plan_for};
 use ferrum_wgpu::ops_quant::QKind;
 
-pub fn table(gpu: &Gpu) {
+pub(crate) fn table(gpu: &Gpu) {
     println!("\n### Memory plans (MiB) against this adapter's binding limit\n");
     println!("| model | params | infer f32 | infer Q8_0 | infer Q4_0 | fine-tune f32 (batch 1 x 128) | verdict |");
     println!("|---|---|---|---|---|---|---|");

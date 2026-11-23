@@ -7,6 +7,6 @@ use ferrum_gpu_gui::json::Json;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 mod app;
-pub use app::*;
+pub(crate) use app::*;
 mod trained;
-pub use trained::*;
+pub(crate) use trained::*;

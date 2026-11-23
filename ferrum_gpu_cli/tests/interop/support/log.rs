@@ -5,7 +5,7 @@ use std::io::Write;
 use std::process::Command;
 
 /// `[2026-11-14T19:40:07+05:30] message`, to stderr and to `$FERRUM_INTEROP_LOG`.
-pub fn step(msg: impl AsRef<str>) {
+pub(crate) fn step(msg: impl AsRef<str>) {
     let now = Command::new("date")
         .arg("-Is")
         .output()
@@ -26,7 +26,7 @@ pub fn step(msg: impl AsRef<str>) {
 
 /// Is the opt-in switch `var` set to `1`? When it is not, say how to turn the test on (and why it
 /// is off by default) and return false.
-pub fn opted_in(var: &str, what: &str) -> bool {
+pub(crate) fn opted_in(var: &str, what: &str) -> bool {
     let on = std::env::var(var).is_ok_and(|v| v == "1");
     if !on {
         eprintln!("SKIP: {what}; set {var}=1 to run it");
@@ -35,7 +35,7 @@ pub fn opted_in(var: &str, what: &str) -> bool {
 }
 
 /// The lines of `text` that mention any of `needles`, trimmed, for the log.
-pub fn grep(text: &str, needles: &[&str]) -> Vec<String> {
+pub(crate) fn grep(text: &str, needles: &[&str]) -> Vec<String> {
     text.lines()
         .filter(|l| needles.iter().any(|n| l.contains(n)))
         .map(|l| l.trim().chars().take(200).collect())

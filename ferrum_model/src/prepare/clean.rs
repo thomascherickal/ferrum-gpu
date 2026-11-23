@@ -5,9 +5,9 @@
 //! stripping always on; Gutenberg stripping and lowercasing selectable).
 
 mod is_invisible;
-pub use is_invisible::*;
+pub(super) use is_invisible::*;
 mod squeeze_spaces;
-pub use squeeze_spaces::*;
+pub(super) use squeeze_spaces::*;
 
 #[cfg(test)]
 mod tests;

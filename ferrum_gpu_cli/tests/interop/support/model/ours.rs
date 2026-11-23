@@ -1,7 +1,7 @@
 use super::*;
 
 /// Our greedy continuation of [`PROMPT`] with `model` (the prompt, then the text).
-pub fn ours(model: &Path) -> String {
+pub(crate) fn ours(model: &Path) -> String {
     ferrum_ok(&[
         "generate",
         "--device",

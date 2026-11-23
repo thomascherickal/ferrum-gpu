@@ -1,7 +1,7 @@
 use super::*;
 
 /// Run every check; the first device error aborts the report.
-pub fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
+pub(crate) fn run(gpu: &Gpu) -> Result<Vec<Check>, String> {
     let w = Llama::random(config(), 11, true, false);
     let want = w.forward_logits(&IDS).map_err(text)?;
     let v = config().vocab;

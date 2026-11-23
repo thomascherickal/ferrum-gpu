@@ -9,6 +9,6 @@ use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::time::{Duration, Instant};
 mod with_deadline;
-pub use with_deadline::*;
+pub(crate) use with_deadline::*;
 mod wait_until;
-pub use wait_until::*;
+pub(crate) use wait_until::*;

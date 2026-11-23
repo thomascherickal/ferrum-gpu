@@ -1,7 +1,7 @@
 use ferrum_ref::llama::{Config, RopeType};
 
 /// A real-size model shape to try on the adapter.
-pub struct Shape {
+pub(crate) struct Shape {
     pub name: &'static str,
     pub cfg: Config,
     pub biases: bool,
@@ -37,7 +37,7 @@ fn shape(
     }
 }
 
-pub fn all() -> [Shape; 5] {
+pub(crate) fn all() -> [Shape; 5] {
     [
         shape(
             "SmolLM-135M shape",

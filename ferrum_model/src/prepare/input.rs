@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 mod expand_inputs;
 pub use expand_inputs::*;
 mod for_each_raw_doc;
-pub use for_each_raw_doc::*;
+pub(super) use for_each_raw_doc::*;
 
 #[cfg(test)]
 mod tests;

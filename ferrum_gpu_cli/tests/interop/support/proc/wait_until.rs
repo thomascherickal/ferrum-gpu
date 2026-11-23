@@ -1,7 +1,7 @@
 use super::*;
 
 /// Poll `ready` every 100 ms until it is true or `secs` pass.
-pub fn wait_until(secs: u64, mut ready: impl FnMut() -> bool) -> bool {
+pub(crate) fn wait_until(secs: u64, mut ready: impl FnMut() -> bool) -> bool {
     let t0 = Instant::now();
     while t0.elapsed() < Duration::from_secs(secs) {
         if ready() {

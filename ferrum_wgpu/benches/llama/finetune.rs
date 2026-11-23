@@ -8,7 +8,7 @@ use std::time::Instant;
 
 const REPS: usize = 5;
 
-pub fn table(gpu: &Gpu) {
+pub(crate) fn table(gpu: &Gpu) {
     println!("\n### Fine-tuning step (batch 4 x 32 tokens, f32 AdamW, clip 1.0)\n");
     println!("| model | params | cpu ms/step | gpu ms/step | gpu vs cpu |");
     println!("|---|---|---|---|---|");

@@ -50,14 +50,14 @@ impl Size {
 }
 
 /// Tokens per run of both measurements.
-pub const TOKENS: usize = 32;
+pub(crate) const TOKENS: usize = 32;
 
 pub(super) fn ids(vocab: usize) -> Vec<usize> {
     (0..TOKENS).map(|i| (i * 7 + 3) % vocab).collect()
 }
 
 /// Tokens per second for `tokens` processed in `ms` milliseconds.
-pub fn tps(tokens: usize, ms: f64) -> f64 {
+pub(crate) fn tps(tokens: usize, ms: f64) -> f64 {
     if ms <= 0.0 {
         0.0
     } else {

@@ -3,7 +3,7 @@ use ferrum_wgpu::matmul::{Matmul, Variant};
 use ferrum_wgpu::ops_bwd as bwd;
 
 /// Forward NN, and the two backward flavours (dx = dy w^T, dw = x^T dy), per matmul shape.
-pub fn rows(rig: &mut Rig) {
+pub(crate) fn rows(rig: &mut Rig) {
     let (r, c, h, v, layers) = (rig.d.rows(), rig.d.c, rig.d.h, rig.d.v, rig.d.layers);
     for (name, m, k, n, per) in [
         ("matmul NN  qkvo   [1024x512x512]", r, c, c, 4 * layers),

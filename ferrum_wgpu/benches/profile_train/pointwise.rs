@@ -2,7 +2,7 @@ use super::rig::Rig;
 use ferrum_wgpu::{ops, ops_bwd as bwd};
 
 /// LayerNorm forward and backward, GELU, bias, residual add.
-pub fn rows(rig: &mut Rig) {
+pub(crate) fn rows(rig: &mut Rig) {
     let (r, c, h, layers) = (rig.d.rows(), rig.d.c, rig.d.h, rig.d.layers);
     let (x, gain, shift) = (rig.buf(r * c), rig.buf(c), rig.buf(c));
     let (y, st) = (rig.zeros(r * c), rig.zeros(2 * r));

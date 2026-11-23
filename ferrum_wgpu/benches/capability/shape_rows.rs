@@ -8,7 +8,7 @@ use ferrum_wgpu::device::Gpu;
 use ferrum_wgpu::llama::{plan, GpuLlama};
 use ferrum_wgpu::llama_train::param_sizes;
 
-pub fn shape_rows(gpu: &Gpu, s: &Shape, only_prec: Option<&str>) {
+pub(crate) fn shape_rows(gpu: &Gpu, s: &Shape, only_prec: Option<&str>) {
     let info = gpu.info();
     let n_params: usize = param_sizes(&s.cfg, s.biases).iter().sum();
     let params = format!("{:.0}M", n_params as f64 / 1e6);

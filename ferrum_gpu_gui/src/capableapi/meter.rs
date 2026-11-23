@@ -7,7 +7,7 @@ use ferrum_wgpu::memory::MemoryFacts;
 use ferrum_wgpu::select::Kind;
 
 /// `(source, total MiB, free MiB)`, or `None` when nothing is known.
-pub fn meter(facts: &MemoryFacts, kind: Kind) -> Option<(&'static str, u64, Option<u64>)> {
+pub(super) fn meter(facts: &MemoryFacts, kind: Kind) -> Option<(&'static str, u64, Option<u64>)> {
     if let Some(total) = facts.tool_total_mb {
         return Some((
             "the card's own memory, from nvidia-smi or sysfs",
@@ -29,7 +29,7 @@ pub fn meter(facts: &MemoryFacts, kind: Kind) -> Option<(&'static str, u64, Opti
 }
 
 /// The meter as JSON (`null` when nothing is known).
-pub fn meter_json(facts: &MemoryFacts, kind: Kind) -> Json {
+pub(super) fn meter_json(facts: &MemoryFacts, kind: Kind) -> Json {
     meter(facts, kind).map_or(Json::Null, |(source, total, free)| {
         Json::obj([
             ("source", Json::Str(source.into())),

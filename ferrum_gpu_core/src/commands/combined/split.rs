@@ -5,7 +5,7 @@ use crate::commands::flags::Flag;
 
 /// `run`'s arguments, divided up.
 #[derive(Debug, PartialEq)]
-pub struct Split {
+pub(super) struct Split {
     /// Tokens for `train` (without `--out`, which `run` derives from the model path).
     pub train: Vec<String>,
     /// Tokens for `generate` (without `--model`).
@@ -47,7 +47,7 @@ fn take(
 
 /// Divide `rest`: a flag goes to every command whose table lists it (`--device`, `--threads` and
 /// `--seed` go to both), `--model` names the file, and anything unknown is an error.
-pub fn split(rest: &[String]) -> Result<Split, String> {
+pub(super) fn split(rest: &[String]) -> Result<Split, String> {
     let (tf, gf) = (train_flags(), generate_flags());
     let (mut train, mut generate, mut model) = (Vec::new(), Vec::new(), None);
     let mut it = rest.iter();

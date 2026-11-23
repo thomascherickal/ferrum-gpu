@@ -10,7 +10,7 @@ use ferrum_wgpu::Gpu;
 mod config;
 use config::*;
 mod run;
-pub use run::*;
+pub(super) use run::*;
 
 #[cfg(test)]
 mod tests;

@@ -1,6 +1,6 @@
 use super::*;
 
-pub fn app() -> Arc<App> {
+pub(crate) fn app() -> Arc<App> {
     Arc::new(App::with_backend(
         Arc::new(CpuBackend::new(2)),
         DeviceChoice::Cpu,
@@ -10,7 +10,7 @@ pub fn app() -> Arc<App> {
 }
 
 /// Call the API; the status and the JSON body.
-pub fn call(app: &Arc<App>, method: &str, path: &str, body: &str) -> (u16, Json) {
+pub(crate) fn call(app: &Arc<App>, method: &str, path: &str, body: &str) -> (u16, Json) {
     let req = Request {
         method: method.into(),
         path: path.into(),
@@ -23,17 +23,17 @@ pub fn call(app: &Arc<App>, method: &str, path: &str, body: &str) -> (u16, Json)
     (r.status, Json::parse(&text).unwrap_or(Json::Null))
 }
 
-pub fn field(j: &Json, k: &str) -> Json {
+pub(crate) fn field(j: &Json, k: &str) -> Json {
     j.get(k).cloned().unwrap_or(Json::Null)
 }
 
 /// The training text used throughout: a short phrase, repeated.
-pub fn corpus() -> String {
+pub(crate) fn corpus() -> String {
     "the quick brown fox jumps over the lazy dog. ".repeat(14)
 }
 
 /// A fresh tiny model on a fresh app.
-pub fn app_with_model() -> Arc<App> {
+pub(crate) fn app_with_model() -> Arc<App> {
     let a = app();
     let (s, _) = call(&a, "POST", "/api/model", r#"{"preset":"tiny","seed":7}"#);
     assert_eq!(s, 200);
@@ -42,7 +42,7 @@ pub fn app_with_model() -> Arc<App> {
 
 /// `/api/train` with `extra` merged over the default request, waited to the end; the first reply
 /// and the final status.
-pub fn train(app: &Arc<App>, val: Option<f64>) -> ((u16, Json), Json) {
+pub(crate) fn train(app: &Arc<App>, val: Option<f64>) -> ((u16, Json), Json) {
     let mut members = vec![
         ("text", Json::Str(corpus())),
         ("steps", Json::Num(60.0)),
@@ -59,7 +59,7 @@ pub fn train(app: &Arc<App>, val: Option<f64>) -> ((u16, Json), Json) {
 }
 
 /// Wait until no run is going; the status.
-pub fn wait(app: &Arc<App>) -> Json {
+pub(crate) fn wait(app: &Arc<App>) -> Json {
     let t0 = Instant::now();
     loop {
         let (_, s) = call(app, "GET", "/api/train/status", "");

@@ -1,14 +1,14 @@
 use super::*;
 
 /// What the models are trained on: one sentence, repeated, so greedy text is unambiguous.
-pub const SENTENCE: &str = "the cat sat on the mat. ";
+pub(crate) const SENTENCE: &str = "the cat sat on the mat. ";
 /// A prompt every model continues the same way.
-pub const PROMPT: &str = "the cat";
+pub(crate) const PROMPT: &str = "the cat";
 /// Tokens generated in the comparisons.
-pub const NEW_TOKENS: usize = 10;
+pub(crate) const NEW_TOKENS: usize = 10;
 
 /// Run `ferrum-gpu` with `args`.
-pub fn ferrum(args: &[&str]) -> Output {
+pub(crate) fn ferrum(args: &[&str]) -> Output {
     Command::new(env!("CARGO_BIN_EXE_ferrum-gpu"))
         .args(args)
         .output()
@@ -16,7 +16,7 @@ pub fn ferrum(args: &[&str]) -> Output {
 }
 
 /// `ferrum-gpu` that must succeed; its stdout.
-pub fn ferrum_ok(args: &[&str]) -> String {
+pub(crate) fn ferrum_ok(args: &[&str]) -> String {
     let o = ferrum(args);
     assert!(
         o.status.success(),
@@ -27,7 +27,7 @@ pub fn ferrum_ok(args: &[&str]) -> String {
 }
 
 /// The trained models: one directory, three precisions, one tokenizer.
-pub struct Fixture {
+pub(crate) struct Fixture {
     pub dir: PathBuf,
     pub corpus: PathBuf,
     pub f32: PathBuf,
@@ -37,12 +37,12 @@ pub struct Fixture {
 
 impl Fixture {
     /// The three model files with a label.
-    pub fn all(&self) -> [(&'static str, &Path); 3] {
+    pub(crate) fn all(&self) -> [(&'static str, &Path); 3] {
         [("f32", &self.f32), ("q8_0", &self.q8), ("q4_0", &self.q4)]
     }
 }
 
-pub fn s(p: &Path) -> &str {
+pub(crate) fn s(p: &Path) -> &str {
     p.to_str().unwrap()
 }
 

@@ -12,19 +12,19 @@ pub(crate) mod support {
     use std::time::{Duration, Instant};
 
     /// A job table whose commands are `f(argv, out)`.
-    pub fn jobs_with(
+    pub(crate) fn jobs_with(
         f: impl Fn(&[String], &mut dyn Write) -> Result<(), String> + Send + Sync + 'static,
     ) -> Jobs {
         let run: Arc<RunFn> = Arc::new(f);
         Jobs::with_runner(run)
     }
 
-    pub fn args(a: &[&str]) -> Vec<String> {
+    pub(crate) fn args(a: &[&str]) -> Vec<String> {
         a.iter().map(|s| s.to_string()).collect()
     }
 
     /// Wait until the job has finished (panic after `secs`).
-    pub fn wait(job: &Arc<Job>, secs: u64) {
+    pub(crate) fn wait(job: &Arc<Job>, secs: u64) {
         let t0 = Instant::now();
         while !job.is_finished() {
             assert!(
@@ -39,7 +39,7 @@ pub(crate) mod support {
     }
 
     /// Wait until some output line contains `needle`.
-    pub fn wait_for_line(job: &Arc<Job>, needle: &str) {
+    pub(crate) fn wait_for_line(job: &Arc<Job>, needle: &str) {
         let t0 = Instant::now();
         while !job
             .poll(0)
@@ -55,12 +55,12 @@ pub(crate) mod support {
         }
     }
 
-    pub fn texts(job: &Arc<Job>) -> Vec<String> {
+    pub(crate) fn texts(job: &Arc<Job>) -> Vec<String> {
         job.poll(0).lines.into_iter().map(|(_, l)| l.text).collect()
     }
 
     /// Block until this thread's cancel flag is raised (the way a training loop waits for a stop).
-    pub fn block_until_cancelled() {
+    pub(crate) fn block_until_cancelled() {
         let t0 = Instant::now();
         while !crate::cancel::requested() {
             assert!(t0.elapsed() < Duration::from_secs(20), "never cancelled");

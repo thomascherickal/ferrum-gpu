@@ -1,9 +1,9 @@
 use ferrum_ref::gpt2::Config;
 
 /// `(name, model, batch, tokens per sequence, timed reps)`.
-pub type Case = (&'static str, Config, usize, usize, usize);
+pub(crate) type Case = (&'static str, Config, usize, usize, usize);
 
-pub fn all() -> [Case; 3] {
+pub(crate) fn all() -> [Case; 3] {
     let cfg = |vocab, dim, heads, layers, hidden| Config {
         vocab,
         ctx: 128,

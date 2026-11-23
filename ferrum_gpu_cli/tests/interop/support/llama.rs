@@ -12,7 +12,7 @@ use std::process::Stdio;
 /// empty or a strict prefix of what we compute for the same file is asked for again, three
 /// attempts in all, and each retry is logged. Any other answer is returned at once, so a real
 /// difference still fails.
-pub fn completion(dir: &Path, model: &Path) -> String {
+pub(crate) fn completion(dir: &Path, model: &Path) -> String {
     let expected = ours(model);
     let mut text = String::new();
     for attempt in 1..=3 {

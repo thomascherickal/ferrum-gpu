@@ -1,5 +1,5 @@
 /// `(name, (m, k, n))`: the square sizes, then the reference model's matmuls.
-pub fn all(sizes: &[usize]) -> Vec<(String, (usize, usize, usize))> {
+pub(crate) fn all(sizes: &[usize]) -> Vec<(String, (usize, usize, usize))> {
     let mut cases: Vec<_> = sizes
         .iter()
         .map(|&s| (format!("{s}^3"), (s, s, s)))
