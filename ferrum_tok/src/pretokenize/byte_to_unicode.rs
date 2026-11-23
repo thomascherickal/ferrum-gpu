@@ -12,7 +12,7 @@ pub fn byte_to_unicode(b: u8) -> char {
 }
 
 #[derive(Clone, Copy, PartialEq)]
-pub(crate) enum CharClass {
+pub(super) enum CharClass {
     Letter,
     Number,
     Space,

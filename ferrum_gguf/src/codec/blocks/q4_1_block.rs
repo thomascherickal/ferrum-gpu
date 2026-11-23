@@ -61,12 +61,12 @@ pub fn dequant(ty: u32, raw: &[u8]) -> Option<Vec<f32>> {
     Some(out)
 }
 
-pub(crate) fn q8_1(b: &[u8], out: &mut Vec<f32>) {
+fn q8_1(b: &[u8], out: &mut Vec<f32>) {
     let d = h(b, 0); // b[2..4] is the block sum, used only by dot products
     out.extend(b[4..4 + QK].iter().map(|&q| d * f32::from(q as i8)));
 }
 
-pub(crate) fn q4_1(b: &[u8], out: &mut Vec<f32>) {
+fn q4_1(b: &[u8], out: &mut Vec<f32>) {
     let (d, m) = (h(b, 0), h(b, 2));
     let qs = &b[4..4 + QK / 2];
     out.extend(qs.iter().map(|&x| d * f32::from(x & 0x0f) + m));

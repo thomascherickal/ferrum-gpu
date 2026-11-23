@@ -32,7 +32,7 @@ pub(crate) fn handle_watched(
 /// free to use as the poll interval.
 // ponytail: a client that half-closes its write side after sending (shutdown(SHUT_WR)) reads as
 // gone; browsers, curl, requests and fetch do not. Poll interval = cancel latency.
-pub(crate) fn watch_for_close(stream: &TcpStream, flag: &AtomicBool, done: &AtomicBool) {
+fn watch_for_close(stream: &TcpStream, flag: &AtomicBool, done: &AtomicBool) {
     stream.set_read_timeout(Some(WATCH_INTERVAL)).ok();
     let mut one = [0u8; 1];
     watch_with(|| stream.peek(&mut one), flag, done);
@@ -40,7 +40,7 @@ pub(crate) fn watch_for_close(stream: &TcpStream, flag: &AtomicBool, done: &Atom
 
 /// [`watch_for_close`] over any `peek`: 0 bytes is a close, an error other than "nothing yet" is a
 /// reset, bytes waiting are neither.
-pub(crate) fn watch_with(
+pub(super) fn watch_with(
     mut peek: impl FnMut() -> std::io::Result<usize>,
     flag: &AtomicBool,
     done: &AtomicBool,
@@ -61,4 +61,4 @@ pub(crate) fn watch_with(
 }
 
 /// How often a running request checks whether its client is still there.
-pub(crate) const WATCH_INTERVAL: Duration = Duration::from_millis(25);
+const WATCH_INTERVAL: Duration = Duration::from_millis(25);

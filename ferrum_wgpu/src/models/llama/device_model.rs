@@ -67,7 +67,7 @@ pub(crate) fn f32s(n: usize) -> u64 {
 }
 
 /// Bytes a `k x n` matrix occupies on the device under `quant`.
-pub(crate) fn matrix_bytes(quant: Option<QKind>, k: usize, n: usize) -> u64 {
+pub(super) fn matrix_bytes(quant: Option<QKind>, k: usize, n: usize) -> u64 {
     quant
         .map(|q| effective(q, k))
         .and_then(|q| packed_words(q, k, n))

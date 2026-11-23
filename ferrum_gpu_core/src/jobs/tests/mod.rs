@@ -12,7 +12,7 @@ pub(crate) mod support {
     use std::time::{Duration, Instant};
 
     /// A job table whose commands are `f(argv, out)`.
-    pub(crate) fn jobs_with(
+    pub(super) fn jobs_with(
         f: impl Fn(&[String], &mut dyn Write) -> Result<(), String> + Send + Sync + 'static,
     ) -> Jobs {
         let run: Arc<RunFn> = Arc::new(f);
@@ -39,7 +39,7 @@ pub(crate) mod support {
     }
 
     /// Wait until some output line contains `needle`.
-    pub(crate) fn wait_for_line(job: &Arc<Job>, needle: &str) {
+    pub(super) fn wait_for_line(job: &Arc<Job>, needle: &str) {
         let t0 = Instant::now();
         while !job
             .poll(0)
@@ -60,7 +60,7 @@ pub(crate) mod support {
     }
 
     /// Block until this thread's cancel flag is raised (the way a training loop waits for a stop).
-    pub(crate) fn block_until_cancelled() {
+    pub(super) fn block_until_cancelled() {
         let t0 = Instant::now();
         while !crate::cancel::requested() {
             assert!(t0.elapsed() < Duration::from_secs(20), "never cancelled");

@@ -2,7 +2,7 @@ use super::*;
 
 /// What `info` prints about one adapter: its identity, its features and largest buffer, and the memory
 /// budget with where it came from.
-pub(crate) fn adapter_lines(
+pub(super) fn adapter_lines(
     ad: &ferrum_wgpu::select::AdapterSummary,
     mem: Option<u64>,
 ) -> [String; 3] {

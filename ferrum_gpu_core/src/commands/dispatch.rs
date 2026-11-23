@@ -8,7 +8,7 @@ use train_cmds::*;
 
 /// The command switch without the test-only lock, so one command (`run`) can invoke others: the
 /// lock is not reentrant, and taking it twice on one thread deadlocks.
-pub(crate) fn dispatch(args: &[String], out: &mut dyn Write) -> Result<(), String> {
+pub(super) fn dispatch(args: &[String], out: &mut dyn Write) -> Result<(), String> {
     let (cmd, rest) = args.split_first().ok_or(USAGE)?;
     match cmd.as_str() {
         "-h" | "--help" | "help" => writeln!(out, "{USAGE}").map_err(|e| e.to_string()),

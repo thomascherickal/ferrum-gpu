@@ -37,4 +37,4 @@ impl Out {
 }
 
 /// Metadata entries in file order.
-pub(crate) type Meta = Vec<(String, Value)>;
+pub(super) type Meta = Vec<(String, Value)>;

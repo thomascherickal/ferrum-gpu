@@ -25,7 +25,7 @@ pub(crate) fn measure(
 }
 
 /// The CPU reference's prefill speed on the same model, for scale.
-pub(crate) fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
+pub(super) fn cpu_prefill(w: &Llama, reps: usize) -> Result<f64, String> {
     let ids = ids(w.cfg.vocab);
     let ms = time_fallible(reps, || w.forward_logits(&ids).map(drop))?;
     Ok(tps(TOKENS, ms))

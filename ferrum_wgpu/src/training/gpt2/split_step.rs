@@ -3,7 +3,7 @@ use super::*;
 impl<'g> GpuTrainer<'g> {
     /// The largest micro-batch size (a divisor of `batch`) whose footprint fits. When nothing
     /// fits, the error is the one for a single sequence, the closest to fitting.
-    pub(crate) fn choose_micro(&self, batch: usize, t: usize) -> Result<usize, GpuError> {
+    pub(super) fn choose_micro(&self, batch: usize, t: usize) -> Result<usize, GpuError> {
         let mut last = err("empty batch");
         for m in (1..=batch).rev().filter(|m| batch.is_multiple_of(*m)) {
             match self.check_fits(batch, m, t) {
@@ -14,7 +14,7 @@ impl<'g> GpuTrainer<'g> {
         Err(last)
     }
 
-    pub(crate) fn step_split(
+    pub(super) fn step_split(
         &mut self,
         ids: &[usize],
         targets: &[usize],

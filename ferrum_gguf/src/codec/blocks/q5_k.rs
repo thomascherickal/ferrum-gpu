@@ -30,7 +30,7 @@ pub(crate) fn q5_k(b: &[u8], out: &mut Vec<f32>) {
     }
 }
 
-pub(crate) fn q6_k(b: &[u8], out: &mut Vec<f32>) {
+pub(super) fn q6_k(b: &[u8], out: &mut Vec<f32>) {
     let (ql, qh, scales) = (
         &b[..QK_K / 2],
         &b[QK_K / 2..QK_K / 2 + QK_K / 4],
@@ -59,7 +59,7 @@ pub(crate) fn q6_k(b: &[u8], out: &mut Vec<f32>) {
 
 /// y = d * sc * q - dmin * m over ggml's scan order: two 128-element halves, shifts 0, 2, 4, 6,
 /// two 16-element runs per shift.
-pub(crate) fn q2_k(b: &[u8], out: &mut Vec<f32>) {
+pub(super) fn q2_k(b: &[u8], out: &mut Vec<f32>) {
     let (scales, qs) = (&b[..16], &b[16..16 + QK_K / 4]);
     let (d, dmin) = (h(b, 80), h(b, 82));
     let mut is = 0;

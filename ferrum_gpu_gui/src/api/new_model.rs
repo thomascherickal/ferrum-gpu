@@ -61,7 +61,7 @@ pub(crate) fn train(app: &Arc<App>, req: &Request) -> Response {
     }
 }
 
-pub(crate) fn train_status(app: &App) -> Response {
+pub(super) fn train_status(app: &App) -> Response {
     let job = lock(&app.job);
     let p = lock(&job.progress).clone();
     let error = match &job.state {

@@ -1,13 +1,13 @@
 use super::*;
 
 impl P<'_> {
-    pub(crate) fn ws(&mut self) {
+    pub(super) fn ws(&mut self) {
         while self.i < self.b.len() && matches!(self.b[self.i], b' ' | b'\t' | b'\n' | b'\r') {
             self.i += 1;
         }
     }
 
-    pub(crate) fn eat(&mut self, c: u8) -> Result<(), String> {
+    pub(super) fn eat(&mut self, c: u8) -> Result<(), String> {
         if self.b.get(self.i) == Some(&c) {
             self.i += 1;
             Ok(())
@@ -16,7 +16,7 @@ impl P<'_> {
         }
     }
 
-    pub(crate) fn lit(&mut self, word: &str, v: Json) -> Result<Json, String> {
+    pub(super) fn lit(&mut self, word: &str, v: Json) -> Result<Json, String> {
         if self.b[self.i..].starts_with(word.as_bytes()) {
             self.i += word.len();
             Ok(v)

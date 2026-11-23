@@ -22,7 +22,7 @@ impl<'g> GpuTrainer<'g> {
 
     /// Weights and Adam moments together, for tests that compare whole training states.
     #[cfg(test)]
-    pub(crate) fn snapshot_pair(&self) -> (Gpt2, (Gpt2, Gpt2)) {
+    pub(super) fn snapshot_pair(&self) -> (Gpt2, (Gpt2, Gpt2)) {
         (self.weights_host().unwrap(), self.moments_host().unwrap())
     }
 
@@ -53,7 +53,7 @@ impl<'g> GpuTrainer<'g> {
         plan
     }
 
-    pub(crate) fn check_fits(&self, batch: usize, micro: usize, t: usize) -> Result<(), GpuError> {
+    pub(super) fn check_fits(&self, batch: usize, micro: usize, t: usize) -> Result<(), GpuError> {
         self.footprint(batch, micro, t)
             .check(self.gpu.info().max_binding, self.budget)
             .map_err(|e| {

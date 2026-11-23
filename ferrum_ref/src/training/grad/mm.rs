@@ -21,7 +21,7 @@ pub fn transpose(a: &[f32], rows: usize, cols: usize) -> Vec<f32> {
     out
 }
 
-pub(crate) fn colsum(dy: &[f32], rows: usize, cols: usize) -> Vec<f32> {
+fn colsum(dy: &[f32], rows: usize, cols: usize) -> Vec<f32> {
     let mut s = vec![0.0; cols];
     for r in 0..rows {
         for c in 0..cols {

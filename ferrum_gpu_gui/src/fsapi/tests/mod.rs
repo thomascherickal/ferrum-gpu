@@ -20,7 +20,7 @@ pub(crate) mod support {
     }
 
     /// Write `bytes` to `dir/rel`, creating folders.
-    pub(crate) fn put(dir: &Path, rel: &str, bytes: &[u8]) -> PathBuf {
+    pub(super) fn put(dir: &Path, rel: &str, bytes: &[u8]) -> PathBuf {
         let p = dir.join(rel);
         std::fs::create_dir_all(p.parent().unwrap()).unwrap();
         std::fs::write(&p, bytes).unwrap();

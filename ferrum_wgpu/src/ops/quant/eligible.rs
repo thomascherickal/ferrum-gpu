@@ -2,7 +2,7 @@ use super::*;
 
 impl QKind {
     /// The GGUF tensor type, `None` for the FP8 formats (llama.cpp has none).
-    pub(crate) fn ggml(self) -> Option<u32> {
+    pub(super) fn ggml(self) -> Option<u32> {
         Some(match self {
             QKind::Q8_0 => GGML_Q8_0,
             QKind::Q4_0 => GGML_Q4_0,
@@ -36,7 +36,7 @@ impl QKind {
     }
 
     /// Bytes of one block in a GGUF file (the FP8 formats use Q8_0's layout).
-    pub(crate) fn file_bytes(self) -> usize {
+    pub(super) fn file_bytes(self) -> usize {
         match self {
             QKind::Q8_0 | QKind::Fp8E4M3 | QKind::Fp8E5M2 => 2 + QK,
             QKind::Q4_0 => 2 + QK / 2,
@@ -72,7 +72,7 @@ impl QKind {
     }
 
     /// Does the kernel set of the first three formats handle this one (else `qlinear_ext` does)?
-    pub(crate) fn is_core(self) -> bool {
+    pub(super) fn is_core(self) -> bool {
         matches!(self, QKind::Q8_0 | QKind::Q4_0 | QKind::F16)
     }
 }

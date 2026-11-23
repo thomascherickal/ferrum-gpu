@@ -19,7 +19,7 @@ impl P<'_> {
         Ok(Json::Num(n))
     }
 
-    pub(crate) fn hex4(&mut self) -> Result<u32, String> {
+    fn hex4(&mut self) -> Result<u32, String> {
         let h = self
             .b
             .get(self.i..self.i + 4)

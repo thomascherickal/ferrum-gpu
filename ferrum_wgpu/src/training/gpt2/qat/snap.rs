@@ -13,7 +13,7 @@ pub(crate) enum Snap {
 
 /// What the snap does to canonical parameter `i`, mirroring which tensors the GGUF writer stores
 /// as Q8_0.
-pub(crate) fn snap_kind(c: &Config, i: usize) -> Snap {
+pub(super) fn snap_kind(c: &Config, i: usize) -> Snap {
     let (d, h, v) = (c.dim, c.hidden, c.vocab);
     let blocks_end = 2 + 16 * c.layers;
     match i {

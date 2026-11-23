@@ -10,7 +10,7 @@ pub fn modelfile(abs: &Path, ctx: usize) -> String {
 }
 
 /// The absolute path of a GPT-2 model file and its context length; anything else is refused.
-pub(crate) fn runnable(model: &str) -> Result<(PathBuf, usize), String> {
+pub(super) fn runnable(model: &str) -> Result<(PathBuf, usize), String> {
     let g = ferrum_gguf::Gguf::parse(
         std::fs::read(model).map_err(|e| format!("cannot read GGUF {model}: {e}"))?,
     )

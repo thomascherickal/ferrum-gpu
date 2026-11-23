@@ -23,7 +23,7 @@ impl std::fmt::Debug for Gguf {
     }
 }
 
-pub(crate) struct Cur<'a> {
+pub(super) struct Cur<'a> {
     pub(crate) b: &'a [u8],
     pub(crate) p: usize,
 }

@@ -35,7 +35,7 @@ pub(crate) fn field(j: &Json, key: &str, default: f64, lo: f64, hi: f64) -> Resu
     }
 }
 
-pub(crate) fn model_json(m: &Llama) -> Json {
+pub(super) fn model_json(m: &Llama) -> Json {
     let c = &m.cfg;
     Json::obj([
         (

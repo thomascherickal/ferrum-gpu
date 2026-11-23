@@ -15,7 +15,7 @@ pub fn transpose(data: &[f32], rows: usize, cols: usize) -> Vec<f32> {
     out
 }
 
-pub(crate) fn expect_len(name: &str, got: usize, want: usize) -> Result<(), GgufError> {
+fn expect_len(name: &str, got: usize, want: usize) -> Result<(), GgufError> {
     if got == want {
         Ok(())
     } else {

@@ -23,7 +23,7 @@ pub(crate) fn loglikelihood_rolling(
     Ok(results(out))
 }
 
-pub(crate) const GEN_FIELDS: [&str; 9] = [
+pub(super) const GEN_FIELDS: [&str; 9] = [
     "prompt",
     "max_tokens",
     "stop",

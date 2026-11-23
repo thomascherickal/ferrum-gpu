@@ -10,11 +10,7 @@ pub(crate) fn app(a: &Args, work: Workload) -> Result<Session, String> {
 }
 
 /// [`app`] with the device choice decided by the caller instead of read from `--device`.
-pub(crate) fn app_requested(
-    a: &Args,
-    work: Workload,
-    requested: DeviceChoice,
-) -> Result<Session, String> {
+fn app_requested(a: &Args, work: Workload, requested: DeviceChoice) -> Result<Session, String> {
     let threads = a.num(
         "--threads",
         std::thread::available_parallelism().map_or(1, |n| n.get()),

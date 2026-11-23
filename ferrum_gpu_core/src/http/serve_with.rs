@@ -23,7 +23,7 @@ pub fn serve_with(
     }
 }
 
-pub(crate) fn handle(
+fn handle(
     mut stream: TcpStream,
     handler: &(dyn Fn(&Request) -> Response + Send + Sync),
     (port, loopback_guard): (u16, bool),
@@ -47,7 +47,7 @@ pub(crate) fn handle(
 /// receive buffer (a client that pipelined a second request, or sent a body we refused) makes the
 /// kernel send a reset, which can destroy the response before the client has read it. So: finish
 /// our side (`FIN`), swallow whatever is still arriving for a moment, then close.
-pub(crate) fn close_gracefully(stream: &mut TcpStream) {
+fn close_gracefully(stream: &mut TcpStream) {
     let _ = stream.flush();
     let _ = stream.shutdown(Shutdown::Write);
     let _ = stream.set_read_timeout(Some(DRAIN_TIMEOUT));
@@ -62,6 +62,6 @@ pub(crate) fn close_gracefully(stream: &mut TcpStream) {
 
 /// How long to wait for a client's last bytes after the response (a client that has read the
 /// response and closed ends this at once).
-pub(crate) const DRAIN_TIMEOUT: Duration = Duration::from_millis(100);
+const DRAIN_TIMEOUT: Duration = Duration::from_millis(100);
 /// Most bytes swallowed after the response; a client sending more is cut off by the close.
-pub(crate) const DRAIN_LIMIT: usize = 1 << 20;
+const DRAIN_LIMIT: usize = 1 << 20;

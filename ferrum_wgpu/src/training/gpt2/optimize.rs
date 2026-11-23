@@ -28,7 +28,7 @@ impl<'g> GpuTrainer<'g> {
     }
 
     /// Allocate the gradient accumulators (once, on first use of micro-batching).
-    pub(crate) fn ensure_accum(&mut self) -> Result<(), GpuError> {
+    pub(super) fn ensure_accum(&mut self) -> Result<(), GpuError> {
         if self.accum.is_none() {
             let bufs = self
                 .params

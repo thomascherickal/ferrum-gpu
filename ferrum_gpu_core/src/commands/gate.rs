@@ -30,7 +30,7 @@ pub fn gate_with(
     say(out, preflight::report(plan, budget))
 }
 
-pub(crate) fn mem_mb(a: &Args) -> Result<Option<u64>, String> {
+pub(super) fn mem_mb(a: &Args) -> Result<Option<u64>, String> {
     a.get("--gpu-mem-mb")
         .map(|_| a.num("--gpu-mem-mb", 0u64))
         .transpose()
@@ -40,7 +40,7 @@ pub(crate) fn say(out: &mut dyn Write, s: String) -> Result<(), String> {
     writeln!(out, "{s}").map_err(|e| e.to_string())
 }
 
-pub(crate) fn device_line(out: &mut dyn Write, app: &Session) -> Result<(), String> {
+pub(super) fn device_line(out: &mut dyn Write, app: &Session) -> Result<(), String> {
     say(
         out,
         format!("device: {} ({})", app.backend.name(), app.backend.kind()),
@@ -57,7 +57,7 @@ pub fn load(path: &str) -> Result<Llama, String> {
     from_gguf(&g).map_err(|e| format!("{path}: {e}"))
 }
 
-pub(crate) fn shape(m: &Llama) -> String {
+pub(super) fn shape(m: &Llama) -> String {
     let c = &m.cfg;
     format!(
         "model: vocab {} ctx {} dim {} heads {}/{} layers {} hidden {}",

@@ -38,7 +38,7 @@ impl From<std::io::Error> for InferError {
 pub type Result<T> = std::result::Result<T, InferError>;
 
 /// Fail if `n` exceeds `max`; guards sizes read from untrusted data.
-pub(crate) fn bounded(n: usize, max: usize, what: &str) -> Result<usize> {
+pub(super) fn bounded(n: usize, max: usize, what: &str) -> Result<usize> {
     if n > max {
         return Err(InferError::Format(format!(
             "{what} = {n} exceeds what the data can hold ({max})"

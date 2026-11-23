@@ -65,7 +65,7 @@ impl Running {
 }
 
 /// Holds one in-flight slot until dropped.
-pub(crate) struct Slot<'a>(pub(crate) &'a AtomicUsize);
+pub(super) struct Slot<'a>(pub(crate) &'a AtomicUsize);
 
 impl<'a> Slot<'a> {
     pub(super) fn take(n: &'a AtomicUsize, cap: usize) -> Option<Slot<'a>> {

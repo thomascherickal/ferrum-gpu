@@ -78,4 +78,4 @@ impl PrepareReport {
     }
 }
 
-pub(crate) const OUTPUTS: [&str; 4] = ["train.txt", "val.txt", "test.txt", "manifest.json"];
+pub(super) const OUTPUTS: [&str; 4] = ["train.txt", "val.txt", "test.txt", "manifest.json"];

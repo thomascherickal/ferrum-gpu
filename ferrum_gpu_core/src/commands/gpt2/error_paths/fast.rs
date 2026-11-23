@@ -44,7 +44,7 @@ pub(crate) fn trained(dir: &Path, corpus: &Path, vocab: usize, tag: &str) -> (Pa
 }
 
 /// A writer that accepts `budget` bytes and then fails every write, like a closed pipe.
-pub(crate) struct FailAfter {
+pub(super) struct FailAfter {
     pub budget: usize,
 }
 
@@ -63,13 +63,13 @@ impl Write for FailAfter {
 }
 
 /// Run `cmd` writing to a [`FailAfter`] writer.
-pub(crate) fn run_failing(cmd: &str, budget: usize) -> Result<(), String> {
+pub(super) fn run_failing(cmd: &str, budget: usize) -> Result<(), String> {
     run(&words(cmd), &mut FailAfter { budget })
 }
 
 /// A writer that succeeds for `n` writes and then fails every write: the `n`-th place a command
 /// writes its output is the first one to fail.
-pub(crate) struct FailNth {
+pub(super) struct FailNth {
     pub(super) n: usize,
     pub(super) calls: usize,
 }

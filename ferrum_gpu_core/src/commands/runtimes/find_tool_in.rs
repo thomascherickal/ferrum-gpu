@@ -38,7 +38,7 @@ pub(crate) fn find_tool_in(
     })
 }
 
-pub(crate) fn run_tool(tool: &Path, args: &[&str]) -> Result<(bool, String), String> {
+pub(super) fn run_tool(tool: &Path, args: &[&str]) -> Result<(bool, String), String> {
     let o = Command::new(tool)
         .args(args)
         .output()

@@ -71,7 +71,7 @@ pub(super) fn summarize(a: &wgpu::Adapter) -> AdapterSummary {
 }
 
 /// The reported optional capabilities of an adapter, from its `wgpu` feature set.
-pub(crate) fn features_of(f: wgpu::Features) -> select::AdapterFeatures {
+pub(super) fn features_of(f: wgpu::Features) -> select::AdapterFeatures {
     select::AdapterFeatures {
         shader_f16: f.contains(wgpu::Features::SHADER_F16),
         subgroups: f.contains(wgpu::Features::SUBGROUP),

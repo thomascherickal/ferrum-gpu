@@ -1,7 +1,7 @@
 use super::*;
 
 impl ByteBpeTokenizer {
-    pub(crate) fn train_from_word_counts(
+    pub(super) fn train_from_word_counts(
         freq: HashMap<String, i64>,
         _total_bytes: usize,
         vocab_size: usize,

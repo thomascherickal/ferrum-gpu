@@ -3,7 +3,7 @@ use super::*;
 impl GgufTokenizer {
     // ── BPE ───────────────────────────────────────────────────────────────────
 
-    pub(crate) fn encode_bpe(&self, text: &str) -> Vec<usize> {
+    pub(super) fn encode_bpe(&self, text: &str) -> Vec<usize> {
         let mut out = Vec::new();
         for chunk in pretokenize(text) {
             // Byte-level map: each byte → one printable GPT-2 char (a "piece").
@@ -53,7 +53,7 @@ impl GgufTokenizer {
         out
     }
 
-    pub(crate) fn decode_bpe(&self, ids: &[usize]) -> String {
+    pub(super) fn decode_bpe(&self, ids: &[usize]) -> String {
         let mut bytes = Vec::new();
         for &id in ids {
             let Some(tok) = self.tokens.get(id) else {

@@ -29,7 +29,7 @@ pub fn prepare(o: &PrepareOptions) -> Result<PrepareReport, String> {
 /// describes a complete set.
 // ponytail: the data files are not rolled back; a crash can leave a partial set WITHOUT a manifest,
 // never a manifest over a partial set. A staging-directory swap would make the set atomic.
-pub(crate) fn commit_outputs(out: &Path) -> Result<(), String> {
+pub(super) fn commit_outputs(out: &Path) -> Result<(), String> {
     let manifest = out.join("manifest.json");
     match std::fs::remove_file(&manifest) {
         Ok(()) => {}
@@ -45,7 +45,7 @@ pub(crate) fn commit_outputs(out: &Path) -> Result<(), String> {
 }
 
 /// The split a document belongs to (0 train, 1 val, 2 test): a seeded hash of its text.
-pub(crate) fn bucket(seed: u64, doc: &str, val_cut: u64, test_cut: u64) -> usize {
+pub(super) fn bucket(seed: u64, doc: &str, val_cut: u64, test_cut: u64) -> usize {
     let mut h = Sha256::new();
     h.update(&seed.to_le_bytes());
     h.update(doc.as_bytes());

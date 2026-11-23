@@ -25,7 +25,7 @@ pub mod sysmem;
 mod usage;
 pub use usage::*;
 mod dispatch;
-pub(crate) use dispatch::*;
+use dispatch::*;
 mod app;
 use app::*;
 mod gate;

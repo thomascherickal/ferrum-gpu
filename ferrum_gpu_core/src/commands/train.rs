@@ -73,7 +73,7 @@ pub(crate) fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(
 
 /// `export-gguf`: read a model (any supported precision) and write it again as f32, int8 or int4.
 /// A GPT-2 file keeps its tokenizer; a Llama-style file is written byte-level.
-pub(crate) fn export_gguf(a: &Args, out: &mut dyn Write) -> Result<(), String> {
+pub(super) fn export_gguf(a: &Args, out: &mut dyn Write) -> Result<(), String> {
     let (src, dst) = (a.need("--model")?, a.need("--out")?);
     let q = gpt2::quant(a, "int8")?;
     let bytes = if gpt2::is_gpt2(src) {

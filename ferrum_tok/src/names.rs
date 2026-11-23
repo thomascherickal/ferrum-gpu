@@ -1,5 +1,5 @@
 /// Number of base tokens (one per byte value).
-pub(crate) const BASE_VOCAB: usize = 256;
+pub(super) const BASE_VOCAB: usize = 256;
 
 /// Name of the beginning-of-sequence special token.
 pub const TOK_BOS: &str = "<bos>";

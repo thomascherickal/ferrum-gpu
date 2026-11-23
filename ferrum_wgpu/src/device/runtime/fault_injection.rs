@@ -5,12 +5,12 @@ impl Gpu {
     /// one with "injected fault". `usize::MAX` turns injection off. Used to drive the error
     /// branch of every `?` in code that issues many commands.
     #[cfg(test)]
-    pub(crate) fn fail_after(&self, n: usize) {
+    pub(super) fn fail_after(&self, n: usize) {
         self.fault_after.store(n, Ordering::Relaxed);
     }
 
     #[cfg(test)]
-    pub(crate) fn injected_fault(&self) -> Result<(), GpuError> {
+    pub(super) fn injected_fault(&self) -> Result<(), GpuError> {
         match self.fault_after.load(Ordering::Relaxed) {
             usize::MAX => Ok(()),
             0 => Err(GpuError("injected fault".into())),

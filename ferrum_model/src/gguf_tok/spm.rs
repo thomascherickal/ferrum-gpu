@@ -3,7 +3,7 @@ use super::*;
 impl GgufTokenizer {
     // ── SPM ───────────────────────────────────────────────────────────────────
 
-    pub(crate) fn encode_spm(&self, text: &str) -> Vec<usize> {
+    pub(super) fn encode_spm(&self, text: &str) -> Vec<usize> {
         // SentencePiece prepends a dummy space and renders spaces as ▁.
         let normalized: Vec<char> = format!(" {text}")
             .replace(' ', &SPM_SPACE.to_string())
@@ -46,7 +46,7 @@ impl GgufTokenizer {
         out
     }
 
-    pub(crate) fn decode_spm(&self, ids: &[usize]) -> String {
+    pub(super) fn decode_spm(&self, ids: &[usize]) -> String {
         let mut bytes = Vec::new();
         for &id in ids {
             let Some(tok) = self.tokens.get(id) else {

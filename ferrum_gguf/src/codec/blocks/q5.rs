@@ -27,7 +27,7 @@ pub(crate) fn q5(b: &[u8], with_min: bool, out: &mut Vec<f32>) {
 }
 
 /// The 6-bit scale and min of sub-block `j` (0..8) from the 12 packed bytes of a Q4_K/Q5_K block.
-pub(crate) fn scale_min(j: usize, q: &[u8]) -> (u8, u8) {
+pub(super) fn scale_min(j: usize, q: &[u8]) -> (u8, u8) {
     if j < 4 {
         (q[j] & 63, q[j + 4] & 63)
     } else {
@@ -38,7 +38,7 @@ pub(crate) fn scale_min(j: usize, q: &[u8]) -> (u8, u8) {
     }
 }
 
-pub(crate) fn q4_k(b: &[u8], out: &mut Vec<f32>) {
+pub(super) fn q4_k(b: &[u8], out: &mut Vec<f32>) {
     let (d, dmin) = (h(b, 0), h(b, 2));
     let (scales, qs) = (&b[4..16], &b[16..16 + QK_K / 2]);
     for (pair, q) in qs.chunks_exact(32).enumerate() {
