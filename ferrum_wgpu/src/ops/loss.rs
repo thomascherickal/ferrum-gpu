@@ -17,7 +17,7 @@ pub fn cross_entropy(
     need("cross_entropy row_loss", row_loss, rows)?;
     need("cross_entropy loss", loss, 1)?;
     if rows == 0 {
-        return Err(err("cross_entropy: zero rows".into()));
+        return Err(err("cross_entropy: zero rows"));
     }
     let p1 = pipe!(gpu, "fwd/ce_rows")?;
     gpu.dispatch_1d(

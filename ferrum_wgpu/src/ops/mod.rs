@@ -41,9 +41,7 @@ pub use loss::{cross_entropy, score};
 use crate::device::{Gpu, GpuError};
 use crate::tensor::GpuBuf;
 
-pub(crate) fn err(msg: String) -> GpuError {
-    GpuError(msg)
-}
+pub(crate) use crate::device::err;
 
 pub(crate) fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     if b.len() == want {

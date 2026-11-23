@@ -1,8 +1,6 @@
 use super::*;
 
-pub(crate) fn err(m: String) -> GpuError {
-    GpuError(m)
-}
+pub(crate) use crate::device::err;
 
 pub(crate) fn need(name: &str, b: &GpuBuf, want: usize) -> Result<(), GpuError> {
     if b.len() == want {

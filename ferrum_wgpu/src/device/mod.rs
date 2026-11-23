@@ -13,6 +13,7 @@ pub mod memory;
 pub mod runtime;
 pub mod select;
 pub mod tensor;
+pub(crate) use gpuerror::err;
 pub use gpuerror::*;
 mod wait_for_loss;
 pub use wait_for_loss::*;

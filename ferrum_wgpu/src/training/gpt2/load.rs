@@ -39,33 +39,6 @@ impl<'g> GpuTrainer<'g> {
         targets: &[usize],
         batch: usize,
     ) -> Result<usize, GpuError> {
-        let c = &self.cfg;
-        if batch == 0 || ids.is_empty() || !ids.len().is_multiple_of(batch) {
-            return Err(err(format!(
-                "{} tokens do not split into {batch} sequences",
-                ids.len()
-            )));
-        }
-        let t = ids.len() / batch;
-        if t > c.ctx {
-            return Err(err(format!(
-                "sequence length {t} exceeds the context {}",
-                c.ctx
-            )));
-        }
-        if targets.len() != ids.len() {
-            return Err(err(format!(
-                "{} targets for {} tokens",
-                targets.len(),
-                ids.len()
-            )));
-        }
-        if let Some(bad) = ids.iter().chain(targets).find(|&&i| i >= c.vocab) {
-            return Err(err(format!(
-                "token {bad} is out of range for vocab {}",
-                c.vocab
-            )));
-        }
-        Ok(t)
+        crate::training::batch_check::check_batch(ids, targets, batch, self.cfg.ctx, self.cfg.vocab)
     }
 }

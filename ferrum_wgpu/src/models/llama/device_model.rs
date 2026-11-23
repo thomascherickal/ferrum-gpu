@@ -1,8 +1,6 @@
 use super::*;
 
-pub(crate) fn err(m: impl Into<String>) -> GpuError {
-    GpuError(m.into())
-}
+pub(crate) use crate::device::err;
 
 pub(crate) struct DevBlock {
     pub(crate) attn_norm: GpuBuf,

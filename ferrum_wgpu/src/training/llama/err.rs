@@ -1,8 +1,6 @@
 use super::*;
 
-pub(super) fn err(m: impl Into<String>) -> GpuError {
-    GpuError(m.into())
-}
+pub(super) use crate::device::err;
 
 /// Everything needed to continue a run: weights, Adam moments, steps taken.
 #[derive(Clone, Debug, PartialEq)]

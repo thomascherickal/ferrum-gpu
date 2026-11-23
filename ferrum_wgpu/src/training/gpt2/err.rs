@@ -1,8 +1,6 @@
 use super::*;
 
-pub(super) fn err(m: impl Into<String>) -> GpuError {
-    GpuError(m.into())
-}
+pub(super) use crate::device::err;
 
 /// A GPT-2 model being trained on the GPU.
 pub struct GpuTrainer<'g> {
