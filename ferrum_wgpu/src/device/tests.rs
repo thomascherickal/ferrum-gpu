@@ -43,3 +43,10 @@ fn open_reports_limits_when_a_gpu_exists() {
     assert!(g.max_workgroups() >= 65535);
     assert!(g.info().max_workgroup_invocations >= 256);
 }
+
+#[test]
+fn a_failed_stage_is_named_and_a_good_one_passes_through() {
+    let e = stage(Err::<(), _>("device gone"), "poll failed").unwrap_err();
+    assert_eq!(e.to_string(), "poll failed: device gone");
+    assert_eq!(stage(Ok::<_, String>(3), "poll failed").unwrap(), 3);
+}

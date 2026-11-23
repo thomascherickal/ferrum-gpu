@@ -10,6 +10,7 @@ struct Spec {
     version: Option<u32>,
     vocab: Option<u64>,
     skip_sha: bool,
+    skip_docs: bool,
     skip_eos_value: bool,
     tensors: Option<usize>, // number of tensors (default 1)
     tensor_type: Option<u32>,
@@ -32,7 +33,9 @@ fn build(s: &Spec) -> Vec<u8> {
         Value::U64(s.vocab.unwrap_or(10)),
     );
     b.meta("ferrum.tokens.token_count", Value::U64(3));
-    b.meta("ferrum.tokens.document_count", Value::U64(1));
+    if !s.skip_docs {
+        b.meta("ferrum.tokens.document_count", Value::U64(1));
+    }
     if !s.skip_eos_value {
         b.meta("ferrum.tokens.eos_id", Value::U32(2));
     }
@@ -70,5 +73,6 @@ fn err(s: &Spec) -> String {
     open(s).unwrap_err()
 }
 
+mod a_missing_count_is_named;
 mod a_tensor_of_the_wrong_type_or_length_is_refused;
 mod the_unbroken_file_opens;

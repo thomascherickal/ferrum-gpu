@@ -18,14 +18,14 @@ pub fn is_token_file(path: &str) -> bool {
 /// An open token file. It holds the file handle, never the ids.
 #[derive(Debug)]
 pub struct TokenFile {
-    pub(super) file: Mutex<File>,
-    pub(super) data_start: u64,
-    pub(super) width: usize,
-    pub(super) tokens: usize,
-    pub(super) vocab_size: usize,
-    pub(super) documents: u64,
-    pub(super) eos_id: Option<u32>,
-    pub(super) tokenizer_sha256: String,
+    pub(in crate::token_file) file: Mutex<File>,
+    pub(in crate::token_file) data_start: u64,
+    pub(in crate::token_file) width: usize,
+    pub(in crate::token_file) tokens: usize,
+    pub(in crate::token_file) vocab_size: usize,
+    pub(in crate::token_file) documents: u64,
+    pub(in crate::token_file) eos_id: Option<u32>,
+    pub(in crate::token_file) tokenizer_sha256: String,
 }
 
 pub(super) fn num(g: &Gguf, path: &str, key: &str) -> Result<usize, String> {

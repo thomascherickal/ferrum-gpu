@@ -21,6 +21,7 @@ fn data(cfg: &Config, batch: usize, t: usize) -> (Vec<usize>, Vec<usize>) {
     )
 }
 
+mod a_shape_the_matmul_refuses_is_an_internal_error;
 mod gelu_grad_matches_finite_differences_and_saturates;
 mod linear_bwd_matches_finite_differences;
 mod thread_count_does_not_change_the_result;

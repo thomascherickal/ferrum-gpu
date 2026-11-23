@@ -31,4 +31,5 @@ fn header_bytes_len(m: &TokenFileMeta, n: u64, d: u64) -> usize {
 }
 
 mod an_empty_file_has_no_documents_and_no_eos_means_one_document_per_file;
+mod io_failures_are_reported_not_panicked;
 mod writing_the_fixture_corpus_reproduces_ferrum_cpus_file_byte_for_byte;

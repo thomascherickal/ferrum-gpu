@@ -15,6 +15,8 @@ fn bad_state_errors() {
     assert!(ByteBpeTokenizer::from_state("not-a-pair").is_err());
     assert!(ByteBpeTokenizer::from_state("1,2;9999,3").is_err()); // undefined id
     assert!(ByteBpeTokenizer::from_state("x,y").is_err());
+    let e = ByteBpeTokenizer::from_state("1,y").err().unwrap();
+    assert!(e.to_string().contains("bad merge id \"y\""), "{e}");
 }
 
 #[test]

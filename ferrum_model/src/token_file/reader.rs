@@ -9,4 +9,6 @@ mod is_token_file;
 pub use is_token_file::*;
 mod metadata;
 mod open;
+#[cfg(test)]
+pub(in crate::token_file) use open::tensor_start;
 mod token_source;

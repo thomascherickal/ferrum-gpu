@@ -41,6 +41,7 @@ fn tmpdir(name: &str) -> std::path::PathBuf {
 }
 
 mod a_checkpoint_file_on_disk_resumes_a_run;
+mod a_checkpoint_with_a_missing_tensor_is_refused;
 mod a_config_that_lies_about_sizes_is_refused_before_allocating;
 mod atomic_write_replaces_the_target_and_leaves_no_temp_file;
 mod round_trips_exactly;

@@ -52,16 +52,12 @@ impl Gpu {
         staging.slice(..).map_async(wgpu::MapMode::Read, move |r| {
             let _ = tx.send(r);
         });
-        self.device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .map_err(|e| GpuError(format!("poll failed: {e}")))?;
-        rx.recv()
-            .map_err(|e| GpuError(format!("map callback lost: {e}")))?
-            .map_err(|e| GpuError(format!("map failed: {e}")))?;
-        let view = staging
-            .slice(..)
-            .get_mapped_range()
-            .map_err(|e| GpuError(format!("mapped range: {e}")))?;
+        stage(
+            self.device.poll(wgpu::PollType::wait_indefinitely()),
+            "poll failed",
+        )?;
+        stage(stage(rx.recv(), "map callback lost")?, "map failed")?;
+        let view = stage(staging.slice(..).get_mapped_range(), "mapped range")?;
         let out = bytemuck::cast_slice::<u8, f32>(&view).to_vec();
         drop(view);
         staging.unmap();

@@ -28,12 +28,12 @@ pub fn header_bytes(meta: &TokenFileMeta, n: u64, docs: u64) -> Vec<u8> {
 
 /// Receives the ids of a token file being written (see [`write`]).
 pub struct TokenSink<'a> {
-    pub(super) w: BufWriter<&'a mut std::fs::File>,
-    pub(super) vocab: usize,
-    pub(super) eos: Option<u32>,
-    pub(super) wide: bool,
-    pub(super) tokens: u64,
-    pub(super) eos_seen: u64,
+    pub(in crate::token_file) w: BufWriter<&'a mut std::fs::File>,
+    pub(in crate::token_file) vocab: usize,
+    pub(in crate::token_file) eos: Option<u32>,
+    pub(in crate::token_file) wide: bool,
+    pub(in crate::token_file) tokens: u64,
+    pub(in crate::token_file) eos_seen: u64,
 }
 
 impl TokenSink<'_> {

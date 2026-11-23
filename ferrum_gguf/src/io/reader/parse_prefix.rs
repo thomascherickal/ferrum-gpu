@@ -14,8 +14,8 @@ impl Gguf {
         if version != 3 {
             return Err(err(format!("unsupported GGUF version {version} (need 3)")));
         }
-        let n_tensors = usize::try_from(c.u64()?).map_err(|_| err("tensor count overflows"))?;
-        let n_kv = usize::try_from(c.u64()?).map_err(|_| err("metadata count overflows"))?;
+        let n_tensors = narrow(c.u64()?, "tensor count overflows")?;
+        let n_kv = narrow(c.u64()?, "metadata count overflows")?;
         // Each entry takes at least 8 bytes, which bounds what the counts may claim.
         if n_kv > bytes.len() / 8 || n_tensors > bytes.len() / 8 {
             return Err(err("header counts exceed the file size"));
@@ -51,7 +51,7 @@ impl Gguf {
             None => DEFAULT_ALIGNMENT,
         };
         let data_start = (c.p as u64).div_ceil(alignment) * alignment;
-        let data_start = usize::try_from(data_start).map_err(|_| err("data offset overflows"))?;
+        let data_start = narrow(data_start, "data offset overflows")?;
         if data_start as u64 > total {
             return Err(err("file ends before the tensor data"));
         }

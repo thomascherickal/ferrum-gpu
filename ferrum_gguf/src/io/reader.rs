@@ -10,6 +10,8 @@ mod gguf;
 pub use gguf::*;
 mod accessors;
 mod cursor;
+mod narrowing;
+pub use narrowing::narrow;
 mod parse;
 mod parse_prefix;
 

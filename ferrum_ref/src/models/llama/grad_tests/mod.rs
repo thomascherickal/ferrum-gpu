@@ -72,6 +72,7 @@ fn variants() -> Vec<(&'static str, Llama)> {
     ]
 }
 
+mod a_shape_the_matmul_refuses_is_an_internal_error;
 mod adam_step_matches_the_hand_computed_first_update_and_clipping_caps_the_norm;
 mod gqa_forward_agrees_with_the_row_oracle;
 mod rmsnorm_bwd_matches_finite_differences;

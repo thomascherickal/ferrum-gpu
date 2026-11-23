@@ -1,4 +1,16 @@
 use super::*;
+use crate::path_context::at;
+
+/// Where the tensor data starts in the file.
+pub(in crate::token_file) fn tensor_start(
+    data_offset: usize,
+    offset: u64,
+    path: &str,
+) -> Result<u64, String> {
+    (data_offset as u64)
+        .checked_add(offset)
+        .ok_or_else(|| format!("{path}: tensor offset overflows"))
+}
 
 impl TokenFile {
     /// Open and validate `path`: GGUF header, architecture, version, metadata, and one 1-D integer
@@ -6,12 +18,9 @@ impl TokenFile {
     /// file fails here). The ids are range-checked as they are read.
     pub fn open(path: &str) -> Result<Self, String> {
         let mut file = File::open(path).map_err(|e| format!("{path}: {e}"))?;
-        let total = file.metadata().map_err(|e| format!("{path}: {e}"))?.len();
+        let total = at(file.metadata(), path)?.len();
         let mut head = Vec::new();
-        file.by_ref()
-            .take(1 << 20)
-            .read_to_end(&mut head)
-            .map_err(|e| format!("{path}: {e}"))?;
+        at(file.by_ref().take(1 << 20).read_to_end(&mut head), path)?;
         let g = Gguf::parse_prefix(head, total).map_err(|e| format!("{path}: {e}"))?;
         match g.string("general.architecture") {
             Ok(TOKEN_FILE_ARCH) => {}
@@ -55,9 +64,7 @@ impl TokenFile {
         if t.ggml_type != ty || t.dims != [tokens as u64] {
             return Err(format!("{path}: tensor '{TENSOR}' must be 1-D [{tokens}] of type {ty} for a vocabulary of {vocab_size}"));
         }
-        let data_start = (g.data_offset() as u64)
-            .checked_add(t.offset)
-            .ok_or_else(|| format!("{path}: tensor offset overflows"))?;
+        let data_start = tensor_start(g.data_offset(), t.offset, path)?;
         Ok(TokenFile {
             file: Mutex::new(file),
             data_start,

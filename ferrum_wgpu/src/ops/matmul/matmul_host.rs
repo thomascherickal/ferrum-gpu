@@ -37,10 +37,11 @@ impl Matmul {
 impl Gpu {
     /// Block until all submitted work has finished.
     pub fn wait(&self) -> Result<(), GpuError> {
-        self.device
-            .poll(wgpu::PollType::wait_indefinitely())
-            .map(|_| ())
-            .map_err(|e| GpuError(format!("poll failed: {e}")))
+        stage(
+            self.device.poll(wgpu::PollType::wait_indefinitely()),
+            "poll failed",
+        )
+        .map(|_| ())
     }
 }
 

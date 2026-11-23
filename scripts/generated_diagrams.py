@@ -39,3 +39,18 @@ def trend(title, labels, values, unit):
     x-axis [{xs}]
     y-axis "{unit}" 0 --> {max(values) * 1.2 + 1:.0f}
     bar [{ys}]''')
+
+
+def phase_flow(phases):
+    """A flow through the phases: green when done, amber for the current one, grey for those still to come."""
+    cur = next((i for i, p in enumerate(phases) if not p[1]), None)
+    nodes, links = [], []
+    for i, (title, done, *_rest) in enumerate(phases):
+        kind = "met" if done else ("now" if i == cur else "later")
+        label = " ".join(title.split(": ", 1)[-1].split()[:3])
+        nodes.append(f'    p{i}["{i + 1} {label}"]:::{kind}')
+        if i:
+            links.append(f"    p{i - 1} --> p{i}")
+    style = ["    classDef met fill:#dcfce7,stroke:#16a34a,color:#111", "    classDef now fill:#fef3c7,stroke:#d97706,color:#111",
+             "    classDef later fill:#f3f4f6,stroke:#6b7280,color:#111"]
+    return fence("flowchart LR\n" + "\n".join(nodes + links + style))

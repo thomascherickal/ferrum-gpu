@@ -2,6 +2,7 @@
 // idea follows ferrum-cpu's training checkpoints (`train_transformer/checkpoint.rs`, commit
 // 56a9d3a). The kind below is our own and is NOT interchangeable with ferrum-cpu's checkpoints.
 //! Training checkpoints as GGUF files: weights, Adam moments, step and loop position.
+use ferrum_gguf::reader::narrow;
 use ferrum_gguf::{Gguf, GgufBuilder, GgufError, Value};
 use ferrum_ref::gpt2::{param_lens, Config, Gpt2};
 use ferrum_ref::trainer::{Checkpoint, RunShape, Snapshot};

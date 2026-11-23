@@ -14,7 +14,9 @@ pub mod runtime;
 pub mod select;
 pub mod tensor;
 pub(crate) use gpuerror::err;
+mod stage;
 pub use gpuerror::*;
+pub(crate) use stage::stage;
 mod wait_for_loss;
 pub use wait_for_loss::*;
 

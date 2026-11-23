@@ -1,5 +1,5 @@
 //! Device buffers of f32: upload and readback.
-use crate::device::{Gpu, GpuError};
+use crate::device::{stage, Gpu, GpuError};
 mod gpubuf;
 pub use gpubuf::*;
 mod alloc;

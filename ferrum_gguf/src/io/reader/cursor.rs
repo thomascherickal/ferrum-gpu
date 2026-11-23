@@ -18,7 +18,7 @@ impl<'a> Cur<'a> {
         Ok(u64::from_le_bytes(self.take(8)?.try_into().unwrap()))
     }
     pub(super) fn string(&mut self) -> Result<String, GgufError> {
-        let n = usize::try_from(self.u64()?).map_err(|_| err("string length overflows"))?;
+        let n = narrow(self.u64()?, "string length overflows")?;
         String::from_utf8(self.take(n)?.to_vec()).map_err(|_| err("string is not valid UTF-8"))
     }
     pub(super) fn value(&mut self, ty: u32, depth: u32) -> Result<Value, GgufError> {
@@ -37,7 +37,7 @@ impl<'a> Cur<'a> {
                     return Err(err("nested arrays are not supported"));
                 }
                 let et = self.u32()?;
-                let n = usize::try_from(self.u64()?).map_err(|_| err("array length overflows"))?;
+                let n = narrow(self.u64()?, "array length overflows")?;
                 // Every element needs at least one byte, so a count beyond the remaining bytes is hostile.
                 if n > self.b.len() - self.p {
                     return Err(err("array length exceeds the file"));

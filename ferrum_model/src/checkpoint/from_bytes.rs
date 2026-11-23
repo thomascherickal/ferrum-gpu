@@ -1,5 +1,12 @@
 use super::*;
 
+/// Tensors a checkpoint holds for `params` parameters: the value and both Adam moments.
+pub(super) fn tensors_for(params: usize) -> Result<usize, GgufError> {
+    params
+        .checked_mul(3)
+        .ok_or_else(|| err("tensor count overflows"))
+}
+
 /// Parse a checkpoint. Every size is derived from the config with checked arithmetic and
 /// compared with the file's own tensor directory before any model-sized allocation.
 pub fn from_bytes(bytes: Vec<u8>) -> Result<Checkpoint, GgufError> {
@@ -8,9 +15,7 @@ pub fn from_bytes(bytes: Vec<u8>) -> Result<Checkpoint, GgufError> {
     if kind != KIND {
         return Err(err(format!("not a ferrum-gpu checkpoint (kind '{kind}')")));
     }
-    let dim = |k: &str| {
-        get(&g, k).and_then(|v| usize::try_from(v).map_err(|_| err(format!("'{k}' is too large"))))
-    };
+    let dim = |k: &str| get(&g, k).and_then(|v| narrow(v, format!("'{k}' is too large")));
     let cfg = Config {
         vocab: dim("vocab")?,
         ctx: dim("ctx")?,
@@ -20,12 +25,7 @@ pub fn from_bytes(bytes: Vec<u8>) -> Result<Checkpoint, GgufError> {
         hidden: dim("hidden")?,
     };
     let lens = param_lens(&cfg).ok_or_else(|| err("the checkpoint's model config is invalid"))?;
-    if g.tensors.len()
-        != lens
-            .len()
-            .checked_mul(3)
-            .ok_or_else(|| err("tensor count overflows"))?
-    {
+    if g.tensors.len() != tensors_for(lens.len())? {
         return Err(err("the tensor count does not match the model config"));
     }
     for (i, &n) in lens.iter().enumerate() {

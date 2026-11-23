@@ -24,8 +24,10 @@ impl Gpu {
             required_limits: limits.clone(),
             ..Default::default()
         };
-        let (device, queue) = block_on(adapter.request_device(&desc))
-            .map_err(|e| GpuError(format!("request_device failed: {e}")))?;
+        let (device, queue) = stage(
+            block_on(adapter.request_device(&desc)),
+            "request_device failed",
+        )?;
         // Device loss and uncaptured errors are recorded, never allowed to abort the process.
         let health = Arc::new(Mutex::new(None));
         let h = Arc::clone(&health);

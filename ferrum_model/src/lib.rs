@@ -9,6 +9,7 @@ pub mod gguf;
 pub mod gguf_tok;
 
 pub use gguf::{gpt2 as gpt2_gguf, llama as llama_gguf};
+pub mod path_context;
 pub mod prepare;
 pub mod sampling;
 pub mod sha256;

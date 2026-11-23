@@ -18,7 +18,7 @@ impl Gguf {
             Some(_) => return Err(err(format!("'{key}' is not a non-negative integer"))),
             None => return Err(err(format!("missing key '{key}'"))),
         };
-        usize::try_from(v).map_err(|_| err(format!("'{key}' is too large")))
+        narrow(v, format!("'{key}' is too large"))
     }
 
     /// An f32 metadata value.
