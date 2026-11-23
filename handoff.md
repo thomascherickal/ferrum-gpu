@@ -1,19 +1,21 @@
-# HANDOFF (written 2026-11-17; every phase of docs/gui-studio-plan.md is done; what is not done is listed in the plan)
+# Hand-off (2026-11-23, end of day)
 
-> Not yet consumed. A fresh agent: read this first, then add a line here saying when you consumed it, and
-> read `CLAUDE.md` (the rules are binding: tests first, one feature per commit, the gate before every merge,
-> autonomous mode, never touch ferrum-cpu, no invented numbers, rule 16 on process kills). The earlier
-> hand-off (Phase 5, consumed 2026-11-11) is `docs/logs/handoff-2026-11-11-phase5.md`.
+Not yet consumed by a fresh session.
 
-## The goal
+## Goal
+Bring ferrum-gpu to AGENTS.md compliance and keep it there: gate before every commit (rule 19), files at most 100 lines
+(HTML exempt), 100% coverage with simulated errors, hand-drawn diagrams on key pages, portable (Linux, macOS, Windows),
+licence SSPL v1.0 or a paid commercial licence from Thomas Cherickal.
+
+## State
 
 ```mermaid
 flowchart LR
-    a["The goal"]:::root
-    a --> n0["docs/gui-studio-plan.md"]:::c0
-    a --> n1["The goal overview"]:::c1
-    a --> n2["The goal details"]:::c2
-    a --> n3["The goal usage"]:::c3
+    a["State"]:::root
+    a --> n0["Everything is pushed"]:::c0
+    a --> n1["Coverage summary Lines"]:::c1
+    a --> n2["All code files at most 100"]:::c2
+    a --> n3["next-steps.md is"]:::c3
     classDef root fill:#dbeafe,stroke:#2563eb,color:#111
     classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
     classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
@@ -21,135 +23,34 @@ flowchart LR
     classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
-
-
-The user asked (2026-11-17): improve the GUI to ferrum-cpu parity with tabs plus GPU-specific extras, then
-redirected: **the GUI must be fully self-contained, a desktop app like ferrum-cpu's Tauri "SLM Studio", with the
-changes a GPU engine needs, and planned for very powerful GPUs such as the Mac M5 Max.** The plan of record is
-**`docs/gui-studio-plan.md` (version 2)**; read it, including "Decisions taken while building" and "What cannot
-be verified here". ferrum-cpu is read-only reference (`ferrum-cpu/ferrum_gui`, its Tauri app).
-
-## What is done
-
-```mermaid
-flowchart LR
-    a["What is done"]:::root
-    a --> n0["Merged to main"]:::c0
-    a --> n1["ferrum-gpu lab"]:::c1
-    a --> n2["Tab 9 GPU lab"]:::c2
-    a --> n3["G2 cdae6da tensors larger"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
-```
-
-
-
-**Merged to `main`** at `106bdfb`: R1 to R5, G1, Studio tabs 1 to 8 (Datasets, Prepare, Train, Fine-tune, Evaluate, Generate,
-Models, Export, Serve, Capable, Device), the desktop app, `scripts/build-apps.sh`, and the corrected plan.
-
-**On branch `worktree-gui-studio`, gate run after these commits** (see `.gate/`; merge to `main` only when it says PASS):
-- **G2** (`cdae6da`): tensors larger than one binding are stored as blocks. `ferrum_wgpu/src/models/llama/{shard,embed,lin}.rs`:
-  `Lin::Sharded` (column blocks, outputs copied into place), `Embedding::Rows`, `GpuLlama::with_binding_limit` (a lowered limit
-  makes a small model shard, which is how it is tested), `plan_limited` and `preflight::decode_buffers_for` (the pre-flight
-  lists the blocks). Equality with the whole model is tested for f32, biased, tied, Q8_0, Q4_0, decode and prefill.
-  Not sharded: the KV cache, prefill logits and activations. Not run on a real tensor above 2 GiB.
-- **`ferrum-gpu lab`** (`06802f5`, `ferrum_gpu_core/src/commands/lab/{mod,parity,speed,report}.rs`): the report that tab 9, G4
-  and G5 share. Parity of the GPU against the CPU reference (f32 prefill, decode with KV cache, Q8_0, Q4_0, blocks), decode and
-  prefill speed per precision on a random-weight model (`--size small|medium`), adapter, driver (`ferrum_wgpu::device::drivers`),
-  features, memory budget, wgpu version (read from `Cargo.lock`), date. `--json` is the file to send back.
-- **Tab 9 GPU lab** (`ferrum_gpu_gui/web/tabs/{gpulab,lab_args}.js`, `capableapi/meter.rs`): runs `lab` as a job, JSON report box,
-  memory table with the source of each figure (no invented "used" number). Real-Chrome step `gpulab` passes.
-
-## Since the G2 / tab 9 merge (`eae22a3` on `main`)
-
-```mermaid
-flowchart LR
-    a["Since the G2 / tab 9 merge"]:::root
-    a --> n0["Tab 10"]:::c0
-    a --> n1["G3 f16 weights QKindF16"]:::c1
-    a --> n2["G4 quantised linear"]:::c2
-    a --> n3["G5"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
-```
-
-
-
-- **G3** f16 weights: `QKind::F16` (`ferrum_wgpu/src/ops/quant.rs`, `shaders/quant/*.wgsl`), no `shader-f16` needed
-  (`unpack2x16float`), bit-exact against the CPU decode; `--gpu-weights f32|f16|q8_0|q4_0` (`GpuBackend::with_weights`,
-  `Session::new_with`, `commands::gpu_weights`). Not done: f16 activations and KV cache.
-- **G4** quantised linear kernels: `qlinear_tiled.wgsl` (prefill) and `qgemv.wgsl` (decode), chosen by `ops_quant::choose` from
-  `cargo test --release -p ferrum_wgpu --lib -- --ignored bench_quant`; the naive kernel stays where the others measured slower.
-  Numbers are in the plan's G4 row. Not done: fused attention, batched decode, a subgroup variant. Cooperative matrix: not done,
-  `ExperimentalFeatures::enabled()` is `unsafe` in wgpu 30 (rule 4).
-- **G5** `docs/verification-kit.md` (the report is `ferrum-gpu lab --json`). No report from other hardware exists yet.
-- **Tab 10** `ferrum_gpu_gui/tests/a11y.rs`, `docs/gui.md` and README rewritten.
-
-End-to-end `lab --size medium` after G4 (tokens/s, decode / prefill, release build, wgpu 30.0.1): Xe f32 57 / 1010, F16 67 / 1028,
-Q8_0 68 / 1023, Q4_0 73 / 1023; MX330 f32 99 / 1548, F16 93 / 772, Q8_0 89 / 753, Q4_0 95 / 810; CPU reference prefill about 295.
-Prefill is flat near 1000 on the Xe at every precision, so the next bottleneck is not the linear layers (attention and per-dispatch
-cost are unmeasured).
-
-## In progress
-
-The gate has not been run on G3, G4, G5 and tab 10 yet (commit `scripts/gate.sh`'s result in `.gate/gate.txt`). Merge to `main` only
-when it says PASS.
-
-## Next steps, in order
-
-1. Run `scripts/gate.sh` (`rm -rf target/llvm-cov-target` first), then fast-forward `main` and push (rule 15).
-2. Open work, none of it started: fused attention and batched decode (profile first: where does a decode step spend its time?),
-   a subgroup reduction variant, f16 activations and KV cache, a report from Apple Silicon or other hardware, and the Windows
-   desktop-app unit tests (a Tauri manifest issue, noted in `ci.yml`).
-
-## Decisions already taken (do not re-litigate)
-
-```mermaid
-flowchart LR
-    a["Decisions already taken do"]:::root
-    a --> n0["overview"]:::c0
-    a --> n1["details"]:::c1
-    a --> n2["usage"]:::c2
-    a --> n3["notes"]:::c3
-    classDef root fill:#dbeafe,stroke:#2563eb,color:#111
-    classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
-    classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
-    classDef c2 fill:#fce7f3,stroke:#db2777,color:#111
-    classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
-```
-
-
-
-Commands stay "argv in, report out" (no second typed layer). One transport (HTTP) for the page and the app. Stop is
-cooperative; prepare, tokenize and the exports are not interruptible yet. No native file dialogs (the page has its
-own picker). The app crate stays outside the workspace with its own CI job (`studio` in `.github/workflows/ci.yml`,
-not required). New markdown files use lowercase kebab-case names (user's global rule); existing uppercase ones stay.
+- Everything is pushed: `origin/main` = `coverage100` = `d30e03e` (gate PASS in 23 minutes on that content, then a
+  fast-forward push). The three big steps of the day are in it: simulated-error coverage, the faster coverage run,
+  and the cross-platform port (Windows and macOS only compile-checked).
+- Coverage: summary Lines 100%, Functions 100%, exact per-line (lcov) 100%; Regions about 97.9% (branch arms, not required).
+- All code files at most 100 lines (`python3 scripts/rules_check.py`), no missing diagrams, duplicate runs recorded in
+  `scripts/dup-baseline.json` (mostly WGSL kernels).
+- `next-steps.md` is regenerated by the pre-commit hook; its phased plan says what is next (phases 4 to 6: duplicates,
+  backlog, housekeeping).
 
 ## Commands to run first
+- `git config core.hooksPath` must say `scripts/githooks` (it is set in the shared `.git/config`).
+- `export TMPDIR=/home/thomas/.cache/ferrum-tmp CARGO_BUILD_JOBS=4` before any cargo command (writes stay under home).
+- `bash scripts/gate.sh` (about 26 minutes) then commit; the pre-commit hook enforces the gate (`scripts/gate_key.py --check`).
+- `bash scripts/coverage.sh` alone is about 13 minutes (nextest, GPU packages one at a time).
 
-```bash
-export CARGO_BUILD_JOBS=3 CARGO_PROFILE_RELEASE_LTO=off CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16
-cargo test --workspace -- --test-threads 1          # add FERRUM_GPU_ADAPTER=no-such-adapter for the no-GPU run
-(cd ferrum_gpu_studio && cargo test)                # the app (needs webkit2gtk-4.1, gtk3, libsoup3 on Linux)
-scripts/gate.sh                                     # the full gate, about 30 minutes; results in .gate/
-scripts/build-studio.sh --debug --run --device cpu  # start the desktop app
-```
+## Rules to respect (user's global instructions)
+Banned without asking first: `rm`, `kill`, `chmod`/`chown`, writes outside /home, `sudo`, `git reset --hard`, `git clean`,
+`git branch -D`, force push. If one is needed, ask the user, then run it. Pushing to `origin` is automatic by the user's decision.
 
-## Gotchas learned
+## Open items for the user
 
 ```mermaid
 flowchart LR
-    a["Gotchas learned"]:::root
-    a --> n0["Stale coverage data"]:::c0
-    a --> n1["The no-unsafe guard is a"]:::c1
-    a --> n2["The harness refuses"]:::c2
-    a --> n3["The scratchpad directory"]:::c3
+    a["Open items for the user"]:::root
+    a --> n0["Stray untracked file"]:::c0
+    a --> n1["Old instrumented build"]:::c1
+    a --> n2["Windows and macOS were"]:::c2
+    a --> n3["Interop tests still set"]:::c3
     classDef root fill:#dbeafe,stroke:#2563eb,color:#111
     classDef c0 fill:#dcfce7,stroke:#16a34a,color:#111
     classDef c1 fill:#fef3c7,stroke:#d97706,color:#111
@@ -157,22 +58,12 @@ flowchart LR
     classDef c3 fill:#ede9fe,stroke:#7c3aed,color:#111
 ```
 
+- Stray untracked file `scripts/.coverage.sh.run` (an old copy of the coverage script): removing it needs `rm`; it is in `.gitignore`.
+- Old instrumented build directories under `target/` (`llvm-cov-target`, `llvm-cov-fresh`, about 12 GB) are stale; removing them needs `rm`.
+- Windows and macOS were only compile-checked (`cargo check --target`); nothing was run there.
+- Interop tests still set `LD_LIBRARY_PATH`; the `/dev/null` and bash-hook tests stay Unix-only by design.
 
-
-- **The harness refuses complex compound bash commands** ("too complex to verify that it stays inside the worktree"):
-  keep commands simple, do multi-file edits with the Edit tool or a small script file, and never chain `git` with
-  other commands in one line. Large inline heredocs of Python sometimes trip it too.
-- **The scratchpad directory is cleaned when the session restarts**: keep scripts in the repo (`scripts/`).
-- **Stale coverage data**: delete `target/llvm-cov-target` after files move, or coverage reports old paths at 0%.
-- **`cargo test` stops at the first failing binary**: a red step can hide later failures; rerun the whole gate.
-- **The no-unsafe guard is a text match** (`tests/tests/test_independence.rs`): a test must not contain the word
-  as a literal (the CSP test builds the strings with `concat!`).
-- **llama.cpp b11521 sometimes prints nothing or a prefix at `-t 1` under load**: the interop helper
-  `support/llama.rs::completion` retries (empty or strict prefix only, three tries). Used by the llama.cpp and LM
-  Studio tests.
-- **Tauri's setup hook runs on the first event-loop iteration**, not at `build()`; mock-runtime windows keep no title.
-- A first, all-in-one benchmark process reported false "out of memory" after a failed load: run one shape per process
-  (see `capability.md`).
-- Never signal a process group with a bare negative pid (rule 16); jobs no longer spawn processes at all.
-- Apple Silicon, Windows and macOS bundles have not been run by hand; the docs say "not run" and must keep saying it
-  until a G5 report from real hardware exists.
+## Gotchas
+- The Studio workspace (`ferrum_gpu_studio`) has its own `Cargo.lock`: after dependency changes run `cargo check` there (the gate uses `--locked`).
+- Never edit a shell script while a long run is executing it; write a new file and move it over.
+- `scripts/rules_check.py --update` records current debt as accepted: only run it when `--report` shows 0 long files.
