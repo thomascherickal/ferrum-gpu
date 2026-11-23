@@ -37,12 +37,12 @@ used=$(jq -r '.context_used_percentage // empty' "$best_file" 2>/dev/null || tru
 
 flag="$(dirname "$best_file")/handoff-fired"
 if awk -v u="$used" -v t="$threshold" 'BEGIN { exit !(u >= t) }'; then
-    [ -f "$flag" ] && exit 0
-    : > "$flag"
+    [ -s "$flag" ] && exit 0
+    echo fired > "$flag"
     msg="CONTEXT WINDOW AT ${used}% (rule 12 threshold ${threshold}%). Stop starting new work now. Write handoff.md in the repository root following CLAUDE.md rule 12 (goal, state and branch, work in progress, next steps in order, open questions, commands to run first, gotchas), commit and push it together with any finished work, then stop."
     jq -n --arg e "$event" --arg m "$msg" \
         '{hookSpecificOutput: {hookEventName: $e, additionalContext: $m}}'
 elif awk -v u="$used" 'BEGIN { exit !(u < 90) }'; then
-    rm -f "$flag"
+    : > "$flag"  # an empty file is "not fired" (no rm: the command ban list)
 fi
 exit 0

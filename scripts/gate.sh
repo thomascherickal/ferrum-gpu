@@ -22,14 +22,16 @@ cd "$(dirname "$0")/.." || exit 1
 OUT="${GATE_OUT:-$PWD/.gate}"
 mkdir -p "$OUT"
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}"
-rm -f "$OUT"/gate.txt "$OUT"/gate.done "$OUT"/commit "$OUT"/profile.csv* "$OUT"/*.log
+# no `rm` (the command ban list): files are overwritten, and a run is "not done" until gate.done says so
+echo RUNNING > "$OUT/gate.done"
+PROFILE="$OUT/profile-$$.csv"
 echo "start rc=0 $(date +%T)" > "$OUT/gate.txt"
 if [ -z "$(git status --porcelain -- . ':!metrics.md' ':!next-steps.md' ':!test-time-report.md' ':!system-profile.md')" ]; then
   git rev-parse HEAD > "$OUT/commit"
 else
   echo dirty > "$OUT/commit"
 fi
-python3 scripts/system_profile.py sample "$OUT/profile.csv" &
+python3 scripts/system_profile.py sample "$PROFILE" &
 sampler=$!
 fail=0
 step() {
@@ -54,9 +56,9 @@ FLOOR=98 step coverage scripts/coverage.sh
 step deny cargo deny check
 FERRUM_GPU_ADAPTER=no-such-adapter step studio bash -c "cd ferrum_gpu_studio && cargo fmt --check && cargo clippy --all-targets --locked -- -D warnings && cargo test --locked -- --test-threads 1"
 step studiodeny cargo deny --manifest-path ferrum_gpu_studio/Cargo.toml check
-touch "$OUT/profile.csv.stop"
+touch "$PROFILE.stop"
 wait "$sampler"
-python3 scripts/system_profile.py render "$OUT/profile.csv" || echo "system-profile.md was not updated" >&2
+python3 scripts/system_profile.py render "$PROFILE" || echo "system-profile.md was not updated" >&2
 if [ $fail -eq 0 ]; then echo PASS > "$OUT/gate.done"; else echo FAIL > "$OUT/gate.done"; fi
 python3 scripts/metrics.py --gate "$OUT/gate.txt" || echo "metrics.md was not updated" >&2
 python3 scripts/next_steps.py || echo "next-steps.md was not updated" >&2

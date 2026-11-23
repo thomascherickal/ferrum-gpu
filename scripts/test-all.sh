@@ -11,7 +11,7 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 export CARGO_BUILD_JOBS="${CARGO_BUILD_JOBS:-3}"
 out="${TMPDIR:-/tmp}/ferrum-test-all.$$"; mkdir -p "$out"
-trap 'rm -rf "$out"' EXIT
+# $out is left in place when the run ends (no rm: the command ban list)
 
 cargo llvm-cov clean --workspace >/dev/null 2>&1
 # The GPU run uses the default adapter; the second run hides every adapter, so the "skip when there

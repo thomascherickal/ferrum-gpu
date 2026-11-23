@@ -14,7 +14,7 @@ fn the_hook_ignores_a_stale_figure_and_garbage() {
             .contains("handoff.md"),
         "unless the age limit is raised"
     );
-    let _ = std::fs::remove_file(d.join(".superpowers/handoff-fired"));
+    let _ = std::fs::write(d.join(".superpowers/handoff-fired"), "");
     std::fs::write(d.join(".superpowers/context.json"), "{{ not json").unwrap();
     assert_eq!(run_hook(&d, &[], &[]), (String::new(), 0), "garbage");
     std::fs::write(

@@ -53,7 +53,7 @@ fn the_hook_fires_once_at_98_then_again_only_after_usage_falls() {
             || out.contains("\"hookEventName\": \"PostToolUse\""),
         "{out}"
     );
-    assert!(d.join(".superpowers/handoff-fired").exists());
+    assert!(latched(&d));
     assert_eq!(run_hook(&d, &[], &[]).0, "", "does not nag a second time");
     write_context(&d, 99.5, 0);
     assert_eq!(
@@ -64,7 +64,7 @@ fn the_hook_fires_once_at_98_then_again_only_after_usage_falls() {
     // Usage falls (a new session or a compaction): the latch resets and it can fire again.
     write_context(&d, 40.0, 0);
     assert_eq!(run_hook(&d, &[], &[]).0, "");
-    assert!(!d.join(".superpowers/handoff-fired").exists());
+    assert!(!latched(&d));
     write_context(&d, 99.0, 0);
     assert!(run_hook(&d, &[], &[]).0.contains("handoff.md"));
     let _ = std::fs::remove_dir_all(&d);
@@ -84,4 +84,9 @@ fn the_hook_names_the_event_it_runs_under_and_honours_the_overrides() {
         "the message names the configured threshold: {out}"
     );
     let _ = std::fs::remove_dir_all(&d);
+}
+
+/// The latch is a non-empty `handoff-fired` file; the hook empties it instead of deleting it.
+fn latched(dir: &std::path::Path) -> bool {
+    std::fs::read_to_string(dir.join(".superpowers/handoff-fired")).is_ok_and(|s| !s.is_empty())
 }

@@ -33,7 +33,7 @@ bins=$(cargo test --no-run --message-format=json "$@" 2>/dev/null \
 
 pass=0; fail=0; hang=0; failed=""; hung=""
 times=$(mktemp)
-trap 'rm -f "$times"' EXIT
+trap ': > "$times"' EXIT  # emptied, not deleted (the command ban list)
 while IFS=$'\t' read -r dir bin; do
   case $(basename "$bin") in interop-*) lim=$interop;; *) lim=$general;; esac
   if [ "$lim" -eq 0 ]; then run=(); else run=(timeout -k 5 "$lim"); fi
