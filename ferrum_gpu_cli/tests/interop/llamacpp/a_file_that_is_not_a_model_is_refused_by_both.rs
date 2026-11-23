@@ -23,7 +23,7 @@ fn a_file_that_is_not_a_model_is_refused_by_both() {
     let err = String::from_utf8_lossy(&o.stderr);
     assert!(!err.contains("panicked"), "{err}");
     // theirs: it refuses too
-    let o = with_deadline(&dir.join("llama-completion"), 60)
+    let o = with_deadline(dir.join("llama-completion"), 60)
         .env("LD_LIBRARY_PATH", &dir)
         .args(["-m"])
         .arg(&cut)

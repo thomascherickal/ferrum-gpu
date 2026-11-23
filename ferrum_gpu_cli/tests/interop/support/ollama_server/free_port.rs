@@ -5,6 +5,7 @@ impl Server {
     pub(crate) fn env(&self) -> Vec<(&'static str, String)> {
         let mut e = vec![
             ("HOME", self.home.display().to_string()),
+            ("USERPROFILE", self.home.display().to_string()),
             ("OLLAMA_HOST", self.host.clone()),
             (
                 "OLLAMA_MODELS",

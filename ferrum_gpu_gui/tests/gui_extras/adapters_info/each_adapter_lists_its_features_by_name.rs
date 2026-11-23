@@ -45,11 +45,7 @@ fn a_discrete_adapter_no_tool_knows_has_an_unknown_budget_that_says_how_to_set_o
 }
 
 #[test]
-fn an_integrated_adapter_gets_a_ram_based_budget_on_linux() {
-    if !cfg!(target_os = "linux") {
-        eprintln!("SKIP: the RAM figure is read from /proc/meminfo");
-        return;
-    }
+fn an_integrated_adapter_gets_a_ram_based_budget() {
     let a = app_with(vec![adapter(
         "Fake Integrated GPU",
         Kind::Integrated,

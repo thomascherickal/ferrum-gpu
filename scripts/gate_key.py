@@ -14,7 +14,8 @@ import os
 import subprocess
 import sys
 
-GENERATED = {"metrics.md", "next-steps.md", "test-time-report.md", "system-profile.md"}
+# readme.md carries a block the commit hook rewrites from metrics.md; the gate does not test prose
+GENERATED = {"metrics.md", "next-steps.md", "test-time-report.md", "system-profile.md", "readme.md"}
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STAGED_ONLY = set("MARCD")
 

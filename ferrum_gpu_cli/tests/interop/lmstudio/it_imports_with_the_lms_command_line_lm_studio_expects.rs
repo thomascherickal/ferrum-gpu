@@ -31,15 +31,16 @@ fn the_file_lms_receives_is_exactly_the_model_and_runs_in_llama_cpp() {
     let f = fixture();
     let fk = fake("bytes", "ferrum/q8", "q8.gguf", 0);
     assert!(export(&[], &f.q8, &fk.bin).status.success());
+    let received = imported_path(&fk);
     assert_eq!(
-        std::fs::read(&fk.captured).unwrap(),
+        std::fs::read(&received).unwrap(),
         std::fs::read(&f.q8).unwrap()
     );
     // LM Studio runs GGUF with llama.cpp: the bytes it was given give our text there too
     let Some(dir) = llamacpp_dir() else {
         skip!("llama.cpp not installed: file bytes checked, engine not run")
     };
-    assert_eq!(completion(&dir, &fk.captured), ours(&f.q8));
+    assert_eq!(completion(&dir, &received), ours(&f.q8));
 }
 
 #[test]

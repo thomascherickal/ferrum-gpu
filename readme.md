@@ -528,17 +528,17 @@ CI runs on Linux, Windows and macOS (the macOS runner's paravirtual GPU is known
 test; see [docs/devices.md](docs/devices.md)).
 
 <!-- stats:begin -->
-Measured figures, written from [`metrics.md`](metrics.md) by `scripts/readme_stats.py` (snapshot `f2ff5e1`); do not edit by hand.
+Measured figures, written from [`metrics.md`](metrics.md) by `scripts/readme_stats.py` (snapshot `b9c61d4`); do not edit by hand.
 
 | measure | value |
 |---|---|
-| `#[test]` functions | 1181 |
-| Rust production lines | 26500 |
-| Rust test lines | 27255 |
+| `#[test]` functions | 1192 |
+| Rust production lines | 26758 |
+| Rust test lines | 27225 |
 | line coverage | 100.00% |
 | function coverage | 100.00% |
-| region coverage | 97.87% |
-| last gate | PASS in 26m 02s |
+| region coverage | 97.86% |
+| last gate | PASS in 22m 59s |
 <!-- stats:end -->
 
 ```bash

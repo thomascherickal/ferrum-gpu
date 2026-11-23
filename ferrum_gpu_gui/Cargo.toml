@@ -16,3 +16,6 @@ ferrum_wgpu = { path = "../ferrum_wgpu" }
 [[bin]]
 name = "ferrum_gpu_gui"
 path = "src/main.rs"
+
+[dev-dependencies]
+ferrum_test_support = { path = "../ferrum_test_support" }

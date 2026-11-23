@@ -187,20 +187,21 @@ Transformers, GGUF in and out. Plan: `PLAN.md` (index) and `docs/plans/PHASE-*.m
     helper has produced no visible progress for a while, the coordinator says what it is waiting
     for.
 16. **Never pass a bare negative number to `kill` (2026-11-12).** A test that ends a process
-    group calls `terminate_group` in `ferrum_gpu_gui/tests/common/mod.rs`, which runs
-    `kill -s TERM -- -<pgid>` and refuses groups 0 and 1. `kill -TERM -<pgid>` without the `--` is
+    group uses `ferrum_test_support::Guarded` (the `command-group` crate: `killpg` on a real
+    process group id on Unix, a job object on Windows), never a `kill` command, so no negative
+    pid is ever written. `kill -TERM -<pgid>` without the `--` stays
     forbidden: procps-ng 4.0.4 (Zorin OS 18 / Ubuntu 24.04) reads it as an option cluster and
     signals minus its first digit, so a Chrome pid starting with 1 became `kill(-1, SIGTERM)` and
     logged the whole desktop session out (nine times on 2026-11-11 and 2026-11-12; it looked like
     a GPU crash because long GPU and coverage runs burn through many pids). Signal a single
     process with `Child::kill` or a positive pid; never `pkill`/`killall` by name.
-    Browser and `node` children are started through `with_deadline` (coreutils `timeout`, a hard
-    lifetime that outlives a killed test run) and ended with `reap_group` (SIGTERM, then SIGKILL
-    for leaders and helpers that ignore it); do not hand-roll process cleanup in tests.
+    Browser and `node` children are started through `ferrum_test_support` (`with_deadline` for a
+    command that must finish, `Guarded` for one that runs alongside; both end the whole group at
+    their deadline or on drop, on every platform); do not hand-roll process cleanup in tests.
 17. **Test time limits (user decision 2026-11-14, replacing the 3-minute rule of the same day).**
     There is no time limit on ordinary tests. The interoperability tests (`ferrum_gpu_cli/tests/interop`,
     which drive real external tools) may take up to 10 minutes each. `scripts/test-time-limit.sh
-    [GENERAL_LIMIT] [cargo args]` runs every test in its own process under GNU `timeout` and enforces
+    [GENERAL_LIMIT] [cargo args]` runs every test in its own process under a `subprocess` timeout (Python; no GNU `timeout`, no `jq`) and enforces
     exactly that: the general limit defaults to 0 (none; pass a number to cap ordinary tests again),
     the interop limit is 600 s (`INTEROP_LIMIT` changes it). It reports a hung test as TIMEOUT, a slow
     one with its time, and the slowest eight. libtest's own `--ensure-time` does not fire for workspace

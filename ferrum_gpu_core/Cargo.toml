@@ -7,6 +7,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 ferrum_gguf = { path = "../ferrum_gguf" }
 ferrum_model = { path = "../ferrum_model" }
 ferrum_ref = { path = "../ferrum_ref" }
@@ -14,4 +15,5 @@ ferrum_tok = { path = "../ferrum_tok" }
 ferrum_wgpu = { path = "../ferrum_wgpu" }
 
 [dev-dependencies]
+ferrum_test_support = { path = "../ferrum_test_support" }
 ferrum_wgpu = { path = "../ferrum_wgpu", features = ["fault-injection"] }

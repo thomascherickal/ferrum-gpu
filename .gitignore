@@ -12,3 +12,4 @@ target/
 .gate/
 dist/
 __pycache__/
+scripts/.coverage.sh.run

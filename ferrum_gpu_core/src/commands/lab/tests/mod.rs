@@ -10,11 +10,8 @@ impl sysmem::Readers for NoReaders {
     fn nvidia_smi(&self) -> Option<String> {
         None
     }
-    fn meminfo(&self) -> Option<String> {
-        None
-    }
-    fn sysctl_memsize(&self) -> Option<String> {
-        None
+    fn ram_bytes(&self) -> (Option<u64>, Option<u64>) {
+        (None, None)
     }
     fn sysfs_vram_mb(&self) -> Vec<u64> {
         vec![]

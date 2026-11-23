@@ -5,6 +5,7 @@
 
 pub mod chat_format;
 pub mod checkpoint;
+pub mod dir_paths;
 pub mod gguf;
 pub mod gguf_tok;
 

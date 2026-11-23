@@ -13,7 +13,7 @@ fn a_real_lms_import_registers_the_model_and_the_file_runs() {
     let Some(tool) = lms() else {
         skip!("lms not installed (set FERRUM_LMS)")
     };
-    let home = PathBuf::from(std::env::var_os("HOME").expect("HOME"));
+    let home = crate::support::tools::home().expect("a home directory");
     let publisher_dir = home.join(".lmstudio/models").join(PUBLISHER);
     step(format!("lms: {}", tool.display()));
     assert!(

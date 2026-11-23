@@ -15,8 +15,6 @@
 //! - `lmstudio`: `export-lmstudio` runs the right `lms` commands (a fake `lms`: the real one writes
 //!   outside the repository) on a file llama.cpp loads.
 
-#![cfg(unix)]
-
 mod formats;
 mod gguf;
 mod llamacpp;

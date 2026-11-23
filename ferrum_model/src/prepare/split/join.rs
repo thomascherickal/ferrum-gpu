@@ -11,7 +11,7 @@ pub(crate) fn part(dir: &Path, name: &str) -> PathBuf {
 pub(crate) struct Split {
     pub(super) path: PathBuf,
     pub(super) tmp: PathBuf,
-    pub(super) w: BufWriter<std::fs::File>,
+    pub(super) w: BufWriter<Box<dyn Write>>,
     pub(super) hash: Sha256,
     pub(super) bytes: u64,
     pub(crate) docs: u64,
@@ -24,15 +24,20 @@ impl Split {
         let tmp = part(dir, &format!("{name}.txt"));
         let file = std::fs::File::create(&tmp)
             .map_err(|e| format!("cannot create {}: {e}", tmp.display()))?;
-        Ok(Split {
-            w: BufWriter::new(file),
+        Ok(Split::with_writer(path, tmp, Box::new(file)))
+    }
+
+    /// A split written to `w`; `tmp` only names it in errors.
+    pub(super) fn with_writer(path: PathBuf, tmp: PathBuf, w: Box<dyn Write>) -> Self {
+        Split {
+            w: BufWriter::new(w),
             path,
             tmp,
             hash: Sha256::new(),
             bytes: 0,
             docs: 0,
             chars: 0,
-        })
+        }
     }
     pub(crate) fn write(&mut self, doc: &str) -> Result<(), String> {
         if self.docs > 0 {

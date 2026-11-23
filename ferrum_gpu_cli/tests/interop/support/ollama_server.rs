@@ -1,12 +1,12 @@
 //! A real `ollama serve` for the tests: a private port, a private `HOME` and model directory (it
 //! writes an identity key and its blobs there, never into the user's own), in its own process group.
 use super::model::{fixture, NEW_TOKENS, PROMPT};
-use super::proc::{wait_until, with_deadline, Group};
+use super::proc::{wait_until, with_deadline, Guarded};
 use ferrum_gpu_core::json::Json;
 use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::{Command, Output, Stdio};
 mod mode;
 pub(crate) use mode::*;
 mod free_port;

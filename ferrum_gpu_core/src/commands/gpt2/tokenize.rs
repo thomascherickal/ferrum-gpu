@@ -2,6 +2,8 @@
 
 use crate::commands::flags::Args;
 use crate::commands::say;
+use ferrum_model::dir_paths::dir_paths;
+use ferrum_model::prepare::Lister;
 use ferrum_model::sha256::sha256_hex;
 use ferrum_model::token_file::{write, TokenFileMeta};
 use ferrum_model::tokenizer_gguf;
@@ -11,16 +13,17 @@ use std::path::{Path, PathBuf};
 
 /// The files to read: `path` itself, or the regular files directly inside it in path order.
 fn inputs(path: &str) -> Result<Vec<PathBuf>, String> {
+    inputs_via(path, &dir_paths)
+}
+
+/// [`inputs`] listing the folder through `list`, so a failing lister can be injected.
+pub(super) fn inputs_via(path: &str, list: Lister) -> Result<Vec<PathBuf>, String> {
     let p = Path::new(path);
     if !p.is_dir() {
         return Ok(vec![p.to_path_buf()]);
     }
-    let mut files: Vec<PathBuf> = std::fs::read_dir(p)
-        .map_err(|e| format!("{path}: {e}"))?
-        .filter_map(Result::ok)
-        .map(|e| e.path())
-        .filter(|f| f.is_file())
-        .collect();
+    let mut files: Vec<PathBuf> = list(p).map_err(|e| format!("{path}: {e}"))?;
+    files.retain(|f| f.is_file());
     files.sort();
     if files.is_empty() {
         return Err(format!("{path}: the directory holds no files"));
@@ -75,3 +78,6 @@ pub fn tokenize(a: &Args, out: &mut dyn Write) -> Result<(), String> {
         ),
     )
 }
+
+#[cfg(test)]
+mod tests;

@@ -56,16 +56,14 @@ fn the_system_reports_the_machine_and_what_each_adapters_budget_holds() {
         panic!("{j}")
     };
     assert_eq!(field(&ads[0], "name").as_str(), Some("Fake Integrated GPU"));
-    if cfg!(target_os = "linux") {
-        assert!(field(&j, "ram_total").as_f64().unwrap() > 0.0);
-        assert!(field(&ads[0], "budget_mib").as_f64().unwrap() > 0.0);
-        let fits = field(&ads[0], "fits");
-        let Json::Arr(infer) = field(&fits, "infer") else {
-            panic!("{ads:?}")
-        };
-        assert_eq!(infer.len(), 3);
-        assert!(field(&fits, "train").as_str().is_some());
-    }
+    assert!(field(&j, "ram_total").as_f64().unwrap() > 0.0);
+    assert!(field(&ads[0], "budget_mib").as_f64().unwrap() > 0.0);
+    let fits = field(&ads[0], "fits");
+    let Json::Arr(infer) = field(&fits, "infer") else {
+        panic!("{ads:?}")
+    };
+    assert_eq!(infer.len(), 3);
+    assert!(field(&fits, "train").as_str().is_some());
     assert!(
         field(&ads[0], "note").as_str().unwrap().contains("budget")
             || field(&ads[0], "note").as_str().unwrap().contains("unknown")

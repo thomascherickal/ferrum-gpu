@@ -4,14 +4,11 @@ use std::time::Instant;
 pub(crate) const NEW_TOKENS: usize = 16;
 const PROMPT: usize = 4;
 
-/// `MemAvailable` in bytes, from `/proc/meminfo` (Linux); `None` elsewhere.
+/// Available system RAM in bytes; `None` if the platform does not say.
 pub(crate) fn mem_available() -> Option<u64> {
-    // the kernel's memory report: system information, not a file of this project or of ferrum-cpu
-    let meminfo = std::path::Path::new("/proc").join("meminfo");
-    let text = std::fs::read_to_string(meminfo).ok()?;
-    let line = text.lines().find_map(|l| l.strip_prefix("MemAvailable:"))?;
-    let kb: u64 = line.split_whitespace().next()?.parse().ok()?;
-    Some(kb * 1024)
+    let mut sys = sysinfo::System::new();
+    sys.refresh_memory();
+    Some(sys.available_memory()).filter(|&b| b > 0)
 }
 
 fn run(m: &mut GpuLlama, toks: &[usize]) -> Result<f64, String> {

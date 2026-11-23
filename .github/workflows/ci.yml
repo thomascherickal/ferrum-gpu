@@ -33,7 +33,6 @@ jobs:
       # Independence guard and the context-script tests live in the `tests` crate.
       - run: cargo test -p integration_tests --locked
       # every test in its own process; the interop tests are capped at 600 s each (no cap on the rest)
-      - run: sudo apt-get install -y jq
       - run: scripts/test-time-limit.sh 0 --locked
       - run: cargo test --workspace --doc --locked
       - name: Device row (lavapipe)

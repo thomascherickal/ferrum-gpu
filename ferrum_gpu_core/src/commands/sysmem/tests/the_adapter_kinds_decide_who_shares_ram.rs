@@ -1,20 +1,6 @@
 use super::*;
 
 #[test]
-fn meminfo_gives_total_and_available_in_bytes() {
-    assert_eq!(
-        parse_meminfo(MEMINFO),
-        (Some(16094208 * 1024), Some(9313032 * 1024))
-    );
-    assert_eq!(parse_meminfo("MemTotal: 100 kB\n"), (Some(102400), None));
-    assert_eq!(parse_meminfo(""), (None, None));
-    assert_eq!(
-        parse_meminfo("MemTotal: lots kB\nMemAvailable:\n"),
-        (None, None)
-    );
-}
-
-#[test]
 fn only_integrated_and_metal_adapters_share_system_memory() {
     assert!(shares_system_memory(&adapter(
         "Xe",
@@ -47,7 +33,7 @@ fn only_integrated_and_metal_adapters_share_system_memory() {
 fn an_nvidia_card_gets_its_total_and_free_memory_from_the_tool_by_name() {
     let r = Fake {
         smi: Some("NVIDIA GeForce MX330, 2048, 1989\nNVIDIA A100, 40960, 40000\n"),
-        meminfo: Some(MEMINFO),
+        ram: RAM,
         ..Fake::default()
     };
     let a = adapter("NVIDIA GeForce MX330", Kind::Discrete, "Vulkan");

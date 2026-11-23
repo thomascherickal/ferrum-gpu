@@ -1,0 +1,11 @@
+[package]
+name = "ferrum_test_support"
+description = "Cross-platform helpers for the tests of the other crates (dev-dependency only)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+command-group = "5"

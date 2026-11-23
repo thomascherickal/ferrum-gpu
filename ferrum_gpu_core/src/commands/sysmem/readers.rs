@@ -4,19 +4,15 @@ use super::*;
 pub trait Readers {
     /// `nvidia-smi --query-gpu=name,memory.total,memory.free --format=csv,noheader,nounits`.
     fn nvidia_smi(&self) -> Option<String>;
-    /// The text of `/proc/meminfo` (Linux).
-    fn meminfo(&self) -> Option<String>;
-    /// The text of `sysctl -n hw.memsize` (macOS): total RAM in bytes.
-    fn sysctl_memsize(&self) -> Option<String>;
-    /// Total VRAM in MiB of each DRM card that reports it (Linux, AMD).
+    /// `(total, available)` system RAM in bytes; either may be unknown.
+    fn ram_bytes(&self) -> (Option<u64>, Option<u64>);
+    /// Total VRAM in MiB of each DRM card that reports it (Linux AMD; empty elsewhere).
     fn sysfs_vram_mb(&self) -> Vec<u64>;
 }
 
 /// What a tool printed, if it exited successfully.
-pub(super) fn stdout_if_ok(out: &std::process::Output) -> Option<String> {
-    out.status
-        .success()
-        .then(|| String::from_utf8_lossy(&out.stdout).into_owned())
+pub(super) fn stdout_if_ok(success: bool, stdout: &[u8]) -> Option<String> {
+    success.then(|| String::from_utf8_lossy(stdout).into_owned())
 }
 
 /// The real machine.
@@ -31,39 +27,19 @@ impl Readers for System {
             ])
             .output()
             .ok()?;
-        stdout_if_ok(&out)
+        stdout_if_ok(out.status.success(), &out.stdout)
     }
 
-    fn meminfo(&self) -> Option<String> {
-        // the kernel's memory report: system information, not a file of this project
-        std::fs::read_to_string(Path::new("/proc").join("meminfo")).ok()
-    }
-
-    fn sysctl_memsize(&self) -> Option<String> {
-        let out = std::process::Command::new("sysctl")
-            .args(["-n", "hw.memsize"])
-            .output()
-            .ok()?;
-        stdout_if_ok(&out)
+    fn ram_bytes(&self) -> (Option<u64>, Option<u64>) {
+        let mut sys = sysinfo::System::new();
+        sys.refresh_memory();
+        let known = |bytes: u64| (bytes > 0).then_some(bytes);
+        (known(sys.total_memory()), known(sys.available_memory()))
     }
 
     fn sysfs_vram_mb(&self) -> Vec<u64> {
         sysfs_vram_mb(Path::new("/sys/class/drm"))
     }
-}
-
-/// `(MemTotal, MemAvailable)` in bytes from the text of `/proc/meminfo`; either may be missing.
-pub fn parse_meminfo(text: &str) -> (Option<u64>, Option<u64>) {
-    let kb = |key: &str| -> Option<u64> {
-        text.lines()
-            .find_map(|l| l.strip_prefix(key))?
-            .split_whitespace()
-            .next()?
-            .parse::<u64>()
-            .ok()
-            .map(|k| k * 1024)
-    };
-    (kb("MemTotal:"), kb("MemAvailable:"))
 }
 
 /// Does this adapter share the machine's memory (an integrated GPU, or Metal, which is unified)?

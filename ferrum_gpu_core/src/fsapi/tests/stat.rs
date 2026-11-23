@@ -1,5 +1,6 @@
 use super::support::{put, tmp};
-use crate::fsapi::stat::{stat, stat_with};
+use crate::fsapi::stat::{stat, stat_with, walk};
+use ferrum_test_support::link;
 
 #[test]
 fn a_file_a_folder_and_a_missing_path_are_told_apart() {
@@ -54,19 +55,16 @@ fn the_depth_limit_stops_the_descent_and_says_so() {
     assert_eq!(deep.files, 2);
 }
 
-#[cfg(unix)]
 #[test]
-fn an_unreadable_folder_a_dangling_link_and_a_socket_do_not_stop_the_count() {
-    use std::os::unix::fs::{symlink, PermissionsExt};
+fn a_folder_that_cannot_be_read_and_a_dangling_link_do_not_stop_the_count() {
     let d = tmp();
-    put(&d, "a.txt", b"x");
-    let locked = d.join("locked");
-    std::fs::create_dir(&locked).unwrap();
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
-    symlink(d.join("missing"), d.join("dangling")).unwrap();
-    let _socket = std::os::unix::net::UnixListener::bind(d.join("sock")).unwrap();
-    let s = stat(&d);
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
-    // only the real file counts; the others are skipped, not errors
+    let f = put(&d, "a.txt", b"x");
+    // a file where a folder is expected cannot be listed, on any platform
+    let mut s = stat_with(&d, (10, 10));
+    walk(&f, 0, (10, 10), &mut s);
     assert_eq!((s.files, s.truncated), (1, false));
+    if link(&d.join("missing"), &d.join("dangling")) {
+        let s = stat(&d);
+        assert_eq!((s.files, s.truncated), (1, false));
+    }
 }

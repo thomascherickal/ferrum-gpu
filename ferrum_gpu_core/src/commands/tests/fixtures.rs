@@ -42,11 +42,8 @@ impl sysmem::Readers for Mx330 {
     fn nvidia_smi(&self) -> Option<String> {
         Some("Fake GPU, 2048, 1989\n".into())
     }
-    fn meminfo(&self) -> Option<String> {
-        None
-    }
-    fn sysctl_memsize(&self) -> Option<String> {
-        None
+    fn ram_bytes(&self) -> (Option<u64>, Option<u64>) {
+        (None, None)
     }
     fn sysfs_vram_mb(&self) -> Vec<u64> {
         vec![]
@@ -66,11 +63,8 @@ impl sysmem::Readers for Blind {
     fn nvidia_smi(&self) -> Option<String> {
         None
     }
-    fn meminfo(&self) -> Option<String> {
-        None
-    }
-    fn sysctl_memsize(&self) -> Option<String> {
-        None
+    fn ram_bytes(&self) -> (Option<u64>, Option<u64>) {
+        (None, None)
     }
     fn sysfs_vram_mb(&self) -> Vec<u64> {
         vec![]

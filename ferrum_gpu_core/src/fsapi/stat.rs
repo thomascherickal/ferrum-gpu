@@ -16,7 +16,7 @@ pub struct Stat {
     pub truncated: bool,
 }
 
-fn walk(dir: &Path, depth: usize, limits: (usize, usize), s: &mut Stat) {
+pub(super) fn walk(dir: &Path, depth: usize, limits: (usize, usize), s: &mut Stat) {
     let Ok(rd) = std::fs::read_dir(dir) else {
         return;
     };
@@ -31,7 +31,8 @@ fn walk(dir: &Path, depth: usize, limits: (usize, usize), s: &mut Stat) {
         if meta.is_file() {
             s.files += 1;
             s.bytes += meta.len();
-        } else if meta.is_dir() {
+        }
+        if meta.is_dir() {
             if depth >= limits.1 {
                 s.truncated = true;
             } else {

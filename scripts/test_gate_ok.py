@@ -55,6 +55,16 @@ class GateOk(unittest.TestCase):
         self.assertFalse(g.passed_on_this_tree(d))
         self.assertEqual(g.gate_state(tempfile.mkdtemp()), (None, None))
 
+    def test_a_gate_passed_on_the_content_key_allows_the_push(self):
+        import gate_key as gk
+
+        d = self.repo()
+        self.assertFalse(g.passed_on_this_tree(d))
+        os.makedirs(f"{d}/.gate", exist_ok=True)
+        open(f"{d}/.gate/gate.done", "w").write("PASS\n")
+        open(f"{d}/.gate/key", "w").write(gk.key(d) + "\n")
+        self.assertEqual(gk.check(d)[0], 0)
+
 
 if __name__ == "__main__":
     unittest.main()

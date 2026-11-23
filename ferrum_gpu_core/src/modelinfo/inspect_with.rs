@@ -2,6 +2,14 @@ use super::*;
 
 /// [`inspect`] reading at most `max_header` bytes from the start.
 pub fn inspect_with(path: &Path, max_header: u64) -> Result<Info, String> {
+    inspect_via(path, max_header, &|p| Ok(Box::new(std::fs::File::open(p)?)))
+}
+
+/// How a file is opened for reading.
+pub(super) type Opener<'a> = &'a dyn Fn(&Path) -> std::io::Result<Box<dyn Read>>;
+
+/// [`inspect_with`] reading through whatever `open` returns, so a failing source can be injected.
+pub(super) fn inspect_via(path: &Path, max_header: u64, open: Opener) -> Result<Info, String> {
     let shown = path.display();
     let meta = std::fs::metadata(path).map_err(|e| format!("{shown}: {e}"))?;
     if !meta.is_file() {
@@ -9,7 +17,7 @@ pub fn inspect_with(path: &Path, max_header: u64) -> Result<Info, String> {
     }
     let size = meta.len();
     let mut head = Vec::new();
-    std::fs::File::open(path)
+    open(path)
         .and_then(|f| f.take(max_header).read_to_end(&mut head))
         .map_err(|e| format!("{shown}: {e}"))?;
     let g = Gguf::parse_prefix(head, size).map_err(|e| {

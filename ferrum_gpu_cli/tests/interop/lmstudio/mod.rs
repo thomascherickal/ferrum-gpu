@@ -1,45 +1,61 @@
 //! LM Studio: `export-lmstudio` runs the right `lms` commands. The real `lms` registers models under
-//! the user's `~/.lmstudio`, outside this repository, so a fake `lms` (a shell script that records
-//! what it was asked and what file it was given) stands in; LM Studio's engine is llama.cpp, so that
+//! the user's `~/.lmstudio`, outside this repository, so a fake `lms` (a script that records
+//! what it was asked) stands in; LM Studio's engine is llama.cpp, so that
 //! the imported file runs is shown by loading the very bytes `lms` received in llama.cpp.
 use crate::skip;
 use crate::support::llama::completion;
 use crate::support::model::{ferrum, fixture, ours};
 use crate::support::tools::llamacpp_dir;
+use ferrum_test_support::FakeTool;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
-/// A fake `lms` and the files it leaves behind.
+/// A fake `lms` and the file of the calls it logged.
 struct Fake {
     bin: PathBuf,
     log: PathBuf,
-    captured: PathBuf,
 }
 
-/// Write a fake `lms` into a fresh directory `tag`. On `import` it records the arguments and copies
-/// the model file it was given; on `ls --json` it lists that file under `repo`. `import_exit` is the
-/// status `import` returns.
+/// Write a fake `lms` into a fresh directory `tag`, from one description that becomes a shell
+/// script on Unix and a batch file on Windows. It logs every call's arguments; on `ls --json` it
+/// lists `file` under `repo`; `import_exit` is the status it returns (with a message on stderr).
 fn fake(tag: &str, repo: &str, file: &str, import_exit: i32) -> Fake {
     let dir = fixture().dir.join(format!("lms-{tag}"));
     std::fs::create_dir_all(&dir).unwrap();
-    let (log, captured) = (dir.join("calls.log"), dir.join("captured.gguf"));
-    let script = format!(
-        "#!/bin/sh\n\
-         echo \"$@\" >> '{log}'\n\
-         case \"$1\" in\n\
-         import) for last; do :; done; cp \"$last\" '{cap}'; \
-                 [ {exit} -eq 0 ] || {{ echo 'import refused by the fake lms' >&2; exit {exit}; }} ;;\n\
-         ls) printf '[{{\"modelKey\":\"fake/{repo}\",\"path\":\"/home/u/.lmstudio/models/{repo}/{file}\"}}]\\n' ;;\n\
-         esac\n",
-        log = log.display(),
-        cap = captured.display(),
-        exit = import_exit,
+    let log = dir.join("calls.log");
+    let listing = format!(
+        "[{{\"modelKey\":\"fake/{repo}\",\"path\":\"/home/u/.lmstudio/models/{repo}/{file}\"}}]"
     );
-    let bin = dir.join("lms");
-    std::fs::write(&bin, script).unwrap();
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o755)).unwrap();
-    Fake { bin, log, captured }
+    let tool = FakeTool {
+        log: Some(log.clone()),
+        replies: vec![("ls".into(), listing)],
+        stderr: if import_exit == 0 {
+            String::new()
+        } else {
+            "import refused by the fake lms".into()
+        },
+        exit_code: import_exit,
+        ..FakeTool::default()
+    };
+    Fake {
+        bin: tool.install(&dir, "lms"),
+        log,
+    }
+}
+
+/// The path `lms import` was given, from the first logged call.
+fn imported_path(fk: &Fake) -> PathBuf {
+    let log = std::fs::read_to_string(&fk.log).unwrap();
+    let first = log.lines().next().unwrap().to_string();
+    PathBuf::from(
+        first
+            .rsplit_once(" --user-repo ")
+            .unwrap()
+            .1
+            .split_once(' ')
+            .unwrap()
+            .1,
+    )
 }
 
 fn export(extra: &[&str], model: &Path, tool: &Path) -> Output {

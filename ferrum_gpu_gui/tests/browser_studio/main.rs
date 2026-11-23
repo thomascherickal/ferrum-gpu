@@ -2,9 +2,6 @@
 //! Prepare and Tokenize jobs (the real commands, in-process). Skipped (with the reason printed) when
 //! Chrome is missing, so the suite passes on a bare machine.
 
-// the harness uses process groups, `kill`, `sh` and `timeout`: not built on Windows
-#![cfg(unix)]
-
 use ferrum_gpu_gui::app::{App, DeviceChoice};
 use ferrum_gpu_gui::engine::CpuBackend;
 use ferrum_gpu_gui::json::Json;

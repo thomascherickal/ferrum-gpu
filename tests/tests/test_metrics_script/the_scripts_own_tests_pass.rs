@@ -2,9 +2,7 @@ use super::*;
 
 #[test]
 fn the_scripts_own_tests_pass() {
-    if !have_python() {
-        return;
-    }
+    let Some(python) = python() else { return };
     // metrics, rules, duplicates, timing and profile reports, next steps and the push gate
     let mut tests: Vec<_> = std::fs::read_dir(repo().join("scripts"))
         .unwrap()
@@ -19,7 +17,7 @@ fn the_scripts_own_tests_pass() {
     tests.sort();
     assert!(tests.len() >= 7, "{tests:?}");
     for t in tests {
-        let o = Command::new("python3").arg(&t).output().unwrap();
+        let o = Command::new(python).arg(&t).output().unwrap();
         assert!(
             o.status.success(),
             "{}: {}",
@@ -29,6 +27,7 @@ fn the_scripts_own_tests_pass() {
     }
 }
 
+#[cfg(unix)]
 #[test]
 fn the_pre_commit_hook_is_executable_and_never_blocks_a_commit() {
     use std::os::unix::fs::PermissionsExt;
@@ -45,8 +44,8 @@ fn the_pre_commit_hook_is_executable_and_never_blocks_a_commit() {
 
 #[test]
 fn coverage_and_the_gate_feed_metrics_md() {
-    assert!(read("scripts/coverage.sh").contains("metrics.py --coverage"));
-    assert!(read("scripts/gate.sh").contains("metrics.py --gate"));
+    assert!(read("scripts/coverage_plan.py").contains("\"--coverage\""));
+    assert!(read("scripts/gate.py").contains("\"--gate\""));
     for hook in ["pre-commit", "pre-push"] {
         let text = read(&format!("scripts/githooks/{hook}"));
         assert!(
@@ -69,7 +68,7 @@ fn coverage_and_the_gate_feed_metrics_md() {
         "the gate runs before every commit"
     );
     assert!(
-        read("scripts/gate.sh").contains("gate_key.py"),
+        read("scripts/gate.py").contains("gate_key.py"),
         "the gate records its key"
     );
     assert!(read("AGENTS.md").contains("The gate runs before every commit"));

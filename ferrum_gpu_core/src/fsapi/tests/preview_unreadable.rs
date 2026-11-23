@@ -1,18 +1,24 @@
-use crate::fsapi::preview::preview;
-use std::path::Path;
+use super::support::{put, tmp};
+use crate::fsapi::preview::preview_with;
+use ferrum_test_support::{denied, DiesAfter};
 
-// /proc/1/environ is a regular file that only root can open: it passes the metadata check and
-// fails at the open.
 #[test]
 fn a_file_that_cannot_be_opened_is_named_with_the_reason() {
-    let f = Path::new("/proc/1/environ");
-    if std::fs::File::open(f).is_ok() {
-        eprintln!("SKIP: running as a user who can read /proc/1/environ");
-        return;
-    }
-    let e = preview(f, 100).unwrap_err();
-    assert!(
-        e.starts_with("/proc/1/environ: ") && e.contains("denied"),
-        "{e}"
-    );
+    let f = put(&tmp(), "t.txt", b"x");
+    let e = preview_with(&f, 100, &denied).unwrap_err();
+    assert_eq!(e, format!("{}: denied", f.display()));
+}
+
+#[test]
+fn a_read_that_fails_is_an_error_that_names_the_path() {
+    let f = put(&tmp(), "t.txt", b"x");
+    let e = preview_with(&f, 100, &|_| Ok(Box::new(DiesAfter(b"ab")))).unwrap_err();
+    assert_eq!(e, format!("{}: disk gone", f.display()));
+}
+
+#[test]
+fn a_failure_while_counting_lines_ends_the_count_not_the_preview() {
+    let f = put(&tmp(), "t.txt", b"x");
+    let p = preview_with(&f, 3, &|_| Ok(Box::new(DiesAfter(b"a\nb\nc\nd")))).unwrap();
+    assert_eq!((p.text.as_str(), p.lines), ("a\nb", 3));
 }

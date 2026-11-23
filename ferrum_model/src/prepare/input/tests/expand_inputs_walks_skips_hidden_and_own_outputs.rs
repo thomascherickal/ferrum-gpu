@@ -1,4 +1,5 @@
 use super::*;
+use ferrum_test_support::link;
 
 #[test]
 fn expand_inputs_walks_skips_hidden_and_own_outputs() {
@@ -20,16 +21,27 @@ fn expand_inputs_walks_skips_hidden_and_own_outputs() {
     assert!(e.contains("inside --out"), "{e}");
     let e = expand_inputs(&["/nonexistent-ferrum".into()], &out).unwrap_err();
     assert!(e.contains("does not exist"), "{e}");
-    // Not a regular file: refused when named, skipped inside a directory.
+    // Not a regular file: refused when named (Unix only: no Windows path is neither file nor folder).
     #[cfg(unix)]
     {
-        let e = expand_inputs(&["/dev/zero".into()], &out).unwrap_err();
+        let e = expand_inputs(&["/dev/null".into()], &out).unwrap_err();
         assert!(e.contains("not a regular file"), "{e}");
     }
-    #[cfg(unix)]
-    {
-        std::os::unix::fs::symlink(d.join("missing"), d.join("dangling")).unwrap();
+    // a link to nothing is skipped inside a folder
+    if link(&d.join("missing"), &d.join("dangling")) {
         assert_eq!(expand_inputs(&[dir], &out).unwrap(), vec![d.join("a.txt")]);
     }
+    let _ = std::fs::remove_dir_all(&d);
+}
+
+#[test]
+fn a_folder_that_cannot_be_listed_is_named() {
+    let d = tmpdir("readdir");
+    let refuse = |_: &Path| Err(std::io::Error::other("denied"));
+    let e = expand_inputs_with(&[d.to_string_lossy().into()], &d.join("out"), &refuse);
+    assert_eq!(
+        e.unwrap_err(),
+        format!("cannot read {}: denied", d.display())
+    );
     let _ = std::fs::remove_dir_all(&d);
 }

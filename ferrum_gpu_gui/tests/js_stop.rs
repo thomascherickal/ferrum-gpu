@@ -1,9 +1,6 @@
 //! Runs the Node tests of the Generate tab's stop-string helpers. Skips, with the reason printed,
 //! when Node is not installed.
 
-// the deadline wrapper (`timeout`) lives in the unix-only harness
-#![cfg(unix)]
-
 mod common;
 
 use std::process::Command;

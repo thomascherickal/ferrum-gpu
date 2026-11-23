@@ -14,6 +14,7 @@ fn export_ollama_says_the_server_is_not_running_when_it_is_not() {
         .arg(&bin)
         .env("OLLAMA_HOST", format!("127.0.0.1:{}", free_port()))
         .env("HOME", f.dir.join("ollama-none"))
+        .env("USERPROFILE", f.dir.join("ollama-none"))
         .output()
         .unwrap();
     assert!(!o.status.success());

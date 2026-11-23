@@ -41,7 +41,7 @@ fn our_q2_k_is_as_accurate_as_llama_quantizes() {
     };
     let w = wide();
     let theirs = w.dir.join("lq-q2_k.gguf");
-    let o = with_deadline(&dir.join("llama-quantize"), 120)
+    let o = with_deadline(dir.join("llama-quantize"), 120)
         .env("LD_LIBRARY_PATH", &dir)
         .arg(&w.f32)
         .arg(&theirs)

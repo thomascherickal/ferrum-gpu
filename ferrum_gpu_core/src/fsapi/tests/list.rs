@@ -1,6 +1,6 @@
 use super::support::{put, tmp};
 use crate::fsapi::list::{list_dir, list_dir_with, Kind};
-use std::path::Path;
+use ferrum_test_support::link;
 
 #[test]
 fn folders_come_first_then_files_each_sorted_without_regard_to_case() {
@@ -60,23 +60,29 @@ fn errors_name_the_folder() {
 
 #[test]
 fn the_root_has_no_parent_and_a_bare_name_has_none_either() {
-    assert_eq!(list_dir(Path::new("/")).unwrap().parent, None);
+    let tmp = std::env::temp_dir();
+    let root = tmp.ancestors().last().unwrap();
+    assert_eq!(list_dir(root).unwrap().parent, None);
 }
 
-#[cfg(unix)]
 #[test]
 fn links_are_followed_and_broken_links_are_other() {
     let d = tmp();
     std::fs::create_dir(d.join("real")).unwrap();
     put(&d, "real/f.txt", b"abc");
-    std::os::unix::fs::symlink(d.join("real"), d.join("link_dir")).unwrap();
-    std::os::unix::fs::symlink(d.join("real/f.txt"), d.join("link_file")).unwrap();
-    std::os::unix::fs::symlink(d.join("missing"), d.join("broken")).unwrap();
+    let made = [
+        link(&d.join("real"), &d.join("link_dir")),
+        link(&d.join("real").join("f.txt"), &d.join("link_file")),
+        link(&d.join("missing"), &d.join("broken")),
+    ];
     let l = list_dir(&d).unwrap();
     let kind = |n: &str| l.entries.iter().find(|e| e.name == n).unwrap().kind;
-    assert_eq!(kind("link_dir"), Kind::Dir);
-    assert_eq!(kind("link_file"), Kind::File);
-    assert_eq!(kind("broken"), Kind::Other);
+    if made.iter().all(|&ok| ok) {
+        assert_eq!(kind("link_dir"), Kind::Dir);
+        assert_eq!(kind("link_file"), Kind::File);
+        assert_eq!(kind("broken"), Kind::Other);
+    }
+    assert_eq!(kind("real"), Kind::Dir);
     assert_eq!(Kind::Other.word(), "other");
     assert_eq!(Kind::File.word(), "file");
     assert_eq!(Kind::Dir.word(), "dir");

@@ -53,18 +53,16 @@ fn the_json_carries_the_tokenizer_of_a_model_that_has_one() {
     assert_eq!(plain.get("tokenizer"), Some(&Json::Null));
 }
 
-#[cfg(unix)]
 #[test]
-fn a_scan_skips_an_unreadable_folder_and_a_dangling_link() {
-    use std::os::unix::fs::{symlink, PermissionsExt};
+fn a_scan_skips_a_folder_that_cannot_be_read_and_a_dangling_link() {
     let d = tmp();
-    write(&d, "m.gguf", &model_bytes());
-    let locked = d.join("locked");
-    std::fs::create_dir(&locked).unwrap();
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000)).unwrap();
-    symlink(d.join("missing"), d.join("dangling.gguf")).unwrap();
-    let r = scan(&d);
-    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
-    let (files, truncated) = r.unwrap();
+    let model = write(&d, "m.gguf", &model_bytes());
+    let (mut out, mut truncated) = (vec![], false);
+    // a file where a folder is expected cannot be listed, on any platform
+    walk(&model, 0, 10, &mut out, &mut truncated);
+    assert!(out.is_empty() && !truncated);
+    let linked = link(&d.join("missing"), &d.join("dangling.gguf"));
+    let (files, truncated) = scan(&d).unwrap();
     assert_eq!((files.len(), truncated), (1, false));
+    assert!(linked || cfg!(windows), "links work on this platform");
 }

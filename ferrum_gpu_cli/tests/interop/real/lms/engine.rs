@@ -5,7 +5,7 @@ use crate::support::model::{NEW_TOKENS, PROMPT};
 pub(super) fn run_in_llamacpp(dir: &Path, landed: &Path, want: &str) {
     step("run: the imported file in llama.cpp (LM Studio's engine), greedy, 1 thread");
     let tokens = NEW_TOKENS.to_string();
-    let o = with_deadline(&dir.join("llama-completion"), 120)
+    let o = with_deadline(dir.join("llama-completion"), 120)
         .env("LD_LIBRARY_PATH", dir)
         .args(["-m"])
         .arg(landed)

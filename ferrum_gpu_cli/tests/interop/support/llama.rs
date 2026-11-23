@@ -29,7 +29,7 @@ pub(crate) fn completion(dir: &Path, model: &Path) -> String {
 }
 
 fn completion_once(dir: &Path, model: &Path) -> String {
-    let o = with_deadline(&dir.join("llama-completion"), 120)
+    let o = with_deadline(dir.join("llama-completion"), 120)
         .env("LD_LIBRARY_PATH", dir)
         .args(["-m"])
         .arg(model)

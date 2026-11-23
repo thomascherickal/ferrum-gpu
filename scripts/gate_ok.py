@@ -49,7 +49,10 @@ def passed_on_this_tree(root):
 
 def main(argv=None):
     root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if passed_on_this_tree(root):
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import gate_key  # the content key the pre-commit hook and the gate use
+
+    if gate_key.check(root)[0] == 0 or passed_on_this_tree(root):
         return 0
     print("push refused: no passing `scripts/gate.sh` on this tree (run it, or set FERRUM_SKIP_GATE_CHECK=1 for a docs-only push)", file=sys.stderr)
     return 1

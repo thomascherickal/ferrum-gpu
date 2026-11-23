@@ -15,7 +15,7 @@ struct Run {
 }
 
 fn completion(dir: &Path, model: &Path, offload: &[&str]) -> Run {
-    let o = with_deadline(&dir.join("llama-completion"), 540)
+    let o = with_deadline(dir.join("llama-completion"), 540)
         .env("LD_LIBRARY_PATH", dir)
         .args(["-v", "-m"])
         .arg(model)
@@ -41,7 +41,7 @@ fn completion(dir: &Path, model: &Path, offload: &[&str]) -> Run {
 
 /// `Vulkan0`, `Vulkan1`, ... as listed by `--list-devices`, with their descriptions.
 fn devices(dir: &Path) -> Vec<(String, String)> {
-    let o = with_deadline(&dir.join("llama-completion"), 60)
+    let o = with_deadline(dir.join("llama-completion"), 60)
         .env("LD_LIBRARY_PATH", dir)
         .arg("--list-devices")
         .stdin(Stdio::null())

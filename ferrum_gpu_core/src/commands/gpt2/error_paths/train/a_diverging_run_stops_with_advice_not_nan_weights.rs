@@ -16,22 +16,6 @@ pub(super) fn a_diverging_run_stops_with_advice_not_nan_weights() {
     assert!(!out.exists(), "no model is written from a diverged run");
 }
 
-#[cfg(target_os = "linux")]
-#[test]
-pub(super) fn a_metrics_file_that_cannot_be_written_stops_the_run_by_name() {
-    // /dev/full accepts the open and fails every write, starting with the header
-    let (d, corpus) = scratch("csvfull");
-    let e = err(&format!(
-        "train {FAST} --epochs 2 --vocab 262 --data {} --out {} --metrics-csv /dev/full",
-        corpus.display(),
-        d.join("o.gguf").display()
-    ));
-    assert!(
-        e.contains("/dev/full") && e.contains("No space left"),
-        "{e}"
-    );
-}
-
 #[test]
 pub(super) fn finetune_refuses_a_gpt2_only_flag_for_a_llama_file() {
     let (d, corpus) = scratch("ftllama");

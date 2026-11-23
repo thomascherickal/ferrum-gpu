@@ -18,6 +18,7 @@ fault-injection = []
 
 [dev-dependencies]
 naga = { version = "30.0.1", features = ["wgsl-in"] }
+sysinfo = { version = "0.38", default-features = false, features = ["system"] }
 ferrum_model = { path = "../ferrum_model" }
 
 [[bench]]

@@ -1,7 +1,7 @@
 //! A preview of the start of a text file.
 
 use super::{MAX_COUNT_BYTES, MAX_PREVIEW};
-use std::io::Read;
+use std::io::{self, Read};
 use std::path::Path;
 
 /// The start of a file.
@@ -21,12 +21,20 @@ pub struct Preview {
 
 /// Read up to `bytes` (at most [`MAX_PREVIEW`]) from the start of the file at `path`.
 pub fn preview(path: &Path, bytes: usize) -> Result<Preview, String> {
+    preview_with(path, bytes, &|p| Ok(Box::new(std::fs::File::open(p)?)))
+}
+
+/// How a file is opened for reading.
+pub(super) type Opener<'a> = &'a dyn Fn(&Path) -> io::Result<Box<dyn Read>>;
+
+/// [`preview`] reading through whatever `open` returns, so a failing source can be injected.
+pub(super) fn preview_with(path: &Path, bytes: usize, open: Opener) -> Result<Preview, String> {
     let meta = std::fs::metadata(path).map_err(|e| format!("{}: {e}", path.display()))?;
     if !meta.is_file() {
         return Err(format!("{}: not a file", path.display()));
     }
     let want = bytes.clamp(1, MAX_PREVIEW);
-    let mut f = std::fs::File::open(path).map_err(|e| format!("{}: {e}", path.display()))?;
+    let mut f = open(path).map_err(|e| format!("{}: {e}", path.display()))?;
     let mut head = vec![0u8; want];
     let mut got = 0;
     while got < want {

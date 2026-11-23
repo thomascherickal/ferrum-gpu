@@ -7,7 +7,7 @@
 //! equal `train.txt`/`val.txt`/`test.txt` bytes. Not ported: the progress callback and the stop
 //! hook (the CLI has no use for them).
 
-pub use input::expand_inputs;
+pub use input::{expand_inputs, expand_inputs_with, Lister};
 
 use crate::sha256::Sha256;
 use json::{obj, Json};

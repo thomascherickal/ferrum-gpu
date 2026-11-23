@@ -1,9 +1,6 @@
 //! Runs every Node test of the Studio's page logic under `js_tests/` (shell, jobs client, paths, argument builders).
 //! Skips, with the reason printed, when Node is not installed.
 
-// the deadline wrapper (`timeout`) lives in the unix-only harness
-#![cfg(unix)]
-
 mod common;
 
 use std::process::Command;

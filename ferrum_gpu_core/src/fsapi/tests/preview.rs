@@ -65,11 +65,3 @@ fn folders_and_missing_files_are_errors_that_name_the_path() {
     let e = preview(&d.join("nope.txt"), 10).unwrap_err();
     assert!(e.contains("nope.txt"), "{e}");
 }
-
-#[cfg(target_os = "linux")]
-#[test]
-fn a_file_that_cannot_be_read_is_an_error_that_names_the_path() {
-    // /proc/self/mem opens but its first read fails (EIO)
-    let e = preview(std::path::Path::new("/proc/self/mem"), 16).unwrap_err();
-    assert!(e.starts_with("/proc/self/mem: "), "{e}");
-}

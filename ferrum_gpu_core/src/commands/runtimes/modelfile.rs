@@ -23,11 +23,17 @@ pub(super) fn runnable(model: &str) -> Result<(PathBuf, usize), String> {
     }
     let ctx = at(g.uint("gpt2.context_length"), model)?;
     let abs = at(std::path::absolute(model), model)?;
+    quotable(&abs)?;
+    Ok((abs, ctx))
+}
+
+/// A Modelfile double-quotes the path, so a path holding a quote or a newline cannot be written.
+pub(super) fn quotable(abs: &Path) -> Result<(), String> {
     let s = abs.to_string_lossy();
     if s.contains('"') || s.contains('\n') {
         return Err(format!("{s}: the path contains a double quote or newline, which a Modelfile cannot quote; rename the file"));
     }
-    Ok((abs, ctx))
+    Ok(())
 }
 
 /// Find a tool: `--bin`, then the environment variable, then `PATH`, then `fallback` under HOME.

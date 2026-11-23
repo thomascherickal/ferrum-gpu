@@ -1,4 +1,5 @@
 use super::*;
+use ferrum_test_support::BrokenWriter;
 
 fn tmp(tag: &str) -> PathBuf {
     let d = std::env::temp_dir().join(format!("ferrum_split_{tag}_{}", std::process::id()));
@@ -37,22 +38,17 @@ fn create_names_the_part_file_when_it_cannot_be_made() {
     );
 }
 
-#[cfg(target_os = "linux")]
 #[test]
 fn a_failed_write_and_a_failed_flush_name_the_part_file() {
-    let d = tmp("full");
-    std::os::unix::fs::symlink("/dev/full", part(&d, "train.txt")).unwrap();
-    let mut s = Split::create(&d, "train").unwrap();
+    let broken = |kind| {
+        let tmp = PathBuf::from("train.txt.part");
+        Split::with_writer("train.txt".into(), tmp, Box::new(kind))
+    };
+    let mut s = broken(BrokenWriter::Write);
     let e = s.write(&"x".repeat(1 << 20)).unwrap_err();
-    assert!(
-        e.starts_with("cannot write ") && e.contains("train.txt.part"),
-        "{e}"
-    );
-    let d2 = tmp("full2");
-    std::os::unix::fs::symlink("/dev/full", part(&d2, "train.txt")).unwrap();
-    let mut s = Split::create(&d2, "train").unwrap();
+    assert_eq!(e, "cannot write train.txt.part: no space left");
+    let mut s = broken(BrokenWriter::Flush);
     s.write("small").unwrap();
-    assert!(s.finish().err().unwrap().starts_with("cannot write "));
-    let _ = std::fs::remove_dir_all(&d);
-    let _ = std::fs::remove_dir_all(&d2);
+    let e = s.finish().err().unwrap();
+    assert_eq!(e, "cannot write train.txt.part: no space left");
 }

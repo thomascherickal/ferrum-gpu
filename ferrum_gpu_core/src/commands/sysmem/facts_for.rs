@@ -18,12 +18,7 @@ pub fn facts_for(a: &AdapterSummary, r: &dyn Readers) -> MemoryFacts {
             }
         }
     }
-    let (total, avail) = r.meminfo().map_or((None, None), |t| parse_meminfo(&t));
-    f.ram_total = total.or_else(|| {
-        r.sysctl_memsize()
-            .and_then(|s| s.trim().parse::<u64>().ok())
-    });
-    f.ram_available = avail;
+    (f.ram_total, f.ram_available) = r.ram_bytes();
     f
 }
 

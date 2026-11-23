@@ -23,7 +23,7 @@ fn a_lone_amd_card_falls_back_to_sysfs_but_several_cards_are_not_guessed() {
 fn an_integrated_adapter_gets_a_share_of_the_available_ram_and_ignores_the_tool() {
     let r = Fake {
         smi: Some("NVIDIA GeForce MX330, 2048, 1989\n"),
-        meminfo: Some(MEMINFO),
+        ram: RAM,
         ..Fake::default()
     };
     let a = adapter("Intel(R) Iris(R) Xe Graphics", Kind::Integrated, "Vulkan");
@@ -35,9 +35,9 @@ fn an_integrated_adapter_gets_a_share_of_the_available_ram_and_ignores_the_tool(
 }
 
 #[test]
-fn macos_unified_memory_uses_the_total_from_sysctl_when_meminfo_is_absent() {
+fn unified_memory_with_only_a_total_is_half_of_it() {
     let r = Fake {
-        sysctl: Some("137438953472\n"),
+        ram: (Some(137438953472), None),
         ..Fake::default()
     };
     let a = adapter("Apple M5 Max", Kind::Integrated, "Metal");
@@ -45,24 +45,16 @@ fn macos_unified_memory_uses_the_total_from_sysctl_when_meminfo_is_absent() {
     assert_eq!((f.ram_total, f.ram_available), (Some(137438953472), None));
     let b = budget_for(None, &a, &r).0.unwrap();
     assert_eq!((b.source, b.bytes), (Source::HalfRam, 137438953472 / 2));
-    // an unparsable sysctl answer is no answer
-    let bad = Fake {
-        sysctl: Some("not a number"),
-        ..Fake::default()
-    };
-    assert_eq!(facts_for(&a, &bad).ram_total, None);
-    assert!(budget_for(None, &a, &bad).0.is_none());
+    // no figure at all is no budget
+    assert!(budget_for(None, &a, &Fake::default()).0.is_none());
 }
 
 #[test]
-fn the_real_system_reader_never_panics_and_answers_what_this_machine_has() {
+fn the_real_system_reader_answers_what_this_machine_has() {
     let s = System;
-    // none of these may panic, whatever the machine; on Linux the memory report exists
+    // the tools and the DRM tree may be absent: neither may panic
     let _ = s.nvidia_smi();
-    let _ = s.sysctl_memsize();
     let _ = s.sysfs_vram_mb();
-    if cfg!(target_os = "linux") {
-        let (total, avail) = parse_meminfo(&s.meminfo().expect("/proc/meminfo"));
-        assert!(total.unwrap() > 0 && avail.unwrap() > 0);
-    }
+    let (total, available) = s.ram_bytes();
+    assert!(total.unwrap() > 0 && available.unwrap() > 0);
 }

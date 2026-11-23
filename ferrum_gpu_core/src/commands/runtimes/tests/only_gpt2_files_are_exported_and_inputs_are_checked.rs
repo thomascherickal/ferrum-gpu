@@ -46,16 +46,11 @@ fn only_gpt2_files_are_exported_and_inputs_are_checked() {
     )
     .unwrap_err()
     .contains("<publisher>/<name>"));
-    // a quote in the path cannot be put in a Modelfile (a quote is not a legal file name on Windows)
-    #[cfg(unix)]
-    {
-        let q = d.join("q\"uote.gguf");
-        std::fs::copy(&m, &q).unwrap();
-        let mut a = w("export-ollama --model");
-        a.push(q.display().to_string());
-        a.extend(w("--modelfile-only x"));
-        assert!(run(&a, &mut Vec::new())
-            .unwrap_err()
-            .contains("double quote"));
-    }
+    // a quote in the path cannot be put in a Modelfile (checked on the text: a quote is not a
+    // legal file name on Windows)
+    assert!(quotable(Path::new("/m/q\"uote.gguf"))
+        .unwrap_err()
+        .contains("double quote"));
+    assert!(quotable(Path::new("/m/new\nline.gguf")).is_err());
+    assert!(quotable(Path::new("/m/fine.gguf")).is_ok());
 }

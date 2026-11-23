@@ -2,6 +2,7 @@
 //! chunks.
 //!
 //! Provenance: ported from ferrum-cpu `slm_cli/src/prepare/input.rs` (commit 56a9d3a).
+use crate::dir_paths::dir_paths;
 use crate::sha256::Sha256;
 use std::io::Read;
 use std::path::{Path, PathBuf};

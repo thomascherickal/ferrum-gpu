@@ -1,6 +1,5 @@
 use super::*;
 
-#[cfg(unix)]
 #[test]
 fn export_lmstudio_imports_then_waits_for_the_listing() {
     let d = dir("lms");
@@ -12,13 +11,12 @@ fn export_lmstudio_imports_then_waits_for_the_listing() {
         .to_string();
     let log = d.join("log.txt");
     let listing = format!("[{{\"path\":\"/x/ferrum/m/{name}\",\"modelKey\":\"ferrum/m\"}}]");
-    let lms = script(
-        &d.join("lms"),
-        &format!(
-            "echo \"$@\" >> {}\nif [ \"$1\" = ls ]; then echo '{listing}'; fi",
-            log.display()
-        ),
-    );
+    let spy = FakeTool {
+        log: Some(log.clone()),
+        replies: vec![("ls".into(), listing)],
+        ..FakeTool::default()
+    };
+    let lms = install(&d, "lms", spy);
     let a = Args::parse(
         &[
             crate::commands::flags::val("--model"),
@@ -37,7 +35,12 @@ fn export_lmstudio_imports_then_waits_for_the_listing() {
         "{calls}"
     );
     // an import that fails, and a listing that never shows the model
-    let fail = script(&d.join("fail"), "echo broken >&2; exit 1");
+    let broken = FakeTool {
+        stderr: "broken".into(),
+        exit_code: 1,
+        ..FakeTool::default()
+    };
+    let fail = install(&d, "fail", broken);
     let af = Args::parse(
         &[
             crate::commands::flags::val("--model"),
@@ -51,7 +54,11 @@ fn export_lmstudio_imports_then_waits_for_the_listing() {
             .unwrap_err()
             .contains("`lms import` failed")
     );
-    let empty = script(&d.join("empty"), "if [ \"$1\" = ls ]; then echo '[]'; fi");
+    let blank = FakeTool {
+        replies: vec![("ls".into(), "[]".into())],
+        ..FakeTool::default()
+    };
+    let empty = install(&d, "empty", blank);
     let ae = Args::parse(
         &[
             crate::commands::flags::val("--model"),

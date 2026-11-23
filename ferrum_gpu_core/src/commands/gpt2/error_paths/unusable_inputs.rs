@@ -1,22 +1,15 @@
 //! Inputs that exist but cannot be used: a directory where a file belongs, a file that is not a
-//! GGUF, a directory that cannot be listed. Each failure names the path it came from.
+//! GGUF, a tokenizer that is not one. Each failure names the path it came from.
 
 use super::{err, scratch, trained, FAST};
 use ferrum_model::sha256::sha256_hex;
 use ferrum_model::token_file::{write, TokenFileMeta};
 
 #[test]
-fn tokenize_names_an_unlistable_directory_and_a_tokenizer_that_is_not_one() {
+fn tokenize_names_a_tokenizer_that_is_not_one() {
     let (d, c) = scratch("tok_in");
-    let (_, tok) = trained(&d, &c, 300, "m");
+    trained(&d, &c, 300, "m");
     let out = d.join("o.gguf");
-    // /proc/1/fd is a directory an ordinary user cannot list
-    let e = err(&format!(
-        "tokenize --data /proc/1/fd --tokenizer {} --out {}",
-        tok.display(),
-        out.display()
-    ));
-    assert!(e.starts_with("/proc/1/fd: "), "{e}");
     let e = err(&format!(
         "tokenize --data {} --tokenizer {} --out {}",
         c.display(),

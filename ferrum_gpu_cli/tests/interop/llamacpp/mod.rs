@@ -10,7 +10,7 @@ use std::process::Stdio;
 
 /// `llama-tokenize --ids` of `text` with `model`'s vocabulary.
 fn tokenize(dir: &Path, model: &Path, text: &str) -> Vec<usize> {
-    let o = with_deadline(&dir.join("llama-tokenize"), 60)
+    let o = with_deadline(dir.join("llama-tokenize"), 60)
         .env("LD_LIBRARY_PATH", dir)
         .args(["-m"])
         .arg(model)
@@ -38,7 +38,7 @@ fn tokenize(dir: &Path, model: &Path, text: &str) -> Vec<usize> {
 
 /// `llama-quantize in out TYPE`.
 fn quantize(dir: &Path, input: &Path, output: &Path, ty: &str) {
-    let o = with_deadline(&dir.join("llama-quantize"), 120)
+    let o = with_deadline(dir.join("llama-quantize"), 120)
         .env("LD_LIBRARY_PATH", dir)
         .arg(input)
         .arg(output)

@@ -40,18 +40,3 @@ fn an_output_that_cannot_be_renamed_into_place_is_named() {
     );
     let _ = std::fs::remove_dir_all(&d);
 }
-
-// /proc/1/fd belongs to root: a directory that exists but cannot be listed by an ordinary user.
-#[cfg(target_os = "linux")]
-#[test]
-fn a_directory_that_cannot_be_listed_is_named() {
-    let (d, _) = corpus("readdir");
-    let unlistable = "/proc/1/fd";
-    assert!(
-        std::fs::read_dir(unlistable).is_err(),
-        "run as an ordinary user"
-    );
-    let e = expand_inputs(&[unlistable.into()], &d.join("out")).unwrap_err();
-    assert!(e.starts_with("cannot read /proc/1/fd"), "{e}");
-    let _ = std::fs::remove_dir_all(&d);
-}

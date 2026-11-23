@@ -1,5 +1,6 @@
 use super::*;
 use crate::commands::run;
+use ferrum_test_support::FakeTool;
 use std::ffi::OsString;
 
 fn dir(name: &str) -> PathBuf {
@@ -26,12 +27,9 @@ fn model(d: &Path) -> String {
     m.display().to_string()
 }
 
-#[cfg(unix)]
-fn script(path: &Path, body: &str) -> String {
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::write(path, format!("#!/bin/sh\n{body}\n")).unwrap();
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
-    path.display().to_string()
+/// Install `tool` as a program named `name` in `d`; its path as a flag value.
+fn install(d: &Path, name: &str, tool: FakeTool) -> String {
+    tool.install(d, name).display().to_string()
 }
 
 mod a_tool_that_is_not_there_stops_both_export_commands_with_its_path;

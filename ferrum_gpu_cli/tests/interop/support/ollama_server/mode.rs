@@ -13,7 +13,7 @@ pub(crate) enum Mode {
 
 /// A running server, ended with its process group when dropped.
 pub(crate) struct Server {
-    pub(super) _group: Group,
+    pub(super) _group: Option<Guarded>,
     pub host: String,
     pub home: PathBuf,
     pub bin: PathBuf,

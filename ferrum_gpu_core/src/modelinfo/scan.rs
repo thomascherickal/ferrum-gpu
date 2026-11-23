@@ -25,7 +25,13 @@ fn is_gguf(p: &Path) -> bool {
         .is_some_and(|e| e.eq_ignore_ascii_case("gguf"))
 }
 
-fn walk(dir: &Path, depth: usize, max: usize, out: &mut Vec<ModelFile>, truncated: &mut bool) {
+pub(super) fn walk(
+    dir: &Path,
+    depth: usize,
+    max: usize,
+    out: &mut Vec<ModelFile>,
+    truncated: &mut bool,
+) {
     let Ok(rd) = std::fs::read_dir(dir) else {
         return;
     };

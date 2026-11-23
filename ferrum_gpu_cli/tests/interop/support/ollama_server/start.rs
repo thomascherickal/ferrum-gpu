@@ -7,7 +7,7 @@ pub(crate) fn start(bin: &Path, tag: &str, mode: Mode) -> Option<Server> {
     let host = format!("127.0.0.1:{}", free_port());
     let log = home.join("server.log");
     let mut s = Server {
-        _group: Group::spawn(&mut Command::new("true")),
+        _group: None,
         host: host.clone(),
         home,
         bin: bin.to_path_buf(),
@@ -19,7 +19,12 @@ pub(crate) fn start(bin: &Path, tag: &str, mode: Mode) -> Option<Server> {
     for (k, v) in s.env() {
         cmd.env(k, v);
     }
-    s._group = Group::spawn_logged(&mut cmd, &log);
+    let out = std::fs::File::create(&log).expect("create the server log");
+    let err = out.try_clone().expect("clone the log handle");
+    s._group = Some(
+        cmd.guard(Stdio::from(out), Stdio::from(err))
+            .expect("start the server"),
+    );
     let ready = wait_until(60, || {
         http(&host, "GET", "/api/version", "").is_some_and(|(c, _)| c == 200)
     });

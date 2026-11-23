@@ -7,6 +7,9 @@ pub(crate) fn chrome() -> Option<String> {
         "google-chrome-stable",
         "chromium",
         "chromium-browser",
+        "chrome",
+        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
     ]
     .into_iter()
     .find(|b| {
@@ -18,27 +21,4 @@ pub(crate) fn chrome() -> Option<String> {
             .is_ok_and(|s| s.success())
     })
     .map(String::from)
-}
-
-/// Is GNU coreutils `timeout` installed? (Linux: yes; macOS: only with Homebrew coreutils.)
-pub(crate) fn has_timeout() -> bool {
-    Command::new("timeout")
-        .arg("--version")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
-}
-
-/// `program` run under coreutils `timeout`: SIGTERM after `secs`, SIGKILL 5 s later, to the whole
-/// process group `timeout` leads. This outlives a test process that was itself killed (so no
-/// browser is left running) and ends a hung `node`. Plain `program` when `timeout` is missing.
-pub(crate) fn with_deadline(program: &str, secs: u64) -> Command {
-    if has_timeout() {
-        let mut c = Command::new("timeout");
-        c.args(["-k", "5", &secs.to_string(), program]);
-        c
-    } else {
-        Command::new(program)
-    }
 }

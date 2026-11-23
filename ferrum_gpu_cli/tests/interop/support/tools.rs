@@ -2,8 +2,12 @@
 
 use std::path::{Path, PathBuf};
 
-fn home() -> Option<PathBuf> {
-    std::env::var_os("HOME").map(PathBuf::from)
+/// The user's home: `HOME`, or `USERPROFILE` where Windows sets that instead.
+pub(crate) fn home() -> Option<PathBuf> {
+    ["HOME", "USERPROFILE"]
+        .iter()
+        .find_map(std::env::var_os)
+        .map(PathBuf::from)
 }
 
 /// The directory of an unpacked llama.cpp release whose binaries are in `d` or one level down.

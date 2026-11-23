@@ -1,6 +1,7 @@
-use super::scan::{scan, scan_with, MAX_DEPTH};
+use super::scan::{scan, scan_with, walk, MAX_DEPTH};
 use super::*;
 use ferrum_gguf::GgufBuilder;
+use ferrum_test_support::link;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
