@@ -528,7 +528,7 @@ CI runs on Linux, Windows and macOS (the macOS runner's paravirtual GPU is known
 test; see [docs/devices.md](docs/devices.md)).
 
 <!-- stats:begin -->
-Measured figures, written from [`metrics.md`](metrics.md) by `scripts/readme_stats.py` (snapshot `727b460`); do not edit by hand.
+Measured figures, written from [`metrics.md`](metrics.md) by `scripts/readme_stats.py` (snapshot `8cd21f6`); do not edit by hand.
 
 | measure | value |
 |---|---|
