@@ -287,6 +287,26 @@ written for it work.
   `GET /health` needs `Authorization: Bearer <token>`.
 - **Limits** (`--max-batch` 64 requests, `--max-chars` 65536, `--max-body` 8 MiB, `--max-tokens` 4096) are checked
   before any model work; 32 POSTs may be in flight, more get 503.
+- **Connections and slow clients.** At most 128 connections are open at once; one more gets
+  `503 {"error":"too many connections"}` with `Retry-After: 1` and is closed without being read. This is the
+  outer limit; the 32-POST in-flight cap is checked inside it, so with 128 connections up to 32 run model work
+  and the rest are cheap GETs or quick 503s. The request head must arrive within 10 s in total and the body
+  within 10 s plus 10 s per started MiB (90 s for the 8 MiB maximum); a client that dribbles past that gets 408.
+
+```mermaid
+flowchart LR
+    c["new connection"]:::host --> k{"128 already open?"}:::core
+    k -- yes --> r["503 + Retry-After: 1"]:::cpu
+    k -- no --> t["read within budget<br/>else 408"]:::core
+    t --> p{"POST and 32 in flight?"}:::core
+    p -- yes --> b["503 in flight"]:::cpu
+    p -- no --> w["model work"]:::gpu
+    classDef core fill:#dbeafe,stroke:#2563eb,color:#111
+    classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
+    classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
+    classDef host fill:#ede9fe,stroke:#7c3aed,color:#111
+```
+
 
 | Route | Request | Response |
 |---|---|---|

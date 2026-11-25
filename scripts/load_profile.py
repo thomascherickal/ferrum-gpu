@@ -17,7 +17,8 @@ os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LBEGIN, LEND = "<!-- load:begin -->", "<!-- load:end -->"
 COLUMNS = ["name", "clients", "requests", "ok", "refused", "seconds", "rps", "p50_ms", "p95_ms", "p99_ms", "max_ms"]
-TESTS = [["-p", "ferrum_gpu_core", "--lib", "serving::boot::tests::load"], ["-p", "ferrum_gpu_gui", "--test", "api", "load"]]
+TESTS = [["-p", "ferrum_gpu_core", "--lib", "serving::boot::tests::load"],
+         ["-p", "ferrum_gpu_core", "--lib", "http::tests::past_the_connection_cap"], ["-p", "ferrum_gpu_gui", "--test", "api", "load"]]
 
 
 def parse(text):

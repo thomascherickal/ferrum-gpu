@@ -373,7 +373,7 @@ flowchart TD
     b --> h["foreign Host: 403<br/>blocks DNS rebinding"]:::cpu
     b --> o["cross-site Origin: 403"]:::cpu
     b --> f["files by exact name from a compiled-in table<br/>dot-dot is 404"]:::io
-    b --> l["bounded heads, bodies, timeouts,<br/>JSON depth, chunked refused"]:::cpu
+    b --> l["bounded heads, bodies, request time,<br/>connections, JSON depth, chunked refused"]:::cpu
     classDef core fill:#dbeafe,stroke:#2563eb,color:#111
     classDef gpu fill:#dcfce7,stroke:#16a34a,color:#111
     classDef cpu fill:#fef3c7,stroke:#d97706,color:#111
@@ -386,7 +386,9 @@ flowchart TD
 - It listens on **127.0.0.1 only** and has **no authentication**. Do not forward the port or bind it to another address: anyone who can reach it can run code on your GPU and make it allocate memory.
 - Requests whose `Host` is not `127.0.0.1:PORT` or `localhost:PORT` get 403 (blocks DNS-rebinding), and so do cross-site `Origin`s (blocks other web pages from calling the API).
 - The server never opens a file by path from a request: models travel as upload/download bodies, and static files are looked up by exact name in a table compiled into the binary (`/shaders/../x`, `%2e%2e` and the like are 404).
-- Request heads are capped at 16 KiB and 64 headers, bodies at 256 MiB, reads time out after 10 s, JSON nesting is capped at 32, chunked bodies are refused.
+- Request heads are capped at 16 KiB and 64 headers, bodies at 256 MiB, JSON nesting is capped at 32, chunked bodies are refused.
+- Time is bounded per request, not per read: the whole head must arrive within 10 s and the body within 10 s plus 10 s per started MiB of `Content-Length` (a 256 MiB upload gets 2,570 s), so a client sending one byte every few seconds is cut off with 408. One read waits at most 10 s, so a request ends at most 10 s past its budget.
+- At most 128 connections are served at once (one thread each); a connection past that gets `503 too many connections` with `Retry-After: 1` straight from the accept loop and is closed, so a flood cannot start unbounded threads. Embedders can change both through `ferrum_gpu_core::http::ServeOptions` (`budget`, `max_connections`).
 
 ## Tests
 

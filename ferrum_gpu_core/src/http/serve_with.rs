@@ -9,13 +9,38 @@ pub fn serve_with(
     max_body: usize,
     loopback_guard: bool,
 ) {
+    serve_opts(
+        listener,
+        handler,
+        stop,
+        ServeOptions::new(max_body, loopback_guard),
+    );
+}
+
+/// Like [`serve_with`], with every limit in `opts`. A connection past `opts.max_connections` gets
+/// a 503 with `Retry-After: 1` from the accept loop itself and is closed; no thread is started.
+pub fn serve_opts(
+    listener: TcpListener,
+    handler: Handler,
+    stop: Arc<AtomicBool>,
+    opts: ServeOptions,
+) {
     let port = listener.local_addr().map(|a| a.port()).unwrap_or(0);
     listener.set_nonblocking(true).ok();
+    let open = Arc::new(AtomicUsize::new(0));
     while !stop.load(Ordering::Relaxed) {
         match listener.accept() {
+            // only this loop adds to `open`, so the check cannot race past the cap
+            Ok((stream, _)) if open.load(Ordering::SeqCst) >= opts.max_connections => {
+                refuse(stream)
+            }
             Ok((stream, _)) => {
-                let h = handler.clone();
-                std::thread::spawn(move || handle(stream, &*h, (port, loopback_guard), max_body));
+                open.fetch_add(1, Ordering::SeqCst);
+                let (h, slot) = (handler.clone(), Open(open.clone()));
+                std::thread::spawn(move || {
+                    let _slot = slot;
+                    handle(stream, &*h, port, opts)
+                });
             }
             // no connection waiting (WouldBlock) or a transient accept error: look again shortly
             Err(_) => std::thread::sleep(Duration::from_millis(10)),
@@ -23,17 +48,28 @@ pub fn serve_with(
     }
 }
 
+/// One running connection thread; frees its place in the count when it ends.
+struct Open(Arc<AtomicUsize>);
+
+impl Drop for Open {
+    fn drop(&mut self) {
+        self.0.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
 fn handle(
     mut stream: TcpStream,
     handler: &(dyn Fn(&Request) -> Response + Send + Sync),
-    (port, loopback_guard): (u16, bool),
-    max_body: usize,
+    port: u16,
+    opts: ServeOptions,
 ) {
     stream.set_nonblocking(false).ok();
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok();
+    let per_read = opts.budget.head.max(Duration::from_millis(1));
+    stream.set_read_timeout(Some(per_read)).ok();
     stream.set_write_timeout(Some(Duration::from_secs(30))).ok();
-    let resp = match read_request(&mut stream, max_body) {
-        Ok(req) => loopback_guard
+    let resp = match read_request_within(&mut stream, opts.max_body, opts.budget, &Instant::now) {
+        Ok(req) => opts
+            .loopback_guard
             .then(|| guard(&req, port))
             .flatten()
             .unwrap_or_else(|| handle_watched(&stream, &req, handler)),
@@ -42,26 +78,3 @@ fn handle(
     let _ = write_response(&mut stream, &resp);
     close_gracefully(&mut stream);
 }
-
-/// Close after the response without losing it. Closing a socket that still has unread bytes in its
-/// receive buffer (a client that pipelined a second request, or sent a body we refused) makes the
-/// kernel send a reset, which can destroy the response before the client has read it. So: finish
-/// our side (`FIN`), swallow whatever is still arriving for a moment, then close.
-fn close_gracefully(stream: &mut TcpStream) {
-    let _ = stream.flush();
-    let _ = stream.shutdown(Shutdown::Write);
-    let _ = stream.set_read_timeout(Some(DRAIN_TIMEOUT));
-    let (mut sink, mut taken) = ([0u8; 4096], 0usize);
-    while taken < DRAIN_LIMIT {
-        match stream.read(&mut sink) {
-            Ok(0) | Err(_) => break,
-            Ok(n) => taken += n,
-        }
-    }
-}
-
-/// How long to wait for a client's last bytes after the response (a client that has read the
-/// response and closed ends this at once).
-const DRAIN_TIMEOUT: Duration = Duration::from_millis(100);
-/// Most bytes swallowed after the response; a client sending more is cut off by the close.
-const DRAIN_LIMIT: usize = 1 << 20;

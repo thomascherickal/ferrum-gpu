@@ -1,9 +1,28 @@
 use super::head::{parse_head, read_head};
 use super::*;
 
-/// Read one request from `r`, refusing heads over [`MAX_HEAD`] and bodies over `max_body`.
+/// Read one request from `r`, refusing heads over [`MAX_HEAD`] and bodies over `max_body`, within
+/// the default [`Budget`].
 pub fn read_request(r: &mut dyn Read, max_body: usize) -> Result<Request, HttpError> {
-    let (method, path, query, headers) = parse_head(&read_head(r)?)?;
+    read_request_within(r, max_body, Budget::default(), &Instant::now)
+}
+
+/// [`read_request`] with a total time `budget` on `now`'s clock: 408 once the head takes longer
+/// than `budget.head`, or the body longer than `budget.body(len)` after the head.
+pub fn read_request_within(
+    r: &mut dyn Read,
+    max_body: usize,
+    budget: Budget,
+    now: &dyn Fn() -> Instant,
+) -> Result<Request, HttpError> {
+    let start = now();
+    let mut timed = Timed {
+        inner: r,
+        now,
+        start,
+        allowed: budget.head,
+    };
+    let (method, path, query, headers) = parse_head(&read_head(&mut timed)?)?;
     let find = |n: &str| headers.iter().find(|(k, _)| k == n).map(|(_, v)| v.clone());
     if find("transfer-encoding").is_some() {
         return Err(bad(
@@ -31,7 +50,8 @@ pub fn read_request(r: &mut dyn Read, max_body: usize) -> Result<Request, HttpEr
         return Err(bad(413, "request body too large"));
     }
     let mut body = vec![0u8; len];
-    r.read_exact(&mut body).map_err(|e| {
+    (timed.start, timed.allowed) = (now(), budget.body(len));
+    timed.read_exact(&mut body).map_err(|e| {
         if matches!(
             e.kind(),
             std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut
