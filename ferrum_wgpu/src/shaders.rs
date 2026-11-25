@@ -9,6 +9,10 @@ mod sources;
 pub use sources::*;
 mod source;
 pub use source::*;
+mod compose;
+pub use compose::compose;
 
+#[cfg(test)]
+mod compose_tests;
 #[cfg(test)]
 mod tests;

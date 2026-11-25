@@ -8,21 +8,9 @@ impl Llama {
         cfg.validate().expect("valid config");
         let (d, h) = (cfg.dim, cfg.hidden);
         let (qd, kvd) = (cfg.q_dim(), cfg.kv_dim());
-        let s = std::cell::Cell::new(seed.max(1) * 1000);
-        let mat = |n: usize, scale: f32| {
-            s.set(s.get() + 1);
-            rand_vec(n, s.get())
-                .into_iter()
-                .map(|v| v * scale)
-                .collect::<Vec<f32>>()
-        };
-        let gain = |n: usize| {
-            s.set(s.get() + 1);
-            rand_vec(n, s.get())
-                .into_iter()
-                .map(|v| 1.0 + 0.1 * v)
-                .collect::<Vec<f32>>()
-        };
+        let init = crate::matmul::SeededInit::new(seed);
+        let mat = |n: usize, scale: f32| init.mat(n, scale);
+        let gain = |n: usize| init.gain(n);
         // q/k scale with 1/sqrt(dim) so attention scores stay O(1) at any width (a saturated
         // softmax would amplify f32 rounding and make parity tests measure conditioning, not
         // kernels). Unchanged at dim 8.

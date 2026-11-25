@@ -30,11 +30,11 @@ impl GpuTrainer<'_> {
             self.forward_block(dm, l)?;
         }
         let fb = pi(nl, 0);
-        ops::layernorm(g, &a.x[nl], &p[fb], &p[fb + 1], &a.hf, (r, d))?;
+        ops::layernorm(g, &a.x[nl], &p[fb], &p[fb + 1], &a.head.hf, (r, d))?;
         self.matmul
-            .submit(g, &a.hf, &p[fb + 2], &a.logits, (r, d, v))?;
-        let loss = (&a.dlogits, &a.row_loss, &a.loss);
-        ops::cross_entropy(g, &a.logits, targets, loss, (r, v))
+            .submit(g, &a.head.hf, &p[fb + 2], &a.head.logits, (r, d, v))?;
+        let loss = (&a.head.dlogits, &a.head.row_loss, &a.head.loss);
+        ops::cross_entropy(g, &a.head.logits, targets, loss, (r, v))
     }
 
     /// One transformer block: attention (q, k, v, o) then the feed-forward, each with a residual.

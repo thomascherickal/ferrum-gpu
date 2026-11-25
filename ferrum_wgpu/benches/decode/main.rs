@@ -8,9 +8,8 @@
 mod sizes;
 
 use ferrum_ref::gpt2::{Cache, Gpt2};
-use ferrum_wgpu::bench_util::open_gpu;
+use ferrum_wgpu::bench_util::{decode_ms, decode_tokens, open_gpu, DECODE_PRIME};
 use ferrum_wgpu::gpt2::GpuGpt2;
-use std::time::Instant;
 
 fn main() {
     let Some(gpu) = open_gpu() else { return };
@@ -25,32 +24,20 @@ fn main() {
     println!("|---|---|---|---|---|---|---|");
     for (name, cfg) in sizes::all() {
         let w = Gpt2::random(cfg, 1);
-        let n = 48.min(cfg.ctx - 8);
-        let toks: Vec<usize> = (0..n + 4).map(|i| (i * 7 + 3) % cfg.vocab).collect();
-
+        let toks = decode_tokens(cfg.ctx, cfg.vocab);
         let mut cache = Cache::new(cfg.layers);
-        for &t in &toks[..4] {
-            w.feed(&mut cache, t).unwrap();
-        }
-        let t0 = Instant::now();
-        for &t in &toks[4..] {
+        let cpu_ms = decode_ms(&toks, |t| {
             std::hint::black_box(w.feed(&mut cache, t).unwrap());
-        }
-        let cpu_ms = t0.elapsed().as_secs_f64() * 1e3 / n as f64;
+        });
 
         let mut m = GpuGpt2::new(&gpu, &w, None).unwrap();
-        for &t in &toks[..4] {
+        for &t in &toks[..DECODE_PRIME] {
             m.feed(t).unwrap(); // compiles the pipelines
         }
         m.reset();
-        for &t in &toks[..4] {
-            m.feed(t).unwrap();
-        }
-        let t0 = Instant::now();
-        for &t in &toks[4..] {
+        let gpu_ms = decode_ms(&toks, |t| {
             std::hint::black_box(m.feed(t).unwrap());
-        }
-        let gpu_ms = t0.elapsed().as_secs_f64() * 1e3 / n as f64;
+        });
         println!(
             "| {name} | {:.1}M | {cpu_ms:.3} | {:.0} | {gpu_ms:.3} | {:.0} | {:.2}x |",
             sizes::params(&cfg) as f64 / 1e6,

@@ -1,4 +1,5 @@
 use super::*;
+use crate::test_support::{field, reply, request};
 use ferrum_gguf::{GgufBuilder, Value};
 use std::sync::atomic::{AtomicU32, Ordering};
 
@@ -29,25 +30,7 @@ fn get(path: &str, query: &[(&str, &str)]) -> (u16, Json) {
 }
 
 fn call(method: &str, path: &str, query: &[(&str, &str)]) -> (u16, Json) {
-    let req = Request {
-        method: method.into(),
-        path: path.into(),
-        query: query
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect(),
-        headers: vec![],
-        body: vec![],
-    };
-    let r = route(&req);
-    (
-        r.status,
-        Json::parse(&String::from_utf8_lossy(&r.body)).unwrap_or(Json::Null),
-    )
-}
-
-fn field(j: &Json, k: &str) -> Json {
-    j.get(k).cloned().unwrap_or(Json::Null)
+    reply(route(&request(method, path, query, &[])))
 }
 
 mod only_the_gguf_paths_are_handled;

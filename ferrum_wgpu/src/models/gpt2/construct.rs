@@ -37,22 +37,15 @@ impl<'g> GpuGpt2<'g> {
             })
             .collect::<Result<Vec<_>, GpuError>>()?;
         let z = |n| gpu.zeros(n);
-        let s = Scratch {
-            ids: z(1)?,
-            x: z(c.dim)?,
-            x2: z(c.dim)?,
-            h: z(c.dim)?,
-            q: z(c.dim)?,
-            k: z(c.dim)?,
-            v: z(c.dim)?,
-            attn: z(c.dim)?,
-            o: z(c.dim)?,
-            f1: z(c.hidden)?,
-            act: z(c.hidden)?,
-            f2: z(c.dim)?,
-            probs: z(c.heads * c.ctx)?,
-            logits: z(c.vocab)?,
+        let shape = crate::models::ScratchShape {
+            d: c.dim,
+            qd: c.dim,
+            kvd: c.dim,
+            h: c.hidden,
+            probs: c.heads * c.ctx,
+            vocab: c.vocab,
         };
+        let s = crate::models::Scratch::new(gpu, shape, z(c.hidden)?)?;
         Ok(GpuGpt2 {
             gpu,
             cfg: c,

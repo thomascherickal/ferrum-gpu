@@ -7,15 +7,18 @@ use crate::tensor::GpuBuf;
 impl GpuTrainer<'_> {
     pub(super) fn record_backward(&self, dm: &Dims, ids_host: &[usize]) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, p, gr) = (self.gpu, self.forward_weights(), &self.grads);
+        let (g, p, gr) = (self.gpu, self.forward_weights(), &self.state.grads);
         let (r, d, v, nl) = (dm.r, dm.d, dm.v, dm.nl);
         let fb = pi(nl, 0);
         let head = (
-            (&a.hf, &p[fb + 2], &a.dlogits),
-            (&a.dhf, &gr[fb + 2], &a.junk_v),
+            (&a.head.hf, &p[fb + 2], &a.head.dlogits),
+            (&a.head.dhf, &gr[fb + 2], &a.junk_v),
         );
         bwd::linear_bwd(g, head.0, head.1, (r, d, v))?;
-        let ln = ((&a.x[nl], &p[fb], &a.dhf), (&a.dx_a, &gr[fb], &gr[fb + 1]));
+        let ln = (
+            (&a.x[nl], &p[fb], &a.head.dhf),
+            (&a.dx_a, &gr[fb], &gr[fb + 1]),
+        );
         bwd::layernorm_bwd(g, ln.0, ln.1, &a.stats, (r, d))?;
         let (mut cur, mut next) = (&a.dx_a, &a.dx_b);
         for l in (0..nl).rev() {
@@ -40,7 +43,7 @@ impl GpuTrainer<'_> {
         next: &GpuBuf,
     ) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, p, gr) = (self.gpu, self.forward_weights(), &self.grads);
+        let (g, p, gr) = (self.gpu, self.forward_weights(), &self.state.grads);
         let (r, d, h) = (dm.r, dm.d, dm.h);
         let dims = (dm.b, dm.t, self.cfg.heads, dm.hd);
         let lin = |k: usize, x: &GpuBuf, dy: &GpuBuf, dx: &GpuBuf, n: (usize, usize, usize)| {

@@ -7,13 +7,7 @@ fn dequantised_values_are_bit_identical_to_the_cpu_decode() {
         for (k, n) in [(32usize, 1usize), (32, 5), (64, 3), (96, 65), (128, 64)] {
             let bytes = quantise_matrix(kind, &nasty(k * n), k, n).unwrap();
             let rows = decoded_rows(kind, &bytes, k, n); // rows[col * k + i]
-            let w = upload_qweight(&g, kind, &bytes, k, n).unwrap();
-            // x = identity reads the weight back: y[r, col] = W[col, r]
-            let mut eye = vec![0.0f32; k * k];
-            (0..k).for_each(|i| eye[i * k + i] = 1.0);
-            let (gx, gy) = (g.upload(&eye).unwrap(), g.zeros(k * n).unwrap());
-            linear_q(&g, &gx, &w, &gy, k).unwrap();
-            let got = g.read(&gy).unwrap();
+            let got = device_rows(&g, kind, &bytes, (k, n));
             for r in 0..k {
                 for col in 0..n {
                     assert_eq!(

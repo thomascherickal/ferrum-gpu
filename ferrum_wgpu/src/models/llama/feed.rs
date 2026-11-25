@@ -8,11 +8,11 @@ impl<'g> GpuLlama<'g> {
             return Err(err(format!("context of {} tokens is full", c.ctx)));
         }
         let (g, s, d) = (self.gpu, &self.s, c.dim);
+        let e = &s.extra;
         let (qd, kvd) = (c.q_dim(), c.kv_dim());
         let id = g.upload_indices(&[token], c.vocab)?;
         // The whole token is recorded into one command encoder and submitted once.
-        g.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        g.batched(|| {
             let mm = &self.matmul;
             g.copy_f32(&id, 0, &s.ids, 0, 1)?;
             self.tok.gather(g, (&[token], &s.ids), &s.x, d)?;
@@ -22,21 +22,21 @@ impl<'g> GpuLlama<'g> {
                     g,
                     mm,
                     (&s.h, b.bq.as_ref(), self.zero(qd)),
-                    (&s.q, &s.tmp_q),
+                    (&s.q, &e.tmp_q),
                     1,
                 )?;
                 b.wk.apply(
                     g,
                     mm,
                     (&s.h, b.bk.as_ref(), self.zero(kvd)),
-                    (&s.k, &s.tmp_kv),
+                    (&s.k, &e.tmp_kv),
                     1,
                 )?;
                 b.wv.apply(
                     g,
                     mm,
                     (&s.h, b.bv.as_ref(), self.zero(kvd)),
-                    (&s.v, &s.tmp_kv),
+                    (&s.v, &e.tmp_kv),
                     1,
                 )?;
                 let tables = (&self.cos, &self.sin);
@@ -52,26 +52,26 @@ impl<'g> GpuLlama<'g> {
                     (&s.probs, &s.attn),
                     dims,
                 )?;
-                b.wo.apply(g, mm, (&s.attn, None, self.zero(d)), (&s.o, &s.tmp_q), 1)?;
+                b.wo.apply(g, mm, (&s.attn, None, self.zero(d)), (&s.o, &e.tmp_q), 1)?;
                 ops::add(g, &s.x, &s.o, &s.x2)?;
                 ops_llama::rmsnorm(g, &s.x2, &b.ffn_norm, &s.h, (1, d), c.eps)?;
                 b.gate.apply(
                     g,
                     mm,
                     (&s.h, None, self.zero(c.hidden)),
-                    (&s.gate, &s.tmp_q),
+                    (&e.gate, &e.tmp_q),
                     1,
                 )?;
                 b.up.apply(
                     g,
                     mm,
                     (&s.h, None, self.zero(c.hidden)),
-                    (&s.up, &s.tmp_q),
+                    (&e.up, &e.tmp_q),
                     1,
                 )?;
-                ops_llama::swiglu(g, &s.gate, &s.up, &s.act)?;
+                ops_llama::swiglu(g, &e.gate, &e.up, &s.act)?;
                 b.down
-                    .apply(g, mm, (&s.act, None, self.zero(d)), (&s.f2, &s.tmp_q), 1)?;
+                    .apply(g, mm, (&s.act, None, self.zero(d)), (&s.f2, &e.tmp_q), 1)?;
                 ops::add(g, &s.x2, &s.f2, &s.x)?;
             }
             ops_llama::rmsnorm(g, &s.x, &self.out_norm, &s.h, (1, d), c.eps)?;
@@ -79,13 +79,11 @@ impl<'g> GpuLlama<'g> {
                 g,
                 mm,
                 (&s.h, None, self.zero(c.vocab)),
-                (&s.logits, &s.tmp_q),
+                (&s.logits, &e.tmp_q),
                 1,
             )?;
             Ok(())
-        })();
-        g.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         self.pos += 1;
         g.read(&s.logits)
     }

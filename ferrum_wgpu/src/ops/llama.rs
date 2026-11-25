@@ -14,4 +14,4 @@ pub use gather_rows::*;
 mod attention_decode_gqa;
 pub use attention_decode_gqa::*;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

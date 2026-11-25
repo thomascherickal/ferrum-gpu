@@ -58,7 +58,8 @@ fn the_new_tabs_work_in_a_real_browser_with_the_real_commands() {
         q("exomf", &exomf),
     );
     let browser = common::Browser::open(&chrome, &url, "studio", 240);
-    let Some(result) = common::wait_for(Duration::from_secs(150), || fetch_result(port)) else {
+    let Some(result) = common::wait_for(Duration::from_secs(150), || common::selftest_result(port))
+    else {
         panic!(
             "the page never reported a result; browser console:\n{}",
             browser.console()

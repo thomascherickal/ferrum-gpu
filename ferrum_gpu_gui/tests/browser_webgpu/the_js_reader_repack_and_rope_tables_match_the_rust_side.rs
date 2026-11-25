@@ -41,7 +41,8 @@ fn the_in_browser_runtime_matches_the_cpu_oracle_in_headless_chrome() {
         "gpu",
         300,
     );
-    let Some(text) = common::wait_for(Duration::from_secs(120), || result(port)) else {
+    let Some(text) = common::wait_for(Duration::from_secs(120), || common::selftest_result(port))
+    else {
         panic!(
             "the page never reported a result; browser console:\n{}",
             browser.console()

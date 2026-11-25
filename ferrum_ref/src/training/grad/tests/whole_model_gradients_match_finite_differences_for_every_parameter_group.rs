@@ -8,31 +8,10 @@ fn whole_model_gradients_match_finite_differences_for_every_parameter_group() {
     let (ids, targets) = data(&cfg, batch, t);
     let (loss, g) = loss_and_grads(&m, &ids, &targets, batch, 1).unwrap();
     assert!(loss.is_finite() && loss > 0.0);
-    let h = 1e-2;
     let eval = |m: &Gpt2| loss_and_grads(m, &ids, &targets, batch, 1).unwrap().0;
-    let n_params = m.params().len();
-    let mut checked = 0;
-    for pi in 0..n_params {
-        let len = m.params()[pi].len();
-        // Check up to 6 spread-out elements of every tensor (all of them when small).
-        let picks: Vec<usize> = if len <= 6 {
-            (0..len).collect()
-        } else {
-            (0..6).map(|j| j * (len - 1) / 5).collect()
-        };
-        for &i in &picks {
-            let (mut p, mut q) = (m.clone(), m.clone());
-            p.params_mut()[pi][i] += h;
-            q.params_mut()[pi][i] -= h;
-            let num = (eval(&p) - eval(&q)) / (2.0 * h);
-            let ana = g.params()[pi][i];
-            assert!(
-                (ana - num).abs() < 4e-3 + 2e-2 * num.abs(),
-                "param {pi}[{i}]: analytic {ana} vs numeric {num}"
-            );
-            checked += 1;
-        }
-    }
+    let checked: usize = (0..m.params().len())
+        .map(|pi| crate::grad::check_tensor_fd(&m, pi, g.params()[pi], eval, "gpt2"))
+        .sum();
     assert!(checked > 100, "only {checked} elements checked");
     let norm: f32 = g
         .params()

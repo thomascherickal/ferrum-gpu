@@ -3,7 +3,7 @@ use super::*;
 impl<'g> GpuTrainer<'g> {
     /// Copy the Adam moments back to the host as `(m, v)`.
     pub fn moments_host(&self) -> Result<(Gpt2, Gpt2), GpuError> {
-        Ok((self.host(&self.m)?, self.host(&self.v)?))
+        Ok((self.host(&self.state.m)?, self.host(&self.state.v)?))
     }
 
     /// Replace weights, Adam moments and the step counter (resume from a checkpoint).
@@ -21,7 +21,11 @@ impl<'g> GpuTrainer<'g> {
         if m.cfg != self.cfg || v.cfg != self.cfg {
             return Err(err("load: the moment shapes differ from the trainer's"));
         }
-        for (set, src) in [(&self.params, w), (&self.m, m), (&self.v, v)] {
+        for (set, src) in [
+            (&self.state.params, w),
+            (&self.state.m, m),
+            (&self.state.v, v),
+        ] {
             for (b, p) in set.iter().zip(src.params()) {
                 self.gpu.copy_from_host(b, p)?;
             }

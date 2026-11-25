@@ -10,8 +10,8 @@
 use crate::budget::Budget;
 use crate::device::{Gpu, GpuError};
 use crate::matmul::{Matmul, Variant};
-use crate::ops_opt::{adam_update, norm_scale, parts_for, sumsq_parts};
 use crate::tensor::GpuBuf;
+use crate::training::DeviceParams;
 use acts::Acts;
 use ferrum_ref::llama::Llama;
 use ferrum_ref::trainer::{StepConfig, StepStats};

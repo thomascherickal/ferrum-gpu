@@ -23,24 +23,6 @@ pub(crate) struct DevBlock {
     pub(crate) vcache: GpuBuf,
 }
 
-/// Decode-time scratch (reused every token).
-pub(crate) struct Scratch {
-    pub(crate) ids: GpuBuf,
-    pub(crate) x: GpuBuf,
-    pub(crate) x2: GpuBuf,
-    pub(crate) h: GpuBuf,
-    pub(crate) q: GpuBuf,
-    pub(crate) k: GpuBuf,
-    pub(crate) v: GpuBuf,
-    pub(crate) attn: GpuBuf,
-    pub(crate) o: GpuBuf,
-    pub(crate) f1: GpuBuf,
-    pub(crate) act: GpuBuf,
-    pub(crate) f2: GpuBuf,
-    pub(crate) probs: GpuBuf,
-    pub(crate) logits: GpuBuf,
-}
-
 /// A GPT-2 model resident on the GPU with a KV cache.
 pub struct GpuGpt2<'g> {
     pub(crate) gpu: &'g Gpu,
@@ -52,7 +34,8 @@ pub struct GpuGpt2<'g> {
     pub(crate) lnf_b: GpuBuf,
     pub(crate) head: GpuBuf,
     pub(crate) zero_vocab: GpuBuf,
-    pub(crate) s: Scratch,
+    /// Decode scratch; `extra` is the feed-forward hidden layer before GELU.
+    pub(crate) s: crate::models::Scratch<GpuBuf>,
     pub(crate) matmul: Matmul,
     pub(crate) pos: usize,
 }

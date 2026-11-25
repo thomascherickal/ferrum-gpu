@@ -6,7 +6,18 @@ pub(crate) fn check(
     targets: &[usize],
     batch: usize,
 ) -> Result<usize, String> {
-    let c = &m.cfg;
+    check_batch(ids, targets, batch, m.cfg.ctx, m.cfg.vocab)
+}
+
+/// Check that `ids` split into `batch` sequences of at most `ctx` tokens, that `targets` match
+/// them and that every token is below `vocab`; returns the sequence length.
+pub(crate) fn check_batch(
+    ids: &[usize],
+    targets: &[usize],
+    batch: usize,
+    ctx: usize,
+    vocab: usize,
+) -> Result<usize, String> {
     if batch == 0 || ids.is_empty() || !ids.len().is_multiple_of(batch) {
         return Err(format!(
             "{} tokens do not split into {batch} sequences",
@@ -14,8 +25,8 @@ pub(crate) fn check(
         ));
     }
     let t = ids.len() / batch;
-    if t > c.ctx {
-        return Err(format!("sequence length {t} exceeds the context {}", c.ctx));
+    if t > ctx {
+        return Err(format!("sequence length {t} exceeds the context {}", ctx));
     }
     if targets.len() != ids.len() {
         return Err(format!(
@@ -24,8 +35,8 @@ pub(crate) fn check(
             ids.len()
         ));
     }
-    if let Some(bad) = ids.iter().chain(targets).find(|&&i| i >= c.vocab) {
-        return Err(format!("token {bad} is out of range for vocab {}", c.vocab));
+    if let Some(bad) = ids.iter().chain(targets).find(|&&i| i >= vocab) {
+        return Err(format!("token {bad} is out of range for vocab {}", vocab));
     }
     Ok(t)
 }

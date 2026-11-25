@@ -77,4 +77,13 @@ impl Gpu {
             self.queue.submit([enc.finish()]);
         })
     }
+
+    /// Record `commands` into one batch: submitted if they all succeed, dropped if one fails
+    /// (that error is returned).
+    pub fn batched(&self, commands: impl FnOnce() -> Result<(), GpuError>) -> Result<(), GpuError> {
+        self.begin_batch()?;
+        let rec = commands();
+        self.end_batch(rec.is_ok())?;
+        rec
+    }
 }

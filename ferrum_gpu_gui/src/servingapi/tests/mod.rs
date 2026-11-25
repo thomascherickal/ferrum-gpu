@@ -1,6 +1,7 @@
 use super::*;
 use crate::app::DeviceChoice;
 use crate::engine::CpuBackend;
+use crate::test_support::{field, reply, request};
 use std::sync::Arc;
 
 fn app() -> Arc<App> {
@@ -13,22 +14,7 @@ fn app() -> Arc<App> {
 }
 
 fn call(a: &App, method: &str, path: &str, body: &[u8]) -> (u16, Json) {
-    let req = Request {
-        method: method.into(),
-        path: path.into(),
-        query: vec![],
-        headers: vec![],
-        body: body.to_vec(),
-    };
-    let r = route(a, &req);
-    (
-        r.status,
-        Json::parse(&String::from_utf8_lossy(&r.body)).unwrap_or(Json::Null),
-    )
-}
-
-fn field(j: &Json, k: &str) -> Json {
-    j.get(k).cloned().unwrap_or(Json::Null)
+    reply(route(a, &request(method, path, &[], body)))
 }
 
 mod a_server_starts_through_the_api_serves_and_stops;

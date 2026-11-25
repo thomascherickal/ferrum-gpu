@@ -24,3 +24,11 @@ pub static SOURCES: &[(&str, &str)] = shader_sources![
     "opt/accumulate", "opt/adam", "opt/norm_final", "opt/sumsq_part", "opt/transpose",
     "quant/q8_snap", "quant/qgemv", "quant/qlinear", "quant/qlinear_ext", "quant/qlinear_tiled",
 ];
+
+/// `(common/name, text)` for every shared fragment under `src/shaders/common/`; kernels pull
+/// them in with `//! use common/<name>` (see [`compose`]).
+#[rustfmt::skip]
+pub static FRAGMENTS: &[(&str, &str)] = shader_sources![
+    "common/attn_cols", "common/attn_dec_probs", "common/attn_dot", "common/attn_rows",
+    "common/blocked4", "common/dequant", "common/norm_bwd_io", "common/rms_inv",
+];

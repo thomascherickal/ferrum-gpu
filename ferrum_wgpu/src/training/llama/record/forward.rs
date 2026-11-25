@@ -25,24 +25,24 @@ impl GpuLlamaTrainer<'_> {
         targets: &GpuBuf,
     ) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, p) = (self.gpu, &self.params);
+        let (g, p) = (self.gpu, &self.state.params);
         let (r, d, v, nl) = (dm.r, dm.d, dm.v, dm.nl);
         gather_rows(g, &p[0], ids, &a.x[0], (r, d))?;
         for l in 0..nl {
             self.forward_block(dm, l)?;
         }
         let (on, head) = (pi(nl, 0), pi(nl, 1));
-        rmsnorm(g, &a.x[nl], &p[on], &a.hf, (r, d), self.cfg.eps)?;
+        rmsnorm(g, &a.x[nl], &p[on], &a.head.hf, (r, d), self.cfg.eps)?;
         self.matmul
-            .submit(g, &a.hf, &p[head], &a.logits, (r, d, v))?;
-        let loss = (&a.dlogits, &a.row_loss, &a.loss);
-        ops::cross_entropy(g, &a.logits, targets, loss, (r, v))
+            .submit(g, &a.head.hf, &p[head], &a.head.logits, (r, d, v))?;
+        let loss = (&a.head.dlogits, &a.head.row_loss, &a.head.loss);
+        ops::cross_entropy(g, &a.head.logits, targets, loss, (r, v))
     }
 
     /// One block: attention (q, k, v, rope, grouped-query, o) then SwiGLU, each with a residual.
     fn forward_block(&self, dm: &Dims, l: usize) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, c, p) = (self.gpu, &self.cfg, &self.params);
+        let (g, c, p) = (self.gpu, &self.cfg, &self.state.params);
         let (r, d, h, hd, eps) = (dm.r, dm.d, dm.h, dm.hd, c.eps);
         rmsnorm(g, &a.x[l], &p[pi(l, ATTN_NORM)], &a.h1[l], (r, d), eps)?;
         let qkv = [

@@ -30,28 +30,12 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
     } else {
         a.get("--prompt").unwrap_or("").to_string()
     };
-    if o.stream {
-        write!(out, "{shown}").map_err(|e| e.to_string())?;
-    }
-    let mut werr = None;
-    let (text, _) = run(
-        &mut *feed,
-        &|ids| continuation(&l.tok, anchor, ids),
-        l.model.cfg.ctx,
-        &prompt,
+    let decode = |ids: &[usize]| continuation(&l.tok, anchor, ids);
+    print_run(
+        out,
+        (&mut *feed, &decode),
+        (l.model.cfg.ctx, &prompt),
         &o,
-        Some(&mut |s| {
-            if let Err(e) = write!(out, "{s}") {
-                werr.get_or_insert(e.to_string());
-            }
-        }),
-    )?;
-    if let Some(e) = werr {
-        return Err(e);
-    }
-    if o.stream {
-        writeln!(out).map_err(|e| e.to_string())
-    } else {
-        say(out, format!("{shown}{text}"))
-    }
+        &shown,
+    )
 }

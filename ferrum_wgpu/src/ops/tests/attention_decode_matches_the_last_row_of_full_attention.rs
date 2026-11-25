@@ -68,18 +68,6 @@ fn repeat_runs_are_bit_identical() {
     let (rows, vocab) = (20usize, 50usize);
     let logits = spread(rows * vocab, 21, 5.0);
     let targets: Vec<usize> = (0..rows).map(|i| i % vocab).collect();
-    let run = || {
-        let (gl, gt) = (
-            g.upload(&logits).unwrap(),
-            g.upload_indices(&targets, vocab).unwrap(),
-        );
-        let (gg, gr, gloss) = (
-            g.zeros(rows * vocab).unwrap(),
-            g.zeros(rows).unwrap(),
-            g.zeros(1).unwrap(),
-        );
-        cross_entropy(&g, &gl, &gt, (&gg, &gr, &gloss), (rows, vocab)).unwrap();
-        (g.read(&gg).unwrap(), g.read(&gloss).unwrap())
-    };
+    let run = || gpu_cross_entropy(&g, &logits, &targets, vocab);
     assert_eq!(run(), run());
 }

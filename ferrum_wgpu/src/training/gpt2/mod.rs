@@ -7,8 +7,9 @@
 use crate::budget::{Budget, BufferPlan};
 use crate::device::{Gpu, GpuError};
 use crate::matmul::{Matmul, Variant};
-use crate::ops_opt::{accumulate, adam_update, norm_scale, parts_for, sumsq_parts};
+use crate::ops_opt::accumulate;
 use crate::tensor::GpuBuf;
+use crate::training::DeviceParams;
 use acts::Acts;
 use ferrum_ref::gpt2::{Config, Gpt2};
 use std::cell::Cell;

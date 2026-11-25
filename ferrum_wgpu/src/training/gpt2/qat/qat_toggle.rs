@@ -4,7 +4,7 @@ impl GpuTrainer<'_> {
     /// Record the snap of every parameter into the forward-weights buffers (a batch must be open).
     pub(crate) fn record_snap(&self) -> Result<(), GpuError> {
         let fwd = self.fwd.as_ref().expect("qat buffers allocated");
-        for (i, (src, dst)) in self.params.iter().zip(fwd).enumerate() {
+        for (i, (src, dst)) in self.state.params.iter().zip(fwd).enumerate() {
             match snap_kind(&self.cfg, i) {
                 Snap::Rows(ne0) => q8_snap_rows(self.gpu, src, dst, ne0)?,
                 Snap::Cols(r, c) => q8_snap_cols(self.gpu, src, dst, (r, c))?,
@@ -21,7 +21,7 @@ impl GpuTrainer<'_> {
     pub(crate) fn forward_weights(&self) -> &Vec<GpuBuf> {
         match self.fwd.as_ref() {
             Some(f) if self.qat => f,
-            _ => &self.params,
+            _ => &self.state.params,
         }
     }
 
@@ -42,6 +42,7 @@ impl GpuTrainer<'_> {
             plan.check(self.gpu.info().max_binding, self.budget)
                 .map_err(|e| GpuError(format!("quantisation-aware training does not fit: {e}")))?;
             let bufs = self
+                .state
                 .params
                 .iter()
                 .map(|p| self.gpu.zeros(p.len()))

@@ -37,18 +37,15 @@ impl<'g> GpuTrainer<'g> {
             self.gpu.upload_indices(targets, self.cfg.vocab)?,
         );
         self.set_dropout_offset(0)?;
-        self.gpu.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        self.gpu.batched(|| {
             if self.qat {
                 self.record_snap()?;
             }
             self.record(ids, &gid, &gtg)
-        })();
-        self.gpu.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         Ok(self
             .gpu
-            .read(&self.acts.as_ref().expect("allocated").loss)?[0])
+            .read(&self.acts.as_ref().expect("allocated").head.loss)?[0])
     }
 
     /// One full optimizer step: forward, backward, clip, AdamW. The loss and the pre-clip

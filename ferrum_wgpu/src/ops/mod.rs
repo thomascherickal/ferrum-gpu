@@ -3,20 +3,13 @@
 //! ponytail: 1-D kernels cap at 65,535 workgroups x 64 invocations (4.1M elements) per call;
 //! add a 2-D split when a tensor needs more.
 
-/// `pipe!(gpu, "group/name")`: the cached compute pipeline of `shaders/group/name.wgsl`. A macro
-/// (not a function) because `include_str!` needs a literal path; it keeps every call site on one
-/// short line.
+/// `pipe!(gpu, "group/name")`: the cached compute pipeline of kernel `group/name`, composed with
+/// its shared fragments (see [`crate::shaders::compose`]).
 macro_rules! pipe {
     ($gpu:expr, $name:literal) => {
-        $gpu.pipeline(
-            $name,
-            include_str!(concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/src/shaders/",
-                $name,
-                ".wgsl"
-            )),
-        )
+        crate::shaders::kernel($name)
+            .map_err(crate::device::err)
+            .and_then(|src| $gpu.pipeline($name, src))
     };
 }
 

@@ -2,3 +2,5 @@
 
 pub mod gpt2;
 pub mod llama;
+mod scratch;
+pub(crate) use scratch::{Scratch, ScratchShape};

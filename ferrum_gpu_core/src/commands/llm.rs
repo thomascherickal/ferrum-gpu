@@ -4,7 +4,7 @@
 //! An instruct model is prompted through its chat template (ChatML, Llama-3, `[INST]`, Zephyr),
 //! unless `--raw` or `--ids` is given; the reply ends at the end-of-turn token. In chat mode only
 //! the reply is printed; in raw mode the prompt is printed first, as for GPT-2 files.
-use super::gpt2::gen::{opts, run};
+use super::gpt2::gen::{opts, print_run};
 use super::{app, device_line, gate, mean_loss_ids, mem_mb, say, shape};
 use crate::commands::device::Workload;
 use crate::commands::flags::Args;

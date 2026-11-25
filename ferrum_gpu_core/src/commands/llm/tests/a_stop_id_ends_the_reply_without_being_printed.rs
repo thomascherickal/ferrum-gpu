@@ -1,4 +1,5 @@
 use super::*;
+use crate::commands::gpt2::gen::run;
 
 #[test]
 fn a_stop_id_ends_the_reply_without_being_printed() {

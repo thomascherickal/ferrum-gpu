@@ -40,7 +40,7 @@ fn unit_numbers_beyond_32_bits_are_refused() {
 fn a_snapshot_whose_weights_cannot_be_read_is_an_error() {
     let Some(g) = open_for_test() else { return };
     let tr = GpuTrainer::new(&g, &Gpt2::init(cfg(), 63), None).unwrap();
-    tr.params[0].buf.destroy();
+    tr.state.params[0].buf.destroy();
     let e = Engine::snapshot(&tr).unwrap_err();
     assert!(e.contains("GPU"), "{e}");
 }

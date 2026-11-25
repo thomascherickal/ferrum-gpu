@@ -15,12 +15,13 @@ impl Variant {
     /// All variants, in benchmark order.
     pub const ALL: [Variant; 3] = [Variant::Naive, Variant::Tiled16, Variant::Blocked4];
 
-    pub(super) fn source(self) -> &'static str {
-        match self {
-            Variant::Naive => include_str!("../../shaders/matmul/matmul_naive.wgsl"),
-            Variant::Tiled16 => include_str!("../../shaders/matmul/matmul_tiled16.wgsl"),
-            Variant::Blocked4 => include_str!("../../shaders/matmul/matmul_blocked4.wgsl"),
-        }
+    pub(super) fn source(self) -> Result<&'static str, GpuError> {
+        crate::shaders::kernel(match self {
+            Variant::Naive => "matmul/matmul_naive",
+            Variant::Tiled16 => "matmul/matmul_tiled16",
+            Variant::Blocked4 => "matmul/matmul_blocked4",
+        })
+        .map_err(crate::device::err)
     }
 
     pub(super) fn key(self) -> &'static str {

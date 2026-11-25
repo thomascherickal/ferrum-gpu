@@ -18,8 +18,7 @@ impl<'g> GpuGpt2<'g> {
         let (tmp_d, tmp_h) = (z(t * d)?, z(t * c.hidden)?);
         let probs = z(c.heads * t * t)?;
         let logits = z(t * c.vocab)?;
-        g.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        g.batched(|| {
             ops::embed(g, (&self.tok, &self.pos_tab, &gi), &x, (t, d, t))?;
             // y = h * w + bias, all resident.
             let lin = |h: &GpuBuf,
@@ -49,9 +48,7 @@ impl<'g> GpuGpt2<'g> {
             self.matmul
                 .submit(g, &h, &self.head, &logits, (t, d, c.vocab))?;
             Ok(())
-        })();
-        g.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         g.read(&logits)
     }
 

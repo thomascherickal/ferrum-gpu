@@ -3,15 +3,7 @@ use super::*;
 #[test]
 fn gqa_attention_matches_cpu_for_every_group_ratio() {
     let Some(g) = open_for_test() else { return };
-    // (batch, t, heads, kv_heads, hd)
-    for shape in [
-        (1usize, 1usize, 1usize, 1usize, 1usize),
-        (1, 4, 4, 4, 3),
-        (1, 9, 4, 2, 8),
-        (2, 5, 4, 1, 3),
-        (1, 17, 6, 2, 8),
-        (2, 33, 2, 2, 5),
-    ] {
+    for shape in GQA_SHAPES {
         let (batch, t, heads, kv, hd) = shape;
         let (q, k, v) = (
             spread(batch * t * heads * hd, 1, 2.0),

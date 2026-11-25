@@ -34,12 +34,7 @@ pub(super) fn dequantised_values_match_the_cpu_decode() {
         for (k, n) in shapes(kind) {
             let bytes = quantise_matrix(kind, &weights(k * n), k, n).unwrap();
             let rows = rows_of(kind, &bytes, k, n);
-            let w = upload_qweight(&g, kind, &bytes, k, n).unwrap();
-            let mut eye = vec![0.0f32; k * k];
-            (0..k).for_each(|i| eye[i * k + i] = 1.0);
-            let (gx, gy) = (g.upload(&eye).unwrap(), g.zeros(k * n).unwrap());
-            linear_q(&g, &gx, &w, &gy, k).unwrap();
-            let got = g.read(&gy).unwrap();
+            let got = super::super::tests::device_rows(&g, kind, &bytes, (k, n));
             for r in 0..k {
                 for col in 0..n {
                     let (a, b) = (got[r * n + col], rows[col * k + r]);

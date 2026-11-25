@@ -15,15 +15,8 @@ pub fn clip_grad_norm(g: &mut Gpt2, max_norm: f32) -> f32 {
 /// One AdamW step (increments `state.t`). `grad_scale` multiplies every gradient first (the
 /// clip factor; pass 1.0 for none).
 pub fn adam_step(w: &mut Gpt2, g: &Gpt2, state: &mut AdamState, adam: &Adam, grad_scale: f32) {
-    state.t += 1;
-    let decays: Vec<bool> = (0..w.params().len()).map(|i| w.decays(i)).collect();
-    let lists = AdamLists {
-        w: w.params_mut(),
-        g: g.params(),
-        m: state.m.params_mut(),
-        v: state.v.params_mut(),
-    };
-    adam.step_tensors(state.t, grad_scale, &decays, lists);
+    let moments = (&mut state.m, &mut state.v, &mut state.t);
+    crate::training::optim::adam_step_model(adam, (w, g), moments, grad_scale);
 }
 
 /// Linear warmup then cosine decay to zero.

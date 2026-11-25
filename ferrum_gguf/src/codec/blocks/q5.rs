@@ -38,18 +38,24 @@ pub(super) fn scale_min(j: usize, q: &[u8]) -> (u8, u8) {
     }
 }
 
+/// `(scale, min)` of the two sub-blocks of `pair` of a K-quant super-block, as f32 multiples
+/// of the super-block's `d` and `dmin`.
+pub(super) fn pair_scales(pair: usize, scales: &[u8], d: f32, dmin: f32) -> (f32, f32, f32, f32) {
+    let (s1, m1) = scale_min(2 * pair, scales);
+    let (s2, m2) = scale_min(2 * pair + 1, scales);
+    (
+        d * f32::from(s1),
+        dmin * f32::from(m1),
+        d * f32::from(s2),
+        dmin * f32::from(m2),
+    )
+}
+
 pub(super) fn q4_k(b: &[u8], out: &mut Vec<f32>) {
     let (d, dmin) = (h(b, 0), h(b, 2));
     let (scales, qs) = (&b[4..16], &b[16..16 + QK_K / 2]);
     for (pair, q) in qs.chunks_exact(32).enumerate() {
-        let (s1, m1) = scale_min(2 * pair, scales);
-        let (s2, m2) = scale_min(2 * pair + 1, scales);
-        let (d1, n1, d2, n2) = (
-            d * f32::from(s1),
-            dmin * f32::from(m1),
-            d * f32::from(s2),
-            dmin * f32::from(m2),
-        );
+        let (d1, n1, d2, n2) = pair_scales(pair, scales, d, dmin);
         out.extend(q.iter().map(|&x| d1 * f32::from(x & 0x0f) - n1));
         out.extend(q.iter().map(|&x| d2 * f32::from(x >> 4) - n2));
     }

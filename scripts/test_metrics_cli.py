@@ -8,15 +8,8 @@ import unittest
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import metrics as m  # noqa: E402
 import metrics_collect as mc  # noqa: E402
+from metrics_fixtures import SUMMARY  # noqa: E402,F401
 
-SUMMARY = """Filename            Regions  Missed Regions  Cover  Functions  Missed Functions  Executed  Lines  Missed Lines  Cover  Branches  Missed Branches  Cover
--------------------------------------------------------------------------------------------------------------------------------------------
-ferrum_a/src/x.rs        10               1  90.00%          4                 0   100.00%     40             4  90.00%         0                0      -
-ferrum_a/src/y.rs        20               0 100.00%          2                 0   100.00%     60             0 100.00%         0                0      -
-ferrum_b/src/z.rs        30               6  80.00%          6                 2    66.67%    100            10  90.00%         0                0      -
--------------------------------------------------------------------------------------------------------------------------------------------
-TOTAL                    60               7  88.33%         12                 2    83.33%    200            14  93.00%         0                0      -
-"""
 
 
 

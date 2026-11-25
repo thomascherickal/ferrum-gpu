@@ -35,8 +35,7 @@ impl<'g> GpuTrainer<'g> {
         }
         let losses = self.gpu.zeros(chunks)?;
         let step = self.t + 1;
-        self.gpu.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        self.gpu.batched(|| {
             let acts = self.acts.as_ref().expect("allocated");
             let weight = 1.0 / chunks as f32;
             if self.qat {
@@ -45,33 +44,31 @@ impl<'g> GpuTrainer<'g> {
             for c in 0..chunks {
                 self.set_dropout_offset(c * rows * self.cfg.hidden)?;
                 self.record(&ids[c * rows..(c + 1) * rows], &gid[c], &gtg[c])?;
-                self.gpu.copy_f32(&acts.loss, 0, &losses, c, 1)?;
+                self.gpu.copy_f32(&acts.head.loss, 0, &losses, c, 1)?;
                 if let Some(acc) = self.accum.as_ref().filter(|_| chunks > 1) {
-                    for (a, g) in acc.iter().zip(&self.grads) {
+                    for (a, g) in acc.iter().zip(&self.state.grads) {
                         accumulate(self.gpu, a, g, weight, c == 0)?;
                     }
                 }
             }
             let source = match self.accum.as_ref() {
                 Some(acc) if chunks > 1 => acc,
-                _ => &self.grads,
+                _ => &self.state.grads,
             };
             if self.tie {
                 self.record_fold_head_grad(source)?;
             }
             self.optimize(source, step, cfg)?;
             if self.tie {
-                self.record_derive_head(&self.params)?;
+                self.record_derive_head(&self.state.params)?;
             }
             Ok(())
-        })();
-        self.gpu.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         self.t = step;
         self.last_micro = micro;
         let per_chunk = self.gpu.read(&losses)?;
         let loss = per_chunk.iter().sum::<f32>() / chunks as f32;
-        let norm = self.gpu.read(&self.scale)?[1];
+        let norm = self.gpu.read(&self.state.scale)?[1];
         Ok(StepStats {
             loss,
             grad_norm: norm,

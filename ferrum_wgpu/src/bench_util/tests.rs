@@ -46,3 +46,15 @@ fn open_gpu_says_so_and_returns_none_for_an_adapter_that_does_not_exist() {
     // the environment-driven entry point opens an adapter or reports there is none, never panics
     let _ = open_gpu();
 }
+
+#[test]
+fn decode_tokens_prime_then_time_and_decode_ms_feeds_every_token_once() {
+    let toks = decode_tokens(64, 10);
+    assert_eq!(toks.len(), 48 + DECODE_PRIME);
+    assert!(toks.iter().all(|&t| t < 10));
+    assert_eq!(decode_tokens(9, 10).len(), 1 + DECODE_PRIME);
+    let mut fed = Vec::new();
+    assert!(decode_ms(&toks, |t| fed.push(t)) >= 0.0);
+    assert_eq!(fed, toks);
+    assert!(decode_ms(&[], |_| unreachable!()) >= 0.0);
+}

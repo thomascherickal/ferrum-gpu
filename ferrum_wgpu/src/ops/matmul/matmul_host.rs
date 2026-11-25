@@ -3,7 +3,7 @@ use super::*;
 impl Matmul {
     /// Get (compiling on first use) the variant's pipeline on this device.
     pub fn new(gpu: &Gpu, variant: Variant) -> Result<Matmul, GpuError> {
-        let pipeline = gpu.pipeline(variant.key(), variant.source())?;
+        let pipeline = gpu.pipeline(variant.key(), variant.source()?)?;
         Ok(Matmul { pipeline, variant })
     }
 

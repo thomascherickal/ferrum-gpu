@@ -1,12 +1,7 @@
 // LayerNorm backward, input gradient. One invocation per row; also stores (mean, inv_std)
 // per row for the parameter-gradient kernel. Same formulas and sum order as the CPU reference.
 struct U { rows: u32, cols: u32, p1: u32, p2: u32 }
-@group(0) @binding(0) var<storage, read> x: array<f32>;
-@group(0) @binding(1) var<storage, read> gain: array<f32>;
-@group(0) @binding(2) var<storage, read> dy: array<f32>;
-@group(0) @binding(3) var<storage, read_write> dx: array<f32>;
-@group(0) @binding(4) var<storage, read_write> stats: array<f32>;
-@group(0) @binding(5) var<uniform> u: U;
+//! use common/norm_bwd_io
 
 @compute @workgroup_size(64)
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {

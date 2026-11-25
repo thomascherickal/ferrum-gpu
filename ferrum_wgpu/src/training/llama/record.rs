@@ -3,26 +3,12 @@ use super::GpuLlamaTrainer;
 use crate::device::{Gpu, GpuError};
 use crate::ops_bwd::matmul_ex;
 use crate::tensor::GpuBuf;
+use crate::training::Dims;
 use ferrum_ref::llama::BLOCK_PARAMS;
 mod backward;
 mod forward;
 mod param_index;
 use param_index::*;
-
-/// The sizes both passes use: `r = batch * t` rows, model width `d`, feed-forward width `h`,
-/// query and key/value widths `qd` and `kvd`, head size `hd`.
-struct Dims {
-    b: usize,
-    t: usize,
-    nl: usize,
-    r: usize,
-    d: usize,
-    h: usize,
-    v: usize,
-    hd: usize,
-    qd: usize,
-    kvd: usize,
-}
 
 impl GpuLlamaTrainer<'_> {
     /// Record the forward and backward dispatches (a batch must be open).
@@ -34,19 +20,8 @@ impl GpuLlamaTrainer<'_> {
     ) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
         let c = &self.cfg;
-        let (b, t) = (a.batch, a.t);
-        let dims = Dims {
-            b,
-            t,
-            nl: c.layers,
-            r: b * t,
-            d: c.dim,
-            h: c.hidden,
-            v: c.vocab,
-            hd: c.head_dim,
-            qd: c.q_dim(),
-            kvd: c.kv_dim(),
-        };
+        let widths = [c.dim, c.hidden, c.vocab, c.head_dim, c.q_dim(), c.kv_dim()];
+        let dims = Dims::new((a.batch, a.t), c.layers, widths);
         self.record_forward(&dims, ids, targets)?;
         self.record_backward(&dims, ids_host)
     }

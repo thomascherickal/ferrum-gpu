@@ -12,21 +12,6 @@ use std::time::Duration;
 #[path = "../common/mod.rs"]
 mod common;
 
-fn fetch_result(port: u16) -> Option<String> {
-    use std::io::{Read, Write};
-    let mut c = std::net::TcpStream::connect(("127.0.0.1", port)).ok()?;
-    c.set_read_timeout(Some(Duration::from_secs(5))).ok()?;
-    write!(
-        c,
-        "GET /api/selftest/result HTTP/1.1\r\nHost: 127.0.0.1:{port}\r\n\r\n"
-    )
-    .ok()?;
-    let mut out = String::new();
-    c.read_to_string(&mut out).ok()?;
-    let (head, body) = out.split_once("\r\n\r\n")?;
-    head.starts_with("HTTP/1.1 200").then(|| body.to_string())
-}
-
 fn work(tag: &str) -> PathBuf {
     let d = std::env::temp_dir().join(format!("ferrum_studio_{}_{tag}", std::process::id()));
     std::fs::create_dir_all(&d).unwrap();

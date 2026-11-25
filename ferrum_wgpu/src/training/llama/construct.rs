@@ -15,20 +15,6 @@ impl<'g> GpuLlamaTrainer<'g> {
         static_plan(w)
             .check(gpu.info().max_binding, budget)
             .map_err(|e| err(e.to_string()))?;
-        let up = |m: &Llama| {
-            m.params()
-                .iter()
-                .map(|p| gpu.upload(p))
-                .collect::<Result<Vec<_>, _>>()
-        };
-        let zeros = w.zeros_like();
-        let sizes: Vec<usize> = w.params().iter().map(|p| p.len()).collect();
-        let mut part_offsets = Vec::with_capacity(sizes.len());
-        let mut total = 0;
-        for &n in &sizes {
-            part_offsets.push(total);
-            total += parts_for(n);
-        }
         let mut template = w.clone();
         template
             .params_mut()
@@ -39,14 +25,7 @@ impl<'g> GpuLlamaTrainer<'g> {
             cfg: w.cfg,
             template,
             budget,
-            params: up(w)?,
-            grads: up(&zeros)?,
-            m: up(&zeros)?,
-            v: up(&zeros)?,
-            decays: (0..sizes.len()).map(|i| w.decays(i)).collect(),
-            part: gpu.zeros(total)?,
-            part_offsets,
-            scale: gpu.zeros(2)?,
+            state: DeviceParams::upload(gpu, &w.params(), |i| w.decays(i))?,
             matmul: Matmul::new(gpu, Variant::Blocked4)?,
             acts: None,
             t: 0,

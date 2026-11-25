@@ -10,7 +10,7 @@ pub fn matmul_threaded(
     n: usize,
     threads: usize,
 ) -> Result<Vec<f32>, MatmulError> {
-    check(a, b, m, k, n)?;
+    check_operands(a, b, m, k, n)?;
     let mut out = vec![0.0; m * n];
     if m == 0 || n == 0 {
         return Ok(out);

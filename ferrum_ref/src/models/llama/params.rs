@@ -1,6 +1,5 @@
 //! Parameter shape arithmetic, deterministic random weights and the tied-head helper.
 use super::{Block, Config, Llama, RopeScaling};
-use crate::matmul::rand_vec;
 mod lens;
 pub use lens::*;
 mod block_params;

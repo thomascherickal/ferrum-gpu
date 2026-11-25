@@ -4,6 +4,16 @@ use crate::tolerance::{max_rel_err, EXACT, REDUCING};
 use ferrum_ref::llama as cpu;
 use ferrum_ref::matmul::rand_vec;
 
+/// `(batch, t, heads, kv_heads, hd)` shapes covering every group ratio, the attention tests' sweep.
+pub(crate) const GQA_SHAPES: [(usize, usize, usize, usize, usize); 6] = [
+    (1, 1, 1, 1, 1),
+    (1, 4, 4, 4, 3),
+    (1, 9, 4, 2, 8),
+    (2, 5, 4, 1, 3),
+    (1, 17, 6, 2, 8),
+    (2, 33, 2, 2, 5),
+];
+
 fn show(name: &str, shape: &str, e: f32, tol: f32) {
     eprintln!("{name} {shape}: max rel err {e:.2e} (tol {tol:.0e})");
     assert!(e < tol, "{name} {shape}: max rel err {e} >= {tol}");

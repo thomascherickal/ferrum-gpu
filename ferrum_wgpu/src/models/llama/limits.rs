@@ -45,25 +45,23 @@ impl<'g> GpuLlama<'g> {
             })
             .collect::<Result<Vec<_>, GpuError>>()?;
         let z = |n| gpu.zeros(n);
-        let s = Scratch {
-            ids: z(1)?,
-            x: z(d)?,
-            x2: z(d)?,
-            h: z(d)?,
-            q: z(qd)?,
-            k: z(kvd)?,
-            v: z(kvd)?,
-            attn: z(qd)?,
-            o: z(d)?,
+        let extra = LlamaScratch {
             gate: z(h)?,
             up: z(h)?,
-            act: z(h)?,
-            f2: z(d)?,
-            probs: z(c.heads * c.ctx)?,
-            logits: z(c.vocab)?,
             tmp_q: z(qd)?,
             tmp_kv: z(kvd)?,
         };
+        let probs = c.heads * c.ctx;
+        let vocab = c.vocab;
+        let shape = crate::models::ScratchShape {
+            d,
+            qd,
+            kvd,
+            h,
+            probs,
+            vocab,
+        };
+        let s = crate::models::Scratch::new(gpu, shape, extra)?;
         let mut zeros: Vec<(usize, GpuBuf)> = Vec::new();
         for n in [qd, kvd, d, h, c.vocab] {
             if !zeros.iter().any(|(m, _)| *m == n) {

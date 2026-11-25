@@ -1,17 +1,4 @@
-"""Regenerate metrics.md: code size, tests, structure, dependencies, history, the last gate's timing
-and the last coverage run.
-
-  scripts/metrics.py                       # rewrite metrics.md from the repository as it is now
-  scripts/metrics.py --next-commit         # same, counting the commit being made (the pre-commit hook)
-  scripts/metrics.py --coverage FILE       # also replace the coverage section with the llvm-cov
-                                           # summary in FILE (scripts/coverage.sh does this)
-  scripts/metrics.py --gate gate.txt       # also replace the gate section (scripts/gate.sh does this)
-
-Everything is recomputed on each run except the two measured sections (gate, coverage), which only a
-run of the gate or of coverage can change; they are kept between markers and carried over untouched.
-Line counts are non-blank lines; "test" means a test file or the part of a file from its first
-`#[cfg(test)]` on. Nothing here is estimated: a number that cannot be read is shown as "-".
-"""
+"""The metrics.md command line: read the flags, carry the measured sections over and rewrite the file."""
 import argparse
 import datetime
 import os
@@ -24,8 +11,9 @@ from metrics_reports import (  # noqa: E402,F401
 from metrics_render import *  # noqa: F401,F403
 
 
-def main(argv=None):
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+def main(argv=None, usage=None):
+    """Rewrite metrics.md; `usage` is the help text (metrics.py passes its docstring)."""
+    ap = argparse.ArgumentParser(description=usage, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", default=os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     ap.add_argument("--output", default=None)
     ap.add_argument("--next-commit", action="store_true")

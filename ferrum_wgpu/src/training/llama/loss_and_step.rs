@@ -1,6 +1,29 @@
 use super::*;
 
 impl<'g> GpuLlamaTrainer<'g> {
+    /// Check the batch, make its activations and upload its token ids and targets.
+    fn prepare(
+        &mut self,
+        ids: &[usize],
+        targets: &[usize],
+        batch: usize,
+    ) -> Result<(GpuBuf, GpuBuf), GpuError> {
+        let t = self.validate(ids, targets, batch)?;
+        self.ensure_acts(batch, t)?;
+        let vocab = self.cfg.vocab;
+        Ok((
+            self.gpu.upload_indices(ids, vocab)?,
+            self.gpu.upload_indices(targets, vocab)?,
+        ))
+    }
+
+    /// The mean loss of the last recorded batch.
+    fn read_loss(&self) -> Result<f32, GpuError> {
+        Ok(self
+            .gpu
+            .read(&self.acts.as_ref().expect("allocated").head.loss)?[0])
+    }
+
     /// Forward and backward for one batch; leaves gradients in the device buffers and returns the
     /// mean loss. `ids[i]` is followed by `targets[i]`; `batch` sequences of equal length.
     pub fn loss_and_grads(
@@ -9,19 +32,9 @@ impl<'g> GpuLlamaTrainer<'g> {
         targets: &[usize],
         batch: usize,
     ) -> Result<f32, GpuError> {
-        let t = self.validate(ids, targets, batch)?;
-        self.ensure_acts(batch, t)?;
-        let (gid, gtg) = (
-            self.gpu.upload_indices(ids, self.cfg.vocab)?,
-            self.gpu.upload_indices(targets, self.cfg.vocab)?,
-        );
-        self.gpu.begin_batch()?;
-        let rec = self.record(ids, &gid, &gtg);
-        self.gpu.end_batch(rec.is_ok())?;
-        rec?;
-        Ok(self
-            .gpu
-            .read(&self.acts.as_ref().expect("allocated").loss)?[0])
+        let (gid, gtg) = self.prepare(ids, targets, batch)?;
+        self.gpu.batched(|| self.record(ids, &gid, &gtg))?;
+        self.read_loss()
     }
 
     /// One full optimizer step: forward, backward, clip, AdamW. The loss and the pre-clip
@@ -33,45 +46,23 @@ impl<'g> GpuLlamaTrainer<'g> {
         batch: usize,
         cfg: &StepConfig,
     ) -> Result<StepStats, GpuError> {
-        let t = self.validate(ids, targets, batch)?;
-        self.ensure_acts(batch, t)?;
-        let (gid, gtg) = (
-            self.gpu.upload_indices(ids, self.cfg.vocab)?,
-            self.gpu.upload_indices(targets, self.cfg.vocab)?,
-        );
+        let (gid, gtg) = self.prepare(ids, targets, batch)?;
         let step = self.t + 1;
-        self.gpu.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        self.gpu.batched(|| {
             self.record(ids, &gid, &gtg)?;
             self.optimize(step, cfg)
-        })();
-        self.gpu.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         self.t = step;
-        let loss = self
-            .gpu
-            .read(&self.acts.as_ref().expect("allocated").loss)?[0];
-        let grad_norm = self.gpu.read(&self.scale)?[1];
+        let loss = self.read_loss()?;
+        let grad_norm = self.gpu.read(&self.state.scale)?[1];
         Ok(StepStats { loss, grad_norm })
     }
 
     /// Norm, clip scale and AdamW over the gradients (the recorded commands only). Absent
     /// biases are empty tensors and are skipped.
     pub(crate) fn optimize(&self, step: u64, cfg: &StepConfig) -> Result<(), GpuError> {
-        for (i, g) in self.grads.iter().enumerate().filter(|(_, g)| !g.is_empty()) {
-            sumsq_parts(self.gpu, g, &self.part, self.part_offsets[i])?;
-        }
-        norm_scale(self.gpu, &self.part, &self.scale, self.part.len(), cfg.clip)?;
-        for (i, g) in self.grads.iter().enumerate().filter(|(_, g)| !g.is_empty()) {
-            adam_update(
-                self.gpu,
-                (&self.params[i], g, &self.m[i], &self.v[i]),
-                &self.scale,
-                &cfg.adam,
-                self.decays[i],
-                step,
-            )?;
-        }
-        Ok(())
+        let present = |_, g: &GpuBuf| !g.is_empty();
+        let s = &self.state;
+        s.optimize(self.gpu, &s.grads, present, step, cfg)
     }
 }

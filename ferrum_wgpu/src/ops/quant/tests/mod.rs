@@ -27,6 +27,17 @@ fn decoded_rows(kind: QKind, bytes: &[u8], k: usize, n: usize) -> Vec<f32> {
     decode(kind.ggml().unwrap(), bytes, k * n).unwrap()
 }
 
+/// The device's dequantised `[k, n]` weight read back through `linear_q` with x = identity:
+/// element `[r * n + col]` is `W[col, r]`.
+pub(super) fn device_rows(g: &Gpu, kind: QKind, bytes: &[u8], (k, n): (usize, usize)) -> Vec<f32> {
+    let w = upload_qweight(g, kind, bytes, k, n).unwrap();
+    let mut eye = vec![0.0f32; k * k];
+    (0..k).for_each(|i| eye[i * k + i] = 1.0);
+    let (gx, gy) = (g.upload(&eye).unwrap(), g.zeros(k * n).unwrap());
+    linear_q(g, &gx, &w, &gy, k).unwrap();
+    g.read(&gy).unwrap()
+}
+
 mod a_codec_error_becomes_a_gpu_error;
 mod dequantised_values_are_bit_identical_to_the_cpu_decode;
 mod sizes_and_eligibility;

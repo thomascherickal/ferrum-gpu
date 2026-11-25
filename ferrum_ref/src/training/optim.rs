@@ -7,7 +7,9 @@ use crate::gpt2::Gpt2;
 mod adam;
 mod adam_step;
 pub use adam::*;
-pub(crate) use adam_step::AdamLists;
+pub(crate) use adam_step::adam_step_model;
+#[cfg(test)]
+pub(crate) use adam_step::ParamSet;
 mod clip_grad_norm;
 pub use clip_grad_norm::*;
 

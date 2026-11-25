@@ -41,9 +41,8 @@ fn e5m2(c: u32) -> f32 {
 fn main(@builtin(global_invocation_id) g: vec3<u32>) {
     let idx = gid(g);
     if (idx >= u.rows * u.n) { return; }
-    let r = idx / u.n;
     let col = idx % u.n;
-    let xb = r * u.k;
+    let xb = (idx / u.n) * u.k;
     var acc = 0.0;
     if (u.kind == 6u) {
         for (var b = 0u; b < u.k / 256u; b = b + 1u) {

@@ -34,17 +34,14 @@ impl GpuTrainer<'_> {
         // sums left from untied steps cannot leak into the clip scale
         let (i, n) = (
             self.head_index(),
-            parts_for(self.params[self.head_index()].len()),
+            parts_for(self.state.params[self.head_index()].len()),
         );
         let zeros = self.gpu.zeros(n)?;
-        self.gpu.begin_batch()?;
-        let rec = (|| {
+        self.gpu.batched(|| {
             self.gpu
-                .copy_f32(&zeros, 0, &self.part, self.part_offsets[i], n)?;
-            self.record_derive_head(&self.params)
-        })();
-        self.gpu.end_batch(rec.is_ok())?;
-        rec
+                .copy_f32(&zeros, 0, &self.state.part, self.state.part_offsets[i], n)?;
+            self.record_derive_head(&self.state.params)
+        })
     }
 
     /// Record `head = tokᵀ` in `set` (a batch must be open).
@@ -61,10 +58,8 @@ impl GpuTrainer<'_> {
 
     /// Re-derive the head outside a recorded step (after the weights were replaced).
     pub(super) fn derive_head_now(&self) -> Result<(), GpuError> {
-        self.gpu.begin_batch()?;
-        let rec = self.record_derive_head(&self.params);
-        self.gpu.end_batch(rec.is_ok())?;
-        rec
+        self.gpu
+            .batched(|| self.record_derive_head(&self.state.params))
     }
 }
 

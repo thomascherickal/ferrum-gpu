@@ -19,24 +19,11 @@ pub(crate) struct DevBlock {
     pub(crate) vcache: GpuBuf,
 }
 
-/// Decode-time scratch (reused every token).
-pub(crate) struct Scratch {
-    pub(crate) ids: GpuBuf,
-    pub(crate) x: GpuBuf,
-    pub(crate) x2: GpuBuf,
-    pub(crate) h: GpuBuf,
-    pub(crate) q: GpuBuf,
-    pub(crate) k: GpuBuf,
-    pub(crate) v: GpuBuf,
-    pub(crate) attn: GpuBuf,
-    pub(crate) o: GpuBuf,
+/// The Llama decode scratch beyond the shared one: the SwiGLU inputs and exact-size product
+/// buffers for the biased q/k/v projections (kernels need exact lengths).
+pub(crate) struct LlamaScratch {
     pub(crate) gate: GpuBuf,
     pub(crate) up: GpuBuf,
-    pub(crate) act: GpuBuf,
-    pub(crate) f2: GpuBuf,
-    pub(crate) probs: GpuBuf,
-    pub(crate) logits: GpuBuf,
-    /// Exact-size product buffers for the biased q/k/v projections (kernels need exact lengths).
     pub(crate) tmp_q: GpuBuf,
     pub(crate) tmp_kv: GpuBuf,
 }
@@ -55,7 +42,7 @@ pub struct GpuLlama<'g> {
     pub(crate) out_norm: GpuBuf,
     pub(crate) head: Lin,
     pub(crate) zeros: Vec<(usize, GpuBuf)>,
-    pub(crate) s: Scratch,
+    pub(crate) s: crate::models::Scratch<LlamaScratch>,
     pub(crate) matmul: Matmul,
     pub(crate) pos: usize,
 }

@@ -35,7 +35,7 @@ impl<'g> GpuLlamaTrainer<'g> {
     /// The template with the parameter sizes filled in as zero vectors (for the static plan).
     fn template_with_sizes(&self) -> Llama {
         let mut m = self.template.clone();
-        for (dst, b) in m.params_mut().into_iter().zip(&self.params) {
+        for (dst, b) in m.params_mut().into_iter().zip(&self.state.params) {
             *dst = vec![0.0; b.len()];
         }
         m

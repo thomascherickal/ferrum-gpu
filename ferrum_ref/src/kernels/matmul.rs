@@ -6,6 +6,8 @@ mod matmulerror;
 pub use matmulerror::*;
 mod matmul_threaded;
 pub use matmul_threaded::*;
+mod seeded_init;
+pub(crate) use seeded_init::SeededInit;
 
 #[cfg(test)]
 mod tests;

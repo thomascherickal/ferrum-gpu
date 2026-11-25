@@ -9,32 +9,11 @@ impl<'g> GpuTrainer<'g> {
         static_plan(&w.cfg)
             .check(gpu.info().max_binding, budget)
             .map_err(|e| err(e.to_string()))?;
-        let up = |m: &Gpt2| {
-            m.params()
-                .iter()
-                .map(|p| gpu.upload(p))
-                .collect::<Result<Vec<_>, _>>()
-        };
-        let zeros = w.zeros_like();
-        let sizes: Vec<usize> = w.params().iter().map(|p| p.len()).collect();
-        let mut part_offsets = Vec::with_capacity(sizes.len());
-        let mut total = 0;
-        for &n in &sizes {
-            part_offsets.push(total);
-            total += parts_for(n);
-        }
         Ok(GpuTrainer {
             gpu,
             cfg: w.cfg,
             budget,
-            params: up(w)?,
-            grads: up(&zeros)?,
-            m: up(&zeros)?,
-            v: up(&zeros)?,
-            decays: (0..sizes.len()).map(|i| w.decays(i)).collect(),
-            part: gpu.zeros(total)?,
-            part_offsets,
-            scale: gpu.zeros(2)?,
+            state: DeviceParams::upload(gpu, &w.params(), |i| w.decays(i))?,
             matmul: Matmul::new(gpu, Variant::Blocked4)?,
             acts: None,
             accum: None,
@@ -68,11 +47,11 @@ impl<'g> GpuTrainer<'g> {
 
     /// Copy the weights back to the host.
     pub fn weights_host(&self) -> Result<Gpt2, GpuError> {
-        self.host(&self.params)
+        self.host(&self.state.params)
     }
 
     /// Copy the gradients of the last forward/backward back to the host.
     pub fn grads_host(&self) -> Result<Gpt2, GpuError> {
-        self.host(&self.grads)
+        self.host(&self.state.grads)
     }
 }

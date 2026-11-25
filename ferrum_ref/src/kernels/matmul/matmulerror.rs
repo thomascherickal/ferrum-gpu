@@ -24,7 +24,14 @@ impl std::fmt::Display for MatmulError {
 
 impl std::error::Error for MatmulError {}
 
-pub(super) fn check(a: &[f32], b: &[f32], m: usize, k: usize, n: usize) -> Result<(), MatmulError> {
+/// Check that `a` is `[m, k]` and `b` is `[k, n]`.
+pub(crate) fn check_operands(
+    a: &[f32],
+    b: &[f32],
+    m: usize,
+    k: usize,
+    n: usize,
+) -> Result<(), MatmulError> {
     if a.len() != m * k {
         return Err(MatmulError::Len {
             which: "a",
@@ -56,7 +63,7 @@ pub(super) fn rows(a: &[f32], b: &[f32], k: usize, n: usize, out: &mut [f32]) {
 
 /// Single-threaded reference matmul. Accumulates in ascending `k` for every element.
 pub fn matmul(a: &[f32], b: &[f32], m: usize, k: usize, n: usize) -> Result<Vec<f32>, MatmulError> {
-    check(a, b, m, k, n)?;
+    check_operands(a, b, m, k, n)?;
     let mut out = vec![0.0; m * n];
     if n > 0 {
         rows(a, b, k, n, &mut out);

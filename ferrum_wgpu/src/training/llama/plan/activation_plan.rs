@@ -33,12 +33,10 @@ pub fn activation_plan(c: &Config, batch: usize, t: usize) -> BufferPlan {
         ("f2", r * d),
         ("tmp_q", r * qd),
         ("tmp_kv", r * kvd),
-        ("hf", r * d),
-        ("logits", r * v),
-        ("dlogits", r * v),
-        ("row_loss", r),
-        ("loss", 1),
-        ("dhf", r * d),
+    ]
+    .into_iter()
+    .chain(crate::training::HeadActs::rows(r, d, v))
+    .chain([
         ("dx_a", r * d),
         ("dx_b", r * d),
         ("dact", r * h),
@@ -63,7 +61,7 @@ pub fn activation_plan(c: &Config, batch: usize, t: usize) -> BufferPlan {
         ("dot", batch * c.heads * t),
         ("ds", batch * c.heads * t * t),
         ("junk_pos", c.ctx * d),
-    ] {
+    ]) {
         p.add(n, f(len));
     }
     p

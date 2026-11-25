@@ -32,8 +32,7 @@ impl GpuLlama<'_> {
         let (tmp_q, tmp_kv) = (z(t * qd)?, z(t * kvd)?);
         let probs = z(c.heads * t * t)?;
         let logits = z(t * c.vocab)?;
-        g.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        g.batched(|| {
             let mm = &self.matmul;
             self.tok.gather(g, (ids, &gi), &x, d)?;
             for b in &self.blocks {
@@ -65,9 +64,7 @@ impl GpuLlama<'_> {
             ops_llama::rmsnorm(g, &x, &self.out_norm, &h, (t, d), c.eps)?;
             self.head
                 .apply(g, mm, (&h, None, self.zero(c.vocab)), (&logits, &tmp_q), t)
-        })();
-        g.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         Ok(logits)
     }
 

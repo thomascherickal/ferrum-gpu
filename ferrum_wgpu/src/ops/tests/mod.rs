@@ -14,6 +14,27 @@ fn spread(n: usize, seed: u64, by: f32) -> Vec<f32> {
     rand_vec(n, seed).into_iter().map(|v| v * by).collect()
 }
 
+/// `(dlogits, [mean loss])` of the device cross-entropy over `rows x vocab`.
+fn gpu_cross_entropy(
+    g: &Gpu,
+    logits: &[f32],
+    targets: &[usize],
+    vocab: usize,
+) -> (Vec<f32>, Vec<f32>) {
+    let rows = targets.len();
+    let (gl, gt) = (
+        g.upload(logits).unwrap(),
+        g.upload_indices(targets, vocab).unwrap(),
+    );
+    let (gg, gr, gloss) = (
+        g.zeros(rows * vocab).unwrap(),
+        g.zeros(rows).unwrap(),
+        g.zeros(1).unwrap(),
+    );
+    cross_entropy(g, &gl, &gt, (&gg, &gr, &gloss), (rows, vocab)).unwrap();
+    (g.read(&gg).unwrap(), g.read(&gloss).unwrap())
+}
+
 mod add_and_bias_match_cpu;
 mod attention_decode_matches_the_last_row_of_full_attention;
 mod attention_matches_cpu;

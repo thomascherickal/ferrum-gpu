@@ -16,8 +16,7 @@ impl<'g> GpuGpt2<'g> {
         // The index buffer is rewritten in place each token.
         let id = g.upload_indices(&[token], c.vocab)?;
         // The whole token is recorded into one command encoder and submitted once.
-        g.begin_batch()?;
-        let rec = (|| -> Result<(), GpuError> {
+        g.batched(|| {
             g.copy_f32(&id, 0, &s.ids, 0, 1)?;
             ops::embed_at(
                 g,
@@ -38,8 +37,8 @@ impl<'g> GpuGpt2<'g> {
                 ops::gemv(g, (&s.attn, &b.wo, &b.bo), &s.o, (d, d))?;
                 ops::add(g, &s.x, &s.o, &s.x2)?;
                 ops::layernorm(g, &s.x2, &b.ln2_g, &b.ln2_b, &s.h, (1, d))?;
-                ops::gemv(g, (&s.h, &b.w1, &b.b1), &s.f1, (d, c.hidden))?;
-                ops::gelu(g, &s.f1, &s.act)?;
+                ops::gemv(g, (&s.h, &b.w1, &b.b1), &s.extra, (d, c.hidden))?;
+                ops::gelu(g, &s.extra, &s.act)?;
                 ops::gemv(g, (&s.act, &b.w2, &b.b2), &s.f2, (c.hidden, d))?;
                 ops::add(g, &s.x2, &s.f2, &s.x)?;
             }
@@ -51,9 +50,7 @@ impl<'g> GpuGpt2<'g> {
                 (d, c.vocab),
             )?;
             Ok(())
-        })();
-        g.end_batch(rec.is_ok())?;
-        rec?;
+        })?;
         self.pos += 1;
         g.read(&s.logits)
     }

@@ -12,17 +12,9 @@ run of the gate or of coverage can change; they are kept between markers and car
 Line counts are non-blank lines; "test" means a test file or the part of a file from its first
 `#[cfg(test)]` on. Nothing here is estimated: a number that cannot be read is shown as "-".
 """
-import argparse
-import datetime
-import os
-import re
 import sys
-import metrics_collect as mc  # noqa: E402
-from metrics_reports import (  # noqa: E402,F401
-    COVERAGE_MARK, GATE_MARK, NONE_YET, coverage_block, gate_block, get_block, parse_summary, pct, seconds, table, wrap,
-)
 from metrics_render_2 import *  # noqa: F401,F403
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(usage=__doc__))

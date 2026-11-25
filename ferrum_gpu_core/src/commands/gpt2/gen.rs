@@ -15,6 +15,8 @@ mod loaded;
 pub use loaded::*;
 mod run;
 pub use run::*;
+mod print_run;
+pub use print_run::*;
 mod sample_text;
 pub use sample_text::*;
 mod eval;

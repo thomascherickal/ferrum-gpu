@@ -10,6 +10,31 @@ fn show(name: &str, shape: &str, e: f32, tol: f32) {
     assert!(e < tol, "{name} {shape}: max rel err {e} >= {tol}");
 }
 
+/// `(dx, dgain, dshift)` of the device LayerNorm backward over `rows x cols`.
+fn gpu_layernorm_bwd(
+    g: &Gpu,
+    (x, gain, dy): (&[f32], &[f32], &[f32]),
+    (rows, cols): (usize, usize),
+) -> (Vec<f32>, Vec<f32>, Vec<f32>) {
+    let (gx, gg, gdy) = (
+        g.upload(x).unwrap(),
+        g.upload(gain).unwrap(),
+        g.upload(dy).unwrap(),
+    );
+    let (gdx, gdg, gdb, st) = (
+        g.zeros(rows * cols).unwrap(),
+        g.zeros(cols).unwrap(),
+        g.zeros(cols).unwrap(),
+        g.zeros(2 * rows).unwrap(),
+    );
+    layernorm_bwd(g, (&gx, &gg, &gdy), (&gdx, &gdg, &gdb), &st, (rows, cols)).unwrap();
+    (
+        g.read(&gdx).unwrap(),
+        g.read(&gdg).unwrap(),
+        g.read(&gdb).unwrap(),
+    )
+}
+
 fn spread(n: usize, seed: u64, by: f32) -> Vec<f32> {
     rand_vec(n, seed).into_iter().map(|v| v * by).collect()
 }

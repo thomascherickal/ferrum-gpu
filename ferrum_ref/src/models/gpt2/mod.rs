@@ -4,7 +4,7 @@
 pub use decode::Cache;
 pub use params::{is_matrix_in_block, param_lens};
 
-use crate::matmul::{matmul, rand_vec};
+use crate::matmul::matmul;
 use crate::nn;
 mod config;
 pub use config::*;

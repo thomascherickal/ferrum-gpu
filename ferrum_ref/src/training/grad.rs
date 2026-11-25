@@ -21,6 +21,10 @@ mod loss_and_grads_with;
 pub use loss_and_grads_with::*;
 
 #[cfg(test)]
+mod fd_check;
+#[cfg(test)]
+pub(crate) use fd_check::check_tensor_fd;
+#[cfg(test)]
 #[allow(clippy::needless_range_loop)]
 // index loops read clearer in element-wise finite-difference checks
 mod tests;

@@ -51,6 +51,25 @@ pub fn mib(bytes: u64) -> String {
     format!("{:.0}", bytes as f64 / (1024.0 * 1024.0))
 }
 
+/// Tokens for a decode benchmark on a model with context `ctx`: [`DECODE_PRIME`] to fill the cache
+/// first, then up to 48 to time.
+pub fn decode_tokens(ctx: usize, vocab: usize) -> Vec<usize> {
+    let n = 48.min(ctx.saturating_sub(8));
+    (0..n + DECODE_PRIME).map(|i| (i * 7 + 3) % vocab).collect()
+}
+
+/// Tokens fed before the clock starts.
+pub const DECODE_PRIME: usize = 4;
+
+/// Feed the first [`DECODE_PRIME`] of `toks`, then time the rest: milliseconds per token.
+pub fn decode_ms(toks: &[usize], mut feed: impl FnMut(usize)) -> f64 {
+    let (prime, timed) = toks.split_at(DECODE_PRIME.min(toks.len()));
+    prime.iter().for_each(|&t| feed(t));
+    let t0 = Instant::now();
+    timed.iter().for_each(|&t| feed(t));
+    t0.elapsed().as_secs_f64() * 1e3 / timed.len().max(1) as f64
+}
+
 /// The adapter named by `FERRUM_GPU_ADAPTER` (else the default one), or a "nothing to benchmark"
 /// line and `None`.
 pub fn open_gpu() -> Option<crate::device::Gpu> {

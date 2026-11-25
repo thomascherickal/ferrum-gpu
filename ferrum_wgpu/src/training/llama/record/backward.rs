@@ -7,16 +7,16 @@ use crate::ops_llama_bwd::{attention_gqa_bwd, rmsnorm_bwd, swiglu_bwd};
 impl GpuLlamaTrainer<'_> {
     pub(super) fn record_backward(&self, dm: &Dims, ids_host: &[usize]) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, p, gr) = (self.gpu, &self.params, &self.grads);
+        let (g, p, gr) = (self.gpu, &self.state.params, &self.state.grads);
         let (r, d, v, nl) = (dm.r, dm.d, dm.v, dm.nl);
         let (on, head) = (pi(nl, 0), pi(nl, 1));
         lin_bwd(
             g,
-            (&a.hf, &p[head], &a.dlogits),
-            (&a.dhf, &gr[head]),
+            (&a.head.hf, &p[head], &a.head.dlogits),
+            (&a.head.dhf, &gr[head]),
             (r, d, v),
         )?;
-        let norm = ((&a.x[nl], &p[on], &a.dhf), (&a.dx_a, &gr[on]));
+        let norm = ((&a.x[nl], &p[on], &a.head.dhf), (&a.dx_a, &gr[on]));
         rmsnorm_bwd(g, norm.0, norm.1, &a.stats, (r, d), self.cfg.eps)?;
         let (mut cur, mut next) = (&a.dx_a, &a.dx_b);
         for l in (0..nl).rev() {
@@ -42,7 +42,7 @@ impl GpuLlamaTrainer<'_> {
         next: &GpuBuf,
     ) -> Result<(), GpuError> {
         let a = self.acts.as_ref().expect("allocated");
-        let (g, c, p, gr) = (self.gpu, &self.cfg, &self.params, &self.grads);
+        let (g, c, p, gr) = (self.gpu, &self.cfg, &self.state.params, &self.state.grads);
         let (r, d, h, hd, eps) = (dm.r, dm.d, dm.h, dm.hd, c.eps);
         let lin = |k: usize, x: &GpuBuf, dy: &GpuBuf, dx: &GpuBuf, n: (usize, usize, usize)| {
             lin_bwd(g, (x, &p[pi(l, k)], dy), (dx, &gr[pi(l, k)]), n)

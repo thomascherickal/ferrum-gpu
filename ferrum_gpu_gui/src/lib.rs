@@ -13,6 +13,8 @@ pub mod modelsapi;
 pub mod selftest;
 pub mod server;
 pub mod servingapi;
+#[cfg(test)]
+mod test_support;
 
 /// The shared core, re-exported under the paths this crate has always had.
 pub use ferrum_gpu_core::{cancel, engine, http, json, stop, tokenizer};

@@ -46,28 +46,12 @@ pub fn generate(a: &Args, out: &mut dyn Write, verbose: bool) -> Result<(), Stri
     let _ = mem_mb(a)?;
     let mut feed = app.backend.gpt2_decoder(&l.model)?;
     let shown = a.get("--prompt").unwrap_or("");
-    if o.stream {
-        write!(out, "{shown}").map_err(|e| e.to_string())?;
-    }
-    let mut werr = None;
-    let (text, _) = run(
-        &mut *feed,
-        &|ids| l.tok.decode(ids),
-        l.model.cfg.ctx,
-        &prompt,
+    let decode = |ids: &[usize]| l.tok.decode(ids);
+    print_run(
+        out,
+        (&mut *feed, &decode),
+        (l.model.cfg.ctx, &prompt),
         &o,
-        Some(&mut |s| {
-            if let Err(e) = write!(out, "{s}") {
-                werr.get_or_insert(e.to_string());
-            }
-        }),
-    )?;
-    if let Some(e) = werr {
-        return Err(e);
-    }
-    if o.stream {
-        writeln!(out).map_err(|e| e.to_string())
-    } else {
-        say(out, format!("{shown}{text}"))
-    }
+        shown,
+    )
 }

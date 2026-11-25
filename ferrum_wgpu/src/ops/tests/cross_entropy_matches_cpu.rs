@@ -6,27 +6,18 @@ fn cross_entropy_matches_cpu() {
     for (rows, vocab) in [(1usize, 2usize), (3, 5), (16, 1024), (33, 7)] {
         let logits = spread(rows * vocab, 9, 8.0);
         let targets: Vec<usize> = (0..rows).map(|i| (i * 7 + 1) % vocab).collect();
-        let (gl, gt) = (
-            g.upload(&logits).unwrap(),
-            g.upload_indices(&targets, vocab).unwrap(),
-        );
-        let (gg, gr, gloss) = (
-            g.zeros(rows * vocab).unwrap(),
-            g.zeros(rows).unwrap(),
-            g.zeros(1).unwrap(),
-        );
-        cross_entropy(&g, &gl, &gt, (&gg, &gr, &gloss), (rows, vocab)).unwrap();
+        let (grad, loss) = gpu_cross_entropy(&g, &logits, &targets, vocab);
         let (want_loss, want_grad) = nn::cross_entropy(&logits, &targets, vocab);
         show(
             "ce loss",
             &format!("{rows}x{vocab}"),
-            max_rel_err(&g.read(&gloss).unwrap(), &[want_loss]),
+            max_rel_err(&loss, &[want_loss]),
             REDUCING,
         );
         show(
             "ce grad",
             &format!("{rows}x{vocab}"),
-            max_rel_err(&g.read(&gg).unwrap(), &want_grad),
+            max_rel_err(&grad, &want_grad),
             REDUCING,
         );
     }
