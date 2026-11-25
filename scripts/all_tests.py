@@ -16,6 +16,8 @@ import re
 import sys
 import tempfile
 
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"  # tracked __pycache__ must stay as committed
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import all_tests_reports as reports  # noqa: E402
 import runner  # noqa: E402

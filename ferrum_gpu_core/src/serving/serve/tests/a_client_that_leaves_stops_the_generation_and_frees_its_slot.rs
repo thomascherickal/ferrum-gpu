@@ -5,6 +5,7 @@ fn a_client_that_leaves_stops_the_generation_and_frees_its_slot() {
     let d = Arc::new(SlowDecoder {
         tokens: 0.into(),
         cancelled: AtomicBool::new(false),
+        entered: 0.into(),
     });
     let r = start(d.clone(), &Config::default()).unwrap();
     let body = r#"{"requests":[{"prompt":"x","max_tokens":2}]}"#;

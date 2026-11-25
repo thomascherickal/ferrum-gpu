@@ -48,6 +48,12 @@ fn hostile_requests_get_the_right_status() {
         400
     );
     assert_eq!(
+        status("POST / HTTP/1.1\r\nContent-Length: 1\r\nContent-Length: 2\r\n\r\nab"),
+        400
+    );
+    let same = "POST / HTTP/1.1\r\nContent-Length: 1\r\ncontent-length: 1\r\n\r\na";
+    assert_eq!(parse(same).unwrap().body, b"a");
+    assert_eq!(
         status("POST / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n"),
         501
     );

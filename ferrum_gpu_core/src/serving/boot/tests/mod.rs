@@ -56,4 +56,5 @@ fn llama_file(d: &std::path::Path) -> String {
 }
 
 mod both_kinds_of_model_start_a_server_and_say_what_they_started;
+mod load;
 mod the_token_comes_from_the_flag_then_the_environment;

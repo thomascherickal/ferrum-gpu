@@ -22,6 +22,7 @@ fn http(addr: SocketAddr, method: &str, path: &str, extra: &str, body: &str) -> 
 struct SlowDecoder {
     tokens: std::sync::atomic::AtomicUsize,
     cancelled: AtomicBool,
+    entered: std::sync::atomic::AtomicUsize,
 }
 
 impl Decoder for SlowDecoder {
@@ -39,6 +40,7 @@ impl Decoder for SlowDecoder {
         _prompt: &str,
         _r: &crate::serving::decoder::GenReq,
     ) -> Result<(String, usize), String> {
+        self.entered.fetch_add(1, Ordering::SeqCst);
         for _ in 0..4000 {
             if let Err(e) = crate::cancel::check() {
                 self.cancelled.store(true, Ordering::SeqCst);
@@ -56,4 +58,6 @@ impl Decoder for SlowDecoder {
 
 mod a_client_that_leaves_stops_the_generation_and_frees_its_slot;
 mod loopback_detection_and_the_exposure_rule;
+mod past_the_in_flight_cap_every_post_is_refused_at_once;
 mod serves_over_real_sockets_and_refuses_foreign_hosts;
+mod the_request_limits_hold_over_a_real_socket;

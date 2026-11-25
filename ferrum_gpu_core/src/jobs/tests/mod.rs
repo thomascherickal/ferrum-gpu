@@ -2,6 +2,7 @@
 //! GPU, no shell and no binary; one test runs the real `info` command in-process.
 
 mod allow;
+mod allow_injection;
 mod progress;
 mod runner;
 

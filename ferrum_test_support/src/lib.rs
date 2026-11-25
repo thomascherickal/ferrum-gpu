@@ -9,6 +9,7 @@ mod deadlined;
 mod fake_tool;
 mod guarded;
 mod helper;
+pub mod load;
 pub use deadlined::{with_deadline, Deadlined};
 pub use fake_tool::FakeTool;
 pub use guarded::Guarded;

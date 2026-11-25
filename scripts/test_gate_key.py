@@ -58,6 +58,19 @@ class GateKey(unittest.TestCase):
         put(d, "new.rs", "x\n")  # untracked
         self.assertIn("new.rs", gk.unstaged(d))
 
+    def test_python_bytecode_caches_are_ignored(self):
+        d = self.repo()
+        put(d, "scripts/__pycache__/x.cpython-312.pyc", "c1")
+        put(d, "y.pyc", "c1")
+        git(d, "add", "-A")
+        self.record(d, "PASS", gk.key(d))
+        put(d, "scripts/__pycache__/x.cpython-312.pyc", "c2")  # rewritten by a run
+        put(d, "y.pyc", "c2")
+        self.assertEqual(gk.unstaged(d), [])
+        git(d, "add", "scripts", "y.pyc")  # even staged, the key is unchanged
+        self.assertEqual(gk.check(d)[0], 0)
+        self.assertTrue(gk.bytecode("a/__pycache__/b") and not gk.bytecode("a.py"))
+
     def test_main_prints_the_key(self):
         self.assertEqual(len(gk.key(gk.ROOT)), 40)
         self.assertEqual(gk.main([]), 0)

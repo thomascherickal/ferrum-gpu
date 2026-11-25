@@ -11,6 +11,13 @@ pub fn read_request(r: &mut dyn Read, max_body: usize) -> Result<Request, HttpEr
             "chunked or encoded request bodies are not supported",
         ));
     }
+    let lengths = headers.iter().filter(|(k, _)| k == "content-length");
+    if lengths
+        .clone()
+        .any(|(_, v)| Some(v) != find("content-length").as_ref())
+    {
+        return Err(bad(400, "conflicting Content-Length headers"));
+    }
     let len = match find("content-length") {
         Some(v) => v
             .parse::<usize>()

@@ -50,7 +50,11 @@ pub fn validate(cmd: &str, args: &[String]) -> Result<(), String> {
         if a.contains('\0') {
             return Err(format!("argument {i} contains a NUL byte"));
         }
-        if i > 0 && args[i - 1] == "--bin" && !allowed_tool(a) {
+        // the CLI takes `--bin=PATH` as well as `--bin PATH`: both are judged
+        let tool = a
+            .strip_prefix("--bin=")
+            .or((i > 0 && args[i - 1] == "--bin").then_some(a.as_str()));
+        if tool.is_some_and(|t| !allowed_tool(t)) {
             return Err("--bin may only name ollama or lms".into());
         }
     }

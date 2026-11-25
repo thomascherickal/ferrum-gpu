@@ -24,9 +24,15 @@ def git(root, *args):
     return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True).stdout
 
 
+def bytecode(path):
+    """Python's caches: rewritten by any run (some are tracked), never what the gate tested."""
+    return path.endswith(".pyc") or "__pycache__/" in path
+
+
 def key(root):
     """Hash of the staged content without the generated reports."""
-    rows = [r for r in git(root, "ls-files", "-s").split("\n") if r and r.split("\t", 1)[-1] not in GENERATED]
+    rows = [r for r in git(root, "ls-files", "-s").split("\n") if r and r.split("\t", 1)[-1] not in GENERATED
+            and not bytecode(r.split("\t", 1)[-1])]
     return hashlib.sha1("\n".join(rows).encode()).hexdigest()
 
 
@@ -34,7 +40,7 @@ def unstaged(root):
     """Paths whose working-tree content differs from the index (untracked included), generated ones apart."""
     out = []
     for line in git(root, "status", "--porcelain").split("\n"):
-        if len(line) > 3 and line[3:] not in GENERATED and not line[3:].startswith(".gate/") and not (line[0] in STAGED_ONLY and line[1] == " "):
+        if len(line) > 3 and line[3:] not in GENERATED and not line[3:].startswith(".gate/") and not bytecode(line[3:]) and not (line[0] in STAGED_ONLY and line[1] == " "):
             out.append(line[3:])
     return out
 

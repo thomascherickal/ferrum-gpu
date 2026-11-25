@@ -17,6 +17,8 @@ import os
 import sys
 import time
 
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"  # tracked __pycache__ must stay as committed
+sys.dont_write_bytecode = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import coverage_plan as plan  # noqa: E402
 import runner  # noqa: E402

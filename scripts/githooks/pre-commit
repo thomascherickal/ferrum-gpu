@@ -9,6 +9,8 @@
 # The gate before every commit: skipped only with FERRUM_SKIP_GATE=1, which AGENTS.md reserves for the commit
 # that installs this rule and for commits that change no code.
 # Enable once per clone:  git config core.hooksPath scripts/githooks
+# tracked scripts/__pycache__ files must not be rewritten (gate_key.py would see unstaged changes)
+export PYTHONDONTWRITEBYTECODE=1
 root=$(git rev-parse --show-toplevel) || exit 0
 cd "$root" || exit 0
 command -v python3 >/dev/null || exit 0

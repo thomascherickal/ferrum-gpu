@@ -28,7 +28,13 @@ def render(old, new_row):
         "peaks across rows: that is a resource regression.", "",
         trend("CPU peak per gate run", [r.split("|")[2].strip(" `")[:7] for r in rows][::-1],
               [float(r.split("|")[6]) for r in rows if r.split("|")[6].strip() != "-"][::-1], "percent"), "",
-        BEGIN, HEADER, "|" + "---|" * 10, *rows, END, ""])
+        BEGIN, HEADER, "|" + "---|" * 10, *rows, END, ""]) + kept_load(old)
+
+
+def kept_load(old):
+    """The load-test section (scripts/load_profile.py) of `old`, carried over unchanged."""
+    a, b = old.find("<!-- load:begin -->"), old.find("<!-- load:end -->")
+    return "\n" + old[a:b] + "<!-- load:end -->\n" if 0 <= a < b else ""
 
 
 def main(argv=None):
