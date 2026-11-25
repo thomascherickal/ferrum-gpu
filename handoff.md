@@ -31,8 +31,9 @@ flowchart LR
   tests (two bugs fixed: `--bin=PATH` allow-list bypass, conflicting Content-Length), a whole-request time budget
   and a 128-connection cap on the HTTP server, hooks no longer rewrite Python bytecode.
 - Coverage: summary Lines 100%, Functions 100%, lcov 100%; Regions about 98%. Files at most 100 lines; 0 duplicates.
-- Waiting on the user: `git branch -D perf quant-simplify` (superseded, unmerged; banned without a yes), a few
-  `tmp*` folders left in /tmp by one early test run (needs `rm`), hardware rows (Apple Silicon, AMD, Windows).
+- Resolved with the user's permission on 2026-11-25: the superseded branches `perf` and `quant-simplify` were deleted
+  (`git branch -D`), and 16 throwaway test repositories left in /tmp by early runs without TMPDIR were removed.
+  Only the hardware rows (Apple Silicon, AMD, Windows) remain open; they need real machines.
 - The local `main` branch in the user's checkout (`/home/thomas/Projects/ferrum/ferrum-gpu`) is behind `origin/main`
   and has the user's own uncommitted changes; it was left alone (`git pull` there when convenient).
 
