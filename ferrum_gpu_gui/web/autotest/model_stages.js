@@ -1,6 +1,6 @@
 // Studio autotest stages: Models and Export. Each stage drives the real controls and throws on a failed check.
 
-export async function models({ $, check, until, steps, params }) {
+export async function models({ $, check, until, steps, params, same }) {
   // Models: find the models the earlier steps saved, look inside one, filter its tensors, choose it
   $('tab-models').click();
   $('md-dir').value = params.get('dir');
@@ -10,7 +10,7 @@ export async function models({ $, check, until, steps, params }) {
   [...$('md-list').querySelectorAll('button')].find((b) => b.textContent === 'trained.gguf').click();
   await until(() => /parameters/.test($('md-summary').textContent), 'the inspection');
   check(/^gpt2/.test($('md-summary').textContent), `summary: ${$('md-summary').textContent}`);
-  check($('md-file').value === `${params.get('dir')}/trained.gguf`, 'the file box follows the list');
+  check(same($('md-file').value, `${params.get('dir')}/trained.gguf`), 'the file box follows the list');
   check($('md-tensors').querySelectorAll('tr').length > 5, 'tensors are listed');
   check($('md-meta').textContent.includes('general.architecture'), 'metadata is listed');
   check(/Q8_0|F32/.test($('md-kinds').textContent), `kinds: ${$('md-kinds').textContent}`);

@@ -43,11 +43,9 @@ pub(crate) fn info(app: &App) -> Response {
         .collect();
     let version = app.version.load(std::sync::atomic::Ordering::SeqCst);
     let model = lock(&app.model).as_ref().map_or(Json::Null, |m| {
-        let mut j = model_json(m);
-        if let Json::Obj(o) = &mut j {
-            o.push(("version".into(), num(version as usize)));
-        }
-        j
+        let mut fields = model_fields(m);
+        fields.push(("version", num(version as usize)));
+        Json::obj_vec(fields)
     });
     Response::json(
         200,

@@ -4,7 +4,7 @@
   scripts/system_profile.py render FILE      # add a row for that run to system-profile.md
 
 The gate samples itself (scripts/gate.sh). A sample is: seconds, CPU busy %, memory in use (MiB), GPU
-busy % and GPU memory (MiB); the GPU columns are empty without `nvidia-smi`. Nothing is estimated: a
+busy % and GPU memory (MiB); the GPU columns are empty without `nvidia-smi`. Without /proc (macOS, Windows) CPU is the load average over the CPU count (none on Windows) and memory is empty. A
 column with no readings shows "-".
 """
 import datetime

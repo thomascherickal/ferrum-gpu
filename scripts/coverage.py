@@ -4,7 +4,7 @@ an adapter (the "skip when there is no adapter" branches only execute in the sec
 interoperability tests are not instrumented (the gate runs them in their own step, with their time limits).
   scripts/coverage.py            # print the per-file table (scripts/coverage.sh calls this)
   FLOOR=98 scripts/coverage.py   # also fail if total line coverage (the llvm-cov summary) is below FLOOR
-Target: under 30 minutes, cold or warm (AGENTS.md). Where the time goes, and what keeps it down:
+Budget: under 20 minutes, cold or warm (the user's decision; the gate checks it). Where the time goes, and what keeps it down:
   * One instrumented build, kept in target/llvm-cov-target between runs: a rerun compiles only what changed.
     Never delete that directory unless files MOVED (the report would list the old paths at 0%).
   * `cargo nextest` runs every test in its own process in parallel; .config/nextest.toml makes the packages
@@ -59,7 +59,9 @@ def main(argv=None):
     # workspace crates' own artifacts cleaned too (stale objects of moved files show up as bogus zero-count
     # entries). The dependencies stay built either way. `cargo llvm-cov clean` is cargo's cleaner, not `rm`.
     stage("clean-profraw", CLEAN + ["--profraw-only"], quiet=True)
-    layout = plan.layout_hash(runner.captured(["git", "ls-files", "-co", "--exclude-standard", "*.rs"]).splitlines())
+    sources = runner.captured(["git", "ls-files", "-co", "--exclude-standard", "*.rs"]).splitlines()
+    # A new compiler also invalidates the instrumented objects, so its version is part of the layout.
+    layout = plan.layout_hash(sources + [runner.captured(["rustc", "-V"]).strip()])
     if stored_layout() != layout:
         stage("clean-workspace-artifacts", CLEAN, quiet=True)
         with open(plan.LAYOUT, "w", encoding="utf-8") as f:
@@ -73,7 +75,7 @@ def main(argv=None):
     # the exact per-line check (every instrumented line executed); see scripts/lcov_check.py
     if runner.run([plan.PY, "scripts/lcov_check.py", plan.LCOV]) != 0:
         status = 1
-    line = f"total {int(time.time() - start)}s (target: under 1800s)"
+    line = f"total {int(time.time() - start)}s (budget: under 1200s, 20 minutes)"
     with open(plan.TIMING, "a", encoding="utf-8") as f:
         f.write(line + "\n")
     print(line, file=sys.stderr)

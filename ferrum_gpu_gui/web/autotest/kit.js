@@ -7,6 +7,8 @@ export function makeKit(params) {
   const status = (id) => $(id).querySelector('[role="status"]').textContent;
   return {
     $, params, steps: [],
+    // paths compare equal across Windows separators and case
+    same: (a, b) => a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase(),
     check: (cond, m) => { if (!cond) fail(m); },
     until: async (fn, what, ms = 90000) => {
       const t0 = performance.now();

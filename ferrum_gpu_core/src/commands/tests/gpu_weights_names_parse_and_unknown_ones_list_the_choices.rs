@@ -8,9 +8,20 @@ fn gpu_weights_names_parse_and_unknown_ones_list_the_choices() {
     assert_eq!(gpu_weights(Some("f16")).unwrap(), Some(QKind::F16));
     assert_eq!(gpu_weights(Some("q8_0")).unwrap(), Some(QKind::Q8_0));
     assert_eq!(gpu_weights(Some("q4_0")).unwrap(), Some(QKind::Q4_0));
+    for (name, kind) in [
+        ("fp4", QKind::Fp4),
+        ("mxfp4", QKind::Fp4),
+        ("fp8", QKind::Fp8E4M3),
+        ("fp8e4m3", QKind::Fp8E4M3),
+        ("fp8e5m2", QKind::Fp8E5M2),
+        ("q2", QKind::Q2K),
+        ("q2_k", QKind::Q2K),
+    ] {
+        assert_eq!(gpu_weights(Some(name)).unwrap(), Some(kind), "{name}");
+    }
     let e = gpu_weights(Some("int3")).unwrap_err();
     assert!(
-        e.contains("--gpu-weights") && e.contains("f32, f16, q8_0, q4_0"),
+        e.contains("--gpu-weights") && e.contains("f32, f16, q8_0, q4_0, fp4"),
         "{e}"
     );
 }

@@ -30,9 +30,5 @@ pub fn start(d: Arc<dyn Decoder>, cfg: &Config) -> Result<Running, String> {
     });
     let (s, max_body, guard) = (stop.clone(), cfg.limits.max_body, is_loopback(&cfg.host));
     let thread = std::thread::spawn(move || serve_with(listener, handler, s, max_body, guard));
-    Ok(Running {
-        addr,
-        stop,
-        thread: Some(thread),
-    })
+    Ok(Running { addr, stop, thread })
 }

@@ -48,6 +48,7 @@ fn bpe() -> GgufTokenizer {
     .unwrap()
 }
 
+mod a_merge_without_a_space_is_ignored_and_a_byte_without_a_token_is_dropped;
 mod add_bos_follows_the_file_then_llama_cpps_defaults;
 mod bpe_applies_merges_in_rank_order_and_decodes_exactly;
 mod edge_branches_leftovers_non_byte_chars_odd_metadata_and_pre_defaults;

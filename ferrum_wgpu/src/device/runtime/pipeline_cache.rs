@@ -41,6 +41,9 @@ impl Gpu {
         if let Some(p) = cache.get(key) {
             return Ok(p.clone());
         }
+        // compiling allocates: a fault test can make the first build of a kernel fail
+        #[cfg(any(test, feature = "fault-injection"))]
+        self.injected_alloc_fault()?;
         let p = self.scoped(|| {
             let module = self
                 .device

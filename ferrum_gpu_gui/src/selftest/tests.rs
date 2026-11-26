@@ -30,7 +30,8 @@ fn bench_models_load_and_unknown_names_are_refused() {
     assert!(bench_gguf("small", "q3")
         .unwrap_err()
         .contains("unknown quant"));
-    assert!(bench_config("large").unwrap().vocab > bench_config("small").unwrap().vocab);
+    let vocab = |shape| bench_config(shape).unwrap().vocab;
+    assert!(vocab("small") < vocab("medium") && vocab("medium") < vocab("large"));
 }
 
 #[test]

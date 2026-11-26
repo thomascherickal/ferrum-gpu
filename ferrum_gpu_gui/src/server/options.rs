@@ -63,7 +63,7 @@ pub struct Running {
     /// Where it listens.
     pub addr: SocketAddr,
     pub(super) stop: Arc<AtomicBool>,
-    pub(super) thread: Option<JoinHandle<()>>,
+    pub(super) thread: JoinHandle<()>,
 }
 
 impl Running {
@@ -73,10 +73,8 @@ impl Running {
     }
 
     /// Stop accepting connections and wait for the accept loop to end.
-    pub fn stop(mut self) {
+    pub fn stop(self) {
         self.stop.store(true, Ordering::Relaxed);
-        if let Some(t) = self.thread.take() {
-            let _ = t.join();
-        }
+        let _ = self.thread.join();
     }
 }

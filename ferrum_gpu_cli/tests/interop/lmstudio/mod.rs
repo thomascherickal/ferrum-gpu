@@ -43,19 +43,17 @@ fn fake(tag: &str, repo: &str, file: &str, import_exit: i32) -> Fake {
     }
 }
 
+/// The calls `lms` logged, one per line, without the quotes `cmd.exe` keeps around arguments.
+fn logged_calls(fk: &Fake) -> Vec<String> {
+    let log = std::fs::read_to_string(&fk.log).unwrap();
+    log.lines().map(|l| l.replace('"', "")).collect()
+}
+
 /// The path `lms import` was given, from the first logged call.
 fn imported_path(fk: &Fake) -> PathBuf {
-    let log = std::fs::read_to_string(&fk.log).unwrap();
-    let first = log.lines().next().unwrap().to_string();
-    PathBuf::from(
-        first
-            .rsplit_once(" --user-repo ")
-            .unwrap()
-            .1
-            .split_once(' ')
-            .unwrap()
-            .1,
-    )
+    let calls = logged_calls(fk);
+    let (_, rest) = calls[0].rsplit_once(" --user-repo ").unwrap();
+    PathBuf::from(rest.split_once(' ').unwrap().1)
 }
 
 fn export(extra: &[&str], model: &Path, tool: &Path) -> Output {

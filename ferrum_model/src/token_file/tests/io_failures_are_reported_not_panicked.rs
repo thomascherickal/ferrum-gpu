@@ -24,7 +24,7 @@ fn handle_at(path: &str, data_start: u64) -> TokenFile {
 #[test]
 fn a_directory_is_not_a_token_file() {
     let e = TokenFile::open(&tmp("a_dir").replace("a_dir", "")).unwrap_err();
-    assert!(e.contains("Is a directory"), "{e}");
+    assert!(e.contains("ferrum_tokfile"), "the path is named: {e}");
 }
 
 #[test]
@@ -49,7 +49,7 @@ fn a_file_cut_short_after_opening_fails_the_read() {
 #[test]
 fn an_offset_the_file_cannot_seek_to_is_an_error() {
     let f = handle_at(&written("seek.tok.gguf"), 1 << 63);
-    assert!(f.read(0, 1).unwrap_err().contains("Invalid argument"));
+    assert!(f.read(0, 1).is_err());
 }
 
 #[test]

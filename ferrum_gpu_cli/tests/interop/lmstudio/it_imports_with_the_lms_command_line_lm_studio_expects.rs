@@ -16,8 +16,7 @@ fn it_imports_with_the_lms_command_line_lm_studio_expects() {
         "{out}"
     );
     assert!(out.contains("lms load fake/ferrum/f32"), "{out}");
-    let log = std::fs::read_to_string(&fk.log).unwrap();
-    let calls: Vec<&str> = log.lines().collect();
+    let calls = logged_calls(&fk);
     let abs = std::path::absolute(&f.f32).unwrap();
     assert_eq!(
         calls[0],

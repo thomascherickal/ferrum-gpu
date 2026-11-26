@@ -36,8 +36,13 @@ pub(crate) fn field(j: &Json, key: &str, default: f64, lo: f64, hi: f64) -> Resu
 }
 
 pub(super) fn model_json(m: &Llama) -> Json {
+    Json::obj_vec(model_fields(m))
+}
+
+/// The `(key, value)` pairs that describe `m`, for callers that add their own.
+pub(super) fn model_fields(m: &Llama) -> Vec<(&'static str, Json)> {
     let c = &m.cfg;
-    Json::obj([
+    vec![
         (
             "preset",
             App::preset_of(m).map_or(Json::Null, |p| Json::Str(p.into())),
@@ -56,5 +61,5 @@ pub(super) fn model_json(m: &Llama) -> Json {
         ),
         ("tied", Json::Bool(m.tied)),
         ("byte_tokens", Json::Bool(c.vocab == tokenizer::VOCAB)),
-    ])
+    ]
 }

@@ -16,19 +16,16 @@ pub(super) fn text(p: &Path) -> Json {
 pub(super) fn places() -> Json {
     let cwd = std::env::current_dir().ok();
     let home = ferrum_gpu_core::places::home_dir();
-    let mut v = vec![];
-    for (name, p) in [
+    let v = [
         ("Where the server started", cwd),
         ("Home", home),
         ("Temp", Some(std::env::temp_dir())),
-    ] {
-        if let Some(p) = p {
-            v.push(Json::obj([
-                ("name", Json::Str(name.into())),
-                ("path", text(&p)),
-            ]));
-        }
-    }
+    ]
+    .into_iter()
+    .filter_map(|(name, p)| {
+        p.map(|p| Json::obj([("name", Json::Str(name.into())), ("path", text(&p))]))
+    })
+    .collect();
     Json::Arr(v)
 }
 

@@ -77,16 +77,19 @@ def main(argv=None):
     head = runner.captured(["git", "rev-parse", "HEAD"])
     write(f"{out}/commit", gate_steps.commit_record(runner.captured(["git", *gate_steps.status_args()]), head) + "\n")
     sampler = runner.start([PY, "scripts/system_profile.py", "sample", profile])
-    failed = False
+    failed, took = False, {}
     for name, commands, env, cwd in gate_steps.steps(out):
-        rc = run_step(commands, env, cwd, f"{out}/{name}.log")
+        rc, took[name] = runner.timed(run_step, commands, env, cwd, f"{out}/{name}.log")
         failed = failed or rc != 0
         with open(f"{out}/gate.txt", "a", encoding="utf-8") as f:
             f.write(gate_steps.step_line(name, rc, clock()) + "\n")
+    slow = gate_steps.over_budget(took)
+    print(*slow, sep="\n", file=sys.stderr)
+    open(f"{out}/gate.txt", "a", encoding="utf-8").write(gate_steps.step_line("budget", int(bool(slow)), clock()) + "\n")
     write(f"{profile}.stop", "")
     sampler.wait()
     refresh([PY, "scripts/system_profile.py", "render", profile], "system-profile.md")
-    write(f"{out}/gate.done", gate_steps.verdict(failed) + "\n")
+    write(f"{out}/gate.done", gate_steps.verdict(failed or bool(slow)) + "\n")
     refresh([PY, "scripts/metrics.py", "--gate", f"{out}/gate.txt"], "metrics.md")
     refresh([PY, "scripts/next_steps.py"], "next-steps.md")
     print(open(f"{out}/gate.txt", encoding="utf-8").read() + open(f"{out}/gate.done", encoding="utf-8").read(), end="")

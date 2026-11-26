@@ -37,6 +37,9 @@ const FIX_CORPUS: &[u8] = include_bytes!("../../../../../fixtures/bpe/corpus.txt
 const FIX_TOKENS: &[u8] = include_bytes!("../../../../../fixtures/bpe/corpus.tok.gguf");
 
 mod a_file_without_a_tokenizer_but_with_256_tokens_uses_bytes;
+mod a_max_seconds_that_is_not_a_number_is_refused;
+mod a_metrics_file_that_cannot_be_written_is_refused;
+mod a_streamed_run_without_a_listener_still_returns_its_text;
 mod export_gguf_changes_precision_and_keeps_the_tokenizer;
 mod finetune_continues_from_a_gpt2_file_with_its_tokenizer;
 mod generate_options_stop_stream_ids_and_aliases;

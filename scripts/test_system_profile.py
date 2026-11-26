@@ -38,6 +38,27 @@ class Profile(unittest.TestCase):
         self.assertIn("c%d" % (p.KEEP + 2), rows[0])
         self.assertIn(p.BEGIN, doc)
 
+    def test_a_machine_without_proc_falls_back_to_load_and_leaves_memory_empty(self):
+        self.assertIsNone(p.stat_line("/no/such/stat"))
+        self.assertIsNone(p.mem_now("/no/such/meminfo"))
+        d = tempfile.mkdtemp()
+        bad = f"{d}/meminfo"
+        with open(bad, "w") as f:
+            f.write("nothing useful\n")
+        self.assertIsNone(p.mem_now(bad))
+        self.assertEqual(p.stat_line(bad), "nothing useful\n")
+        self.assertEqual(p.load_busy(lambda: (2.0, 0, 0), cpus=4), 50.0)
+        self.assertEqual(p.load_busy(lambda: (9.0, 0, 0), cpus=4), 100.0)
+        self.assertIsNone(p.load_busy(None))
+        self.assertIsNone(p.load_busy(lambda: (_ for _ in ()).throw(OSError())))
+        self.assertEqual(p.cpu_now("cpu 10 0 10 80 0", "cpu 40 0 40 120 0"), 60.0)
+        self.assertEqual(p.cpu_now(None, None, load=lambda: 7.5), 7.5)
+        self.assertEqual((p.blank(None, 1), p.blank(2.26, 1)), ("", "2.3"))
+        only_load = p.summarize("2,,,,\n4,,,,\n")
+        self.assertIsNone(only_load["cpu_peak"])
+        self.assertIsNone(only_load["mem_peak"])
+        self.assertIn("| - | - | - |", p.row(only_load, "abc", "x", "t"))
+
     def test_sampling_stops_when_asked_and_main_handles_its_arguments(self):
         d = tempfile.mkdtemp()
         f = f"{d}/s.csv"

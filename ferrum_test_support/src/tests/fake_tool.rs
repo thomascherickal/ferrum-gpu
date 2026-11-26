@@ -11,33 +11,39 @@ fn lms(dir: &Path) -> FakeTool {
     }
 }
 
+/// `dir/name` rendered the way the script text renders it (the platform's own separator).
+fn at(dir: &Path, name: &str) -> String {
+    dir.join(name).display().to_string()
+}
+
 #[test]
 fn the_unix_script_logs_replies_complains_and_exits() {
-    let text = lms(Path::new("/d")).unix_text(Path::new("/d"), "lms");
+    let d = Path::new("/d");
+    let (log, reply, err) = (at(d, "log.txt"), at(d, "lms.reply0"), at(d, "lms.err"));
     assert_eq!(
-        text,
-        "#!/bin/sh\necho \"$@\" >> '/d/log.txt'\ncat \"$4\" >> '/d/log.txt'\n\
-         if [ \"$1\" = 'ls' ]; then cat '/d/lms.reply0'; fi\ncat '/d/lms.err' >&2\nexit 3\n"
+        lms(d).unix_text(d, "lms"),
+        format!(
+            "#!/bin/sh\necho \"$@\" >> '{log}'\ncat \"$4\" >> '{log}'\n\
+             if [ \"$1\" = 'ls' ]; then cat '{reply}'; fi\ncat '{err}' >&2\nexit 3\n"
+        )
     );
-    assert_eq!(
-        FakeTool::default().unix_text(Path::new("/d"), "t"),
-        "#!/bin/sh\nexit 0\n"
-    );
+    assert_eq!(FakeTool::default().unix_text(d, "t"), "#!/bin/sh\nexit 0\n");
 }
 
 #[test]
 fn the_batch_file_does_the_same_with_crlf_lines() {
-    let text = lms(Path::new("C:\\d")).windows_text(Path::new("C:\\d"), "lms");
+    let d = Path::new("C:\\d");
+    let (log, reply, err) = (at(d, "log.txt"), at(d, "lms.reply0"), at(d, "lms.err"));
     let want = [
-        "@echo off",
-        ">> \"C:\\d/log.txt\" echo %*",
-        "type \"%~4\" >> \"C:\\d/log.txt\"",
-        "if \"%1\"==\"ls\" type \"C:\\d/lms.reply0\"",
-        "type \"C:\\d/lms.err\" 1>&2",
-        "exit /b 3",
-        "",
+        "@echo off".to_string(),
+        format!(">> \"{log}\" echo %*"),
+        format!("type \"%~4\" >> \"{log}\""),
+        format!("if \"%1\"==\"ls\" type \"{reply}\""),
+        format!("type \"{err}\" 1>&2"),
+        "exit /b 3".to_string(),
+        String::new(),
     ];
-    assert_eq!(text, want.join("\r\n"));
+    assert_eq!(lms(d).windows_text(d, "lms"), want.join("\r\n"));
     assert_eq!(
         FakeTool::default().windows_text(Path::new("d"), "t"),
         "@echo off\r\nexit /b 0\r\n"

@@ -39,5 +39,6 @@ fn blocks_of(m: &GpuLlama) -> (usize, usize, usize) {
     (m.tok.parts(), head, gate)
 }
 
+mod an_allocation_failure_while_uploading_blocks_is_reported;
 mod sharded_f32_decode_equals_the_whole_model_with_and_without_biases;
 mod what_cannot_be_split_still_fails_the_binding_check_and_says_which;

@@ -24,7 +24,7 @@ fn a_server_starts_through_the_api_serves_and_stops() {
     let a = app();
     let body = format!(
         r#"{{"args":["--model","{}","--port","0","--device","cpu","--threads","1"]}}"#,
-        model.display()
+        model.display().to_string().replace('\\', "\\\\") // JSON-escape Windows separators
     );
     let (s, j) = call(&a, "POST", "/api/serve/start", body.as_bytes());
     assert_eq!(s, 200, "{j}");

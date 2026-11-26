@@ -5,6 +5,7 @@ Only Python and the tools being run are needed: no bash, no GNU `timeout`, no `j
 import os
 import subprocess
 import sys
+import time
 
 NOT_FOUND = 127  # what a shell reports for a program that does not exist
 
@@ -75,3 +76,10 @@ def captured(cmd, cwd=None):
     except FileNotFoundError:
         return ""
     return done.stdout if done.returncode == 0 else ""
+
+
+def timed(fn, *args):
+    """(fn(*args), seconds it took)."""
+    began = time.monotonic()
+    return fn(*args), time.monotonic() - began
+

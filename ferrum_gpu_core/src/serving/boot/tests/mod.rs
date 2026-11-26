@@ -55,6 +55,7 @@ fn llama_file(d: &std::path::Path) -> String {
     p.display().to_string()
 }
 
+mod a_gpu_mem_mb_that_is_not_a_number_is_refused;
 mod both_kinds_of_model_start_a_server_and_say_what_they_started;
 mod load;
 mod the_token_comes_from_the_flag_then_the_environment;

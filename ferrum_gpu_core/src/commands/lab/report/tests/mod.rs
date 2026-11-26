@@ -1,4 +1,3 @@
-use super::rate::*;
 use super::*;
 
 fn adapter() -> AdapterFacts {

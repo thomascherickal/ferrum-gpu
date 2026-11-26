@@ -79,13 +79,21 @@ class Running(unittest.TestCase):
                 mock.patch.object(gate.runner, "run", fake_run):
             self.assertEqual(gate.main([]), 0)
         lines = open(f"{out}/gate.txt").read().splitlines()
-        self.assertEqual([l.split()[0:2] for l in lines], [["start", "rc=0"], ["good", "rc=0"], ["bad", "rc=1"]])
+        self.assertEqual([l.split()[0:2] for l in lines], [["start", "rc=0"], ["good", "rc=0"], ["bad", "rc=1"], ["budget", "rc=0"]])
         self.assertEqual(open(f"{out}/gate.done").read(), "FAIL\n")
         self.assertTrue(open(f"{out}/commit").read().strip())
         self.assertTrue(os.path.exists(f"{out}/key"))
         self.assertIn(["scripts/metrics.py", "--gate", f"{out}/gate.txt"], calls)
         self.assertIn(["scripts/next_steps.py"], calls)
         sampler.wait.assert_called_once()
+
+    def test_budgets_are_twenty_minutes_each_for_the_tests_and_for_coverage(self):
+        ok = {"llvmpipe": 400, "xe": 400, "timelimit": 399, "coverage": 1200}
+        self.assertEqual(s.over_budget(ok), [])
+        slow = s.over_budget({"llvmpipe": 600, "xe": 400, "timelimit": 201, "coverage": 1201})
+        self.assertEqual(len(slow), 2)
+        self.assertTrue(slow[0].startswith("the test steps") and slow[1].startswith("the coverage check"))
+        self.assertEqual(s.over_budget({}), [])
 
 
 if __name__ == "__main__":

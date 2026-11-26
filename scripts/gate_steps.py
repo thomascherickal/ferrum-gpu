@@ -45,3 +45,15 @@ def status_args():
 
 def verdict(failed):
     return "FAIL" if failed else "PASS"
+
+
+# the user's budgets (AGENTS.md): the test steps together and the coverage check each finish within 20 minutes
+BUDGET_SECONDS = 20 * 60
+TEST_STEPS = ("llvmpipe", "xe", "timelimit")
+
+
+def over_budget(took):
+    """Messages for each budget the measured step seconds `took` ({step: seconds}) exceed; [] when within."""
+    groups = {"the test steps": sum(took.get(s, 0) for s in TEST_STEPS), "the coverage check": took.get("coverage", 0)}
+    return [f"{what} took {secs / 60:.1f} minutes (budget {BUDGET_SECONDS // 60})" for what, secs in groups.items() if secs > BUDGET_SECONDS]
+

@@ -14,7 +14,7 @@ import coverage_plan as p  # noqa: E402
 class Plan(unittest.TestCase):
     def test_the_layout_hash_ignores_order_and_changes_with_the_file_set(self):
         self.assertEqual(p.layout_hash(["b.rs", "a.rs"]), hashlib.sha1(b"a.rs\nb.rs\n").hexdigest())
-        self.assertNotEqual(p.layout_hash(["a.rs"]), p.layout_hash(["a.rs", "b.rs"]))
+        self.assertNotEqual(p.layout_hash(["a.rs"]), p.layout_hash(["a.rs", "b.rs", "b.rs\na.rs"]))  # plus the mocked compiler version
 
     def test_the_two_runs_and_the_report_commands(self):
         self.assertEqual(p.run_one()[:6], ["cargo", "llvm-cov", "nextest", "--workspace", "--no-report", "-E"])
@@ -53,7 +53,7 @@ class Main(unittest.TestCase):
         self.assertEqual(cargo, [p.run_one(), p.run_two()])
         envs = [a[0] for k, c, a, _ in calls if k == "run" and a]
         self.assertIn({"FERRUM_GPU_ADAPTER": "no-such-adapter"}, envs)
-        self.assertEqual(open(f"{d}/layout").read().strip(), p.layout_hash(["a.rs", "b.rs"]))
+        self.assertEqual(open(f"{d}/layout").read().strip(), p.layout_hash(["a.rs", "b.rs", "b.rs\na.rs"]))  # plus the mocked compiler version
         lines = open(f"{d}/t.txt").read().splitlines()
         self.assertEqual([l.split()[0] for l in lines], ["clean-profraw", "clean-workspace-artifacts",
                                                          "default-adapter", "no-adapter", "total"])

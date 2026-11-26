@@ -40,7 +40,7 @@ fn the_modelfile_alone_is_written_without_the_tool() {
     assert!(o.status.success());
     let text = std::fs::read_to_string(&mf).unwrap();
     assert!(
-        text.starts_with("FROM \"/") && text.contains(&format!("{}\"", f.f32.display())),
+        text.starts_with("FROM \"") && text.contains(&format!("{}\"", f.f32.display())),
         "{text}"
     );
     assert!(text.contains("TEMPLATE \"{{ .Prompt }}\""));

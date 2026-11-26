@@ -9,9 +9,5 @@ pub fn start(app: Arc<App>, port: u16) -> Result<Running, String> {
     let handler: Handler = Arc::new(move |req| route(&app, req));
     let s = stop.clone();
     let thread = std::thread::spawn(move || serve(listener, handler, s, MAX_BODY));
-    Ok(Running {
-        addr,
-        stop,
-        thread: Some(thread),
-    })
+    Ok(Running { addr, stop, thread })
 }

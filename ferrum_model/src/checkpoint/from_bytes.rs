@@ -42,10 +42,10 @@ pub fn from_bytes(bytes: Vec<u8>) -> Result<Checkpoint, GgufError> {
         }
     }
     let load = |kind: &str| -> Result<Gpt2, GgufError> {
-        let params = (0..lens.len())
+        (0..lens.len())
             .map(|i| g.tensor_f32(&format!("p{i}.{kind}")))
-            .collect::<Result<Vec<_>, _>>()?;
-        Gpt2::from_params(cfg, params).map_err(err)
+            .collect::<Result<Vec<_>, _>>()
+            .and_then(|params| Gpt2::from_params(cfg, params).map_err(err))
     };
     Ok(Checkpoint {
         snapshot: Snapshot {

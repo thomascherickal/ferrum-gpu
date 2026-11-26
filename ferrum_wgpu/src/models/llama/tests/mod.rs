@@ -44,6 +44,7 @@ fn variants() -> Vec<(&'static str, Config, bool, bool)> {
 const IDS: [usize; 10] = [3, 16, 0, 9, 9, 4, 11, 2, 7, 5];
 
 mod a_fault_at_any_command_fails_cleanly_and_the_context_does_not_advance;
+mod an_invalid_config_or_a_failed_allocation_is_refused_at_construction;
 mod feed_matches_the_oracle_at_every_position_of_a_full_context;
 mod forward_all_matches_the_oracle_and_feed_for_every_variant;
 mod greedy_generation_agrees_with_the_oracle_token_for_token;
